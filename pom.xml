@@ -30,6 +30,15 @@ own defined.
 </license>
 </licenses>
 
+<developers>
+	<developer>
+		<id>mocleiri</id>
+		<name>Michael O'Cleirigh</name>
+		<email>michael.ocleirigh[at]rivulet.ca</email>
+		<timezone>-4</timezone>
+	</developer>
+</developers>
+
 
   <!-- get every artifact through maven.glassfish.org, which proxies all the artifacts that we need -->
   <repositories>
