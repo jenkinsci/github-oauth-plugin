@@ -1,0 +1,48 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.jenkins-ci.plugins</groupId>
+    <artifactId>plugin</artifactId>
+    <version>1.414</version><!-- which version of Jenkins is this plugin built against? -->
+  </parent>
+
+  <groupId>org.jenkins-ci.plugins</groupId>
+  <artifactId>github-oauth-plugin</artifactId>
+  <version>1.0-SNAPSHOT</version>
+<name>Github Authentication plugin</name>
+<description>A Jenkins plugin that allows github oauth to be used to sign in</description>
+  <packaging>hpi</packaging>
+
+<licenses>
+<license>
+<name>The Apache Software License, Version 2.0</name>
+<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+<distribution>repo</distribution>
+<comments>
+This project (core-parent) is being released under the Apache 2 license,
+but does not require that all child projects are released under the same license.
+If a child project defines a license of it's own different from the Apache license,
+Maven recognizes this and uses only that license. If a child wants to use the
+Apache license, it does not need to define a license at all. Do not remove this
+license from the parent, or it will un-license child projects that do not have their
+own defined.
+</comments>
+</license>
+</licenses>
+
+
+  <!-- get every artifact through maven.glassfish.org, which proxies all the artifacts that we need -->
+  <repositories>
+    <repository>
+      <id>m.g.o-public</id>
+      <url>http://maven.glassfish.org/content/groups/public/</url>
+    </repository>
+  </repositories>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>m.g.o-public</id>
+      <url>http://maven.glassfish.org/content/groups/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
+</project>
