@@ -1,2 +1,5 @@
 target
 work
+.classpath
+.project
+.settings
