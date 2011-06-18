@@ -54,4 +54,47 @@ own defined.
       <url>http://maven.glassfish.org/content/groups/public/</url>
     </pluginRepository>
   </pluginRepositories>
+  
+  <dependencies>
+		<dependency>
+		    <groupId>oauth.signpost</groupId>
+		    <artifactId>signpost-core</artifactId>
+		    <version>1.2.1.1</version>
+		</dependency>
+		<dependency>
+		    <groupId>oauth.signpost</groupId>
+		    <artifactId>signpost-commonshttp4</artifactId>
+		    <version>1.2.1.1</version>
+		</dependency>
+	<dependency>
+	    	<groupId>org.apache.httpcomponents</groupId>
+		    <artifactId>httpcore</artifactId>
+		    <version>4.1</version>
+		</dependency>
+		<dependency>
+    		<groupId>org.apache.httpcomponents</groupId>
+    		<artifactId>httpclient</artifactId>
+    		<version>4.1</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.apache.httpcomponents</groupId>
+		    <artifactId>httpclient-cache</artifactId>
+		    <version>4.1</version>
+		</dependency>
+		<dependency>
+		    <groupId>oauth.signpost</groupId>
+		    <artifactId>signpost-core</artifactId>
+		    <version>1.2.1.1</version>
+		</dependency>
+		<dependency>
+		    <groupId>oauth.signpost</groupId>
+		    <artifactId>signpost-commonshttp4</artifactId>
+		    <version>1.2.1.1</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.json</groupId>
+		    <artifactId>json</artifactId>
+		    <version>20090211</version>
+		</dependency>
+		</dependencies>
 </project>
