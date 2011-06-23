@@ -31,6 +31,7 @@ package org.jenkinsci.plugins;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
+import hudson.model.Descriptor.FormException;
 import hudson.security.AbstractPasswordBasedSecurityRealm;
 import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
@@ -41,6 +42,9 @@ import java.sql.ResultSet;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
+
+import net.sf.json.JSONObject;
+
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
@@ -48,6 +52,7 @@ import org.acegisecurity.providers.dao.AbstractUserDetailsAuthenticationProvider
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
 import org.springframework.dao.DataAccessException;
 
 /**
@@ -59,31 +64,77 @@ import org.springframework.dao.DataAccessException;
 public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm
 {
 
-    @DataBoundConstructor
-    public GithubSecurityRealm()
+    private String clientID;
+	private String clientSecret;
+
+
+	@DataBoundConstructor
+    public GithubSecurityRealm(String clientID, String clientSecret)
     {
-        
+		super();
+		
+		if (clientID == null || clientID.length() == 0)
+			this.clientID = "2885d186c7c7a37d9a10";
+		else	
+			this.clientID = Util.fixEmptyAndTrim(clientID);
+		
+		if (clientSecret == null || clientSecret.length() == 0)
+			this.clientSecret = "1593de427008eed6b5d76a9d8180b30f2036d276";
+		else 
+			this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
+    	
     }
 
+	@Extension
     public static final class DescriptorImpl extends Descriptor<SecurityRealm>
     {
+    
+		private static DescriptorImpl instance = new DescriptorImpl();
+		
         @Override
         public String getHelpFile() {
-            return "/plugin/mysql-auth/help/overview.html";
+            return "/plugin/github-oauth/help/overview.html";
         }
         
         @Override
         public String getDisplayName() {
             return "Github Authentication Plugin";
         }
+
+		
+		/* (non-Javadoc)
+		 * @see hudson.model.Descriptor#configure(org.kohsuke.stapler.StaplerRequest, net.sf.json.JSONObject)
+		 */
+		@Override
+		public boolean configure(StaplerRequest req, JSONObject json)
+				throws FormException {
+			// TODO Auto-generated method stub
+			return super.configure(req, json);
+		}
+
+		/* (non-Javadoc)
+		 * @see hudson.model.Descriptor#save()
+		 */
+		@Override
+		public synchronized void save() {
+			// TODO Auto-generated method stub
+			super.save();
+		}
+
+		/* (non-Javadoc)
+		 * @see hudson.model.Descriptor#load()
+		 */
+		@Override
+		public synchronized void load() {
+			// TODO Auto-generated method stub
+			super.load();
+		}
+        
+			
+        
     }
 
-    @Extension
-    public static DescriptorImpl install()
-    {
-        return new DescriptorImpl();
-    }
-
+    
     /**
      * Authenticates the specified user using the password against the stored
      * database configuration.
@@ -101,7 +152,9 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm
     {
         UserDetails userDetails = null;
 
-        String connectionString;
+        if (true)
+        	throw new GithubAuthenticationException("implementation is required.");
+        
 
 //        connectionString = "jdbc:mysql://" + myServer + "/" +
 //                myDatabase;
@@ -204,6 +257,9 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm
     {
         UserDetails user = null;
         String connectionString;
+        
+        if (true)
+        	throw new UsernameNotFoundException("implemtnation required");
 
 //        connectionString = "jdbc:mysql://" + myServer + "/" +
 //                myDatabase;
