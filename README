@@ -1,0 +1,10 @@
+github-oauth-plugin:
+
+The idea behind this plugin is that github already knows which users are committers on specific projects.
+
+So we should be able to have an authentication process using OAuth that allows users to login to jenkins using their github credentials.
+
+Nothing works yet but the plan is to use signpost-oauth or other example code to turn the login credentials into a user token.
+
+Once we know the user is in github we want to let them trigger builds for projects that they have push access on.
+
