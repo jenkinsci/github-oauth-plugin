@@ -16,6 +16,7 @@ import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.AuthenticationManager;
 import org.acegisecurity.BadCredentialsException;
+import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
 import org.acegisecurity.providers.anonymous.AnonymousAuthenticationToken;
 import org.acegisecurity.userdetails.UserDetails;
@@ -123,6 +124,8 @@ public class GithubSecurityRealm extends SecurityRealm
         httpclient.getConnectionManager().shutdown();        
         
         String accessToken = extractToken (content);
+        
+        SecurityContextHolder.getContext().setAuthentication(new GithubAuthenticationToken(accessToken));
     	
     	return HttpResponses.redirectToContextRoot();
     }
