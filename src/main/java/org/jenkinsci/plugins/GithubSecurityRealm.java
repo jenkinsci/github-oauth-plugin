@@ -4,23 +4,11 @@ package org.jenkinsci.plugins;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
-import hudson.security.AbstractPasswordBasedSecurityRealm;
 import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
-import hudson.security.SecurityRealm.SecurityComponents;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.logging.Logger;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import javax.servlet.ServletException;
 
 import net.sf.json.JSONObject;
 
@@ -30,30 +18,19 @@ import org.acegisecurity.AuthenticationManager;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
 import org.acegisecurity.providers.anonymous.AnonymousAuthenticationToken;
-import org.acegisecurity.providers.dao.AbstractUserDetailsAuthenticationProvider;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.AuthCache;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.protocol.ClientContext;
-import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.scheme.SchemeRegistry;
-import org.apache.http.conn.ssl.SSLSocketFactory;
-import org.apache.http.impl.auth.BasicScheme;
-import org.apache.http.impl.client.BasicAuthCache;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.util.EntityUtils;
+import org.jfree.util.Log;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Header;
+import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
+import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
 import org.springframework.dao.DataAccessException;
 
 /**
@@ -108,22 +85,75 @@ public class GithubSecurityRealm extends SecurityRealm
 
 	public HttpResponse doCommenceLogin(@Header("Referer") final String referer) throws IOException {
 		 
-		 return new HttpResponse() {
-			
-			public void generateResponse(StaplerRequest req, StaplerResponse rsp,
-					Object node) throws IOException, ServletException {
-				
-				
-//				rsp.sendRedirect2("https://github.com/login/oauth/authorize&client_id=" + clientID);
-				
-				rsp.sendRedirect2("https://github.com/login/oauth/authorize");
-				
-			}
-		};
+		return new HttpRedirect("https://github.com/login/oauth/authorize?client_id=" + clientID);
+		
 		 
 	 }
 	
+	/**
+     * This is where the user comes back to at the end of the OpenID redirect ping-pong.
+     */
+    public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
+    	
+    	
+    	String code = request.getParameter("code");
+    	
+    	Log.info("test");
+    	
+    	HttpPost httpost = new HttpPost("https://github.com/login/oauth/access_token?" +
+                "client_id="+clientID+"&" +
+                "client_secret=" + clientSecret + "&" +
+                "code=" + code);
+
+
+       DefaultHttpClient httpclient = new DefaultHttpClient();
+       
+		org.apache.http.HttpResponse response = httpclient.execute(httpost);
+		
+        HttpEntity entity = response.getEntity();
+        
+        String content = EntityUtils.toString(entity);
+        
+
+        
+
+        // When HttpClient instance is no longer needed, 
+        // shut down the connection manager to ensure
+        // immediate deallocation of all system resources
+        httpclient.getConnectionManager().shutdown();        
+        
+        String accessToken = extractToken (content);
+    	
+    	return HttpResponses.redirectToContextRoot();
+    }
 	
+	
+	private String extractToken(String content) {
+		
+		
+			
+			String parts[] = content.split("&");
+			
+			
+			for (String part : parts) {
+		
+				if (content.contains("access_token")) {
+					
+					String tokenParts[] = part.split("=");
+					
+					return tokenParts[1];
+				}
+			
+				// fall through
+			}
+			
+			
+	
+			return null;
+	}
+
+
+
 	@Override
 	public SecurityComponents createSecurityComponents() {
 		return new SecurityComponents(
