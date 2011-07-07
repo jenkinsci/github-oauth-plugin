@@ -1,0 +1,18 @@
+<!--
+
+  Adapted from openid-plugin.
+  
+  
+-->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt" xmlns:p="/lib/hudson/project">
+  <l:layout title="${%Associate Github User}">
+    <l:main-panel>
+      <h1>${%Login with Github}</h1>
+      <form method="post" action="startLogin" id="github_form">
+       <!-- <st:include page="_github-form-body.jelly" /> -->
+        <input type="hidden" name="from" value="${request.getParameter('from')}"/>
+      </form>
+    </l:main-panel>
+  </l:layout>
+</j:jelly>

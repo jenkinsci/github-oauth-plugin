@@ -7,18 +7,53 @@ import hudson.model.Descriptor;
 import hudson.security.AbstractPasswordBasedSecurityRealm;
 import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
+import hudson.security.SecurityRealm.SecurityComponents;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.logging.Logger;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.servlet.ServletException;
 
 import net.sf.json.JSONObject;
 
+import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
+import org.acegisecurity.AuthenticationManager;
+import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
+import org.acegisecurity.providers.anonymous.AnonymousAuthenticationToken;
 import org.acegisecurity.providers.dao.AbstractUserDetailsAuthenticationProvider;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.AuthCache;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.impl.client.BasicAuthCache;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.util.EntityUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.Header;
+import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
 import org.springframework.dao.DataAccessException;
 
 /**
@@ -27,11 +62,11 @@ import org.springframework.dao.DataAccessException;
  * 
  * This is based on the MySQLSecurityRealm from the mysql-auth-plugin written by Alex Ackerman.
  */
-public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm
+public class GithubSecurityRealm extends SecurityRealm 
 {
 
     private String clientID;
-	private String clientSecret;
+	private String clientSecret; 
 
 
 	@DataBoundConstructor
@@ -50,6 +85,69 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm
 			this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
     	
     }
+	
+	
+
+	/**
+	 * @return the clientID
+	 */
+	public String getClientID() {
+		return clientID;
+	}
+
+
+
+	/**
+	 * @return the clientSecret
+	 */
+	public String getClientSecret() {
+		return clientSecret;
+	}
+
+
+
+	public HttpResponse doCommenceLogin(@Header("Referer") final String referer) throws IOException {
+		 
+		 return new HttpResponse() {
+			
+			public void generateResponse(StaplerRequest req, StaplerResponse rsp,
+					Object node) throws IOException, ServletException {
+				
+				
+//				rsp.sendRedirect2("https://github.com/login/oauth/authorize&client_id=" + clientID);
+				
+				rsp.sendRedirect2("https://github.com/login/oauth/authorize");
+				
+			}
+		};
+		 
+	 }
+	
+	
+	@Override
+	public SecurityComponents createSecurityComponents() {
+		return new SecurityComponents(
+			 // copied from the openid-plugin
+				 new AuthenticationManager() {
+		                public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+		                    if (authentication instanceof AnonymousAuthenticationToken
+		                    ||  authentication instanceof UsernamePasswordAuthenticationToken)
+		                        return authentication;
+		                    throw new BadCredentialsException("Unexpected authentication type: "+authentication);
+		                }
+				 
+		});
+	}
+
+	
+
+	@Override
+	public String getLoginUrl() {
+		
+		return "securityRealm/commenceLogin";
+	}
+
+
 
 	@Extension
     public static final class DescriptorImpl extends Descriptor<SecurityRealm>
@@ -66,8 +164,20 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm
         public String getDisplayName() {
             return "Github Authentication Plugin";
         }
+        
+        
 
 		
+		public DescriptorImpl() {
+			super();
+			// TODO Auto-generated constructor stub
+		}
+
+		public DescriptorImpl(Class<? extends SecurityRealm> clazz) {
+			super(clazz);
+			// TODO Auto-generated constructor stub
+		}
+
 		/* (non-Javadoc)
 		 * @see hudson.model.Descriptor#configure(org.kohsuke.stapler.StaplerRequest, net.sf.json.JSONObject)
 		 */
@@ -101,115 +211,8 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm
     }
 
     
-    /**
-     * Authenticates the specified user using the password against the stored
-     * database configuration.
-     *
-     * @param username      The username to lookup
-     * @param password      The password to use for authentication
-     * @return              A UserDetails object containing information about
-     *                      the user.
-     * @throws AuthenticationException  Thrown when the username/password do
-     *                                  not match stored values.
-     */
-    @Override
-    protected UserDetails authenticate(String username, String password)
-            throws AuthenticationException
-    {
-        UserDetails userDetails = null;
-
-        if (true)
-        	throw new GithubAuthenticationException("implementation is required.");
-        
-
-//        connectionString = "jdbc:mysql://" + myServer + "/" +
-//                myDatabase;
-//        LOGGER.fine("GithubSecurity: Connection String - " + connectionString);
-//        Connection conn = null;
-//        try
-//        {
-//            // Connect to the database
-//            Class.forName("com.mysql.jdbc.Driver").newInstance();
-//            conn = DriverManager.getConnection(connectionString,
-//                    myUsername, myPassword);
-//            LOGGER.info("GithubSecurity: Connection established.");
-//
-//            // Prepare the statement and query the user table
-//            // TODO: Review userQuery to see if there's a better way to do this
-//            String userQuery = "SELECT * FROM " + myDataTable + " WHERE " +
-//                    myUserField + " = ?";
-//            PreparedStatement statement = conn.prepareStatement(userQuery);
-//            statement.setString(1, myDataTable);
-//            LOGGER.fine("GithubSecurity: Query Info - ");
-//            LOGGER.fine("- Table: " + myDataTable);
-//            LOGGER.fine("- User Field: " + myUserField);
-//            LOGGER.fine("- Username: " + myUsername);
-//            //statement.setString(2, myUserField);
-//            statement.setString(1, username);
-//            ResultSet results = statement.executeQuery();
-//            LOGGER.fine("GithubSecurity: Query executed.");
-//
-//            if (results.first())
-//            {
-//                String storedPassword = results.getString(myPassField);
-//                Cipher cipher;
-//                if (encryption.equals(Cipher.CRYPT))
-//                {
-//                    String salt = storedPassword.substring(0, 2);
-//                    cipher = new Cipher(encryption, salt);
-//                }
-//                else
-//                {
-//                    cipher = new Cipher(encryption);
-//                }
-//                String encryptedPassword = cipher.encode(password.trim());
-//                LOGGER.fine("Encrypted Password: " + encryptedPassword);
-//                LOGGER.fine("Stored Password: " + storedPassword);
-//                if (!storedPassword.equals(encryptedPassword))
-//                {
-//                    LOGGER.warning("GithubSecurity: Invalid Username or Password");
-//                    throw new GithubAuthenticationException("Invalid Username or Password");
-//                }
-//                else
-//                {
-//                    // Password is valid.  Build UserDetail
-//                    Set<GrantedAuthority> groups = new HashSet<GrantedAuthority>();
-//                    groups.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
-//                    userDetails = new GithubUserDetail(username, encryptedPassword,
-//                            true, true, true, true,
-//                            groups.toArray(new GrantedAuthority[groups.size()]));
-//                }
-//            }
-//            else
-//            {
-//                LOGGER.warning("GithubSecurity: Invalid Username or Password");
-//                throw new GithubAuthenticationException("Invalid Username or Password");
-//            }
-//
-//        }
-//        catch (Exception e)
-//        {
-//            LOGGER.warning("GithubSecurity Realm Error: " + e.getLocalizedMessage());
-//        }
-//        finally
-//        {
-//            if (conn != null)
-//            {
-//                try
-//                {
-//                    conn.close();
-//                    LOGGER.info("GithubSecurity: Connection closed.");
-//                }
-//                catch (Exception ex)
-//                {
-//                    /** Ignore any errors **/
-//                }
-//            }
-//        }
-
-        return userDetails;
-    }
-
+    
+    	
     /**
      *
      * @param username
@@ -304,25 +307,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm
         throw new UsernameNotFoundException("GithubSecurityRealm: Non-supported function");
     }
 
-    class Authenticator extends AbstractUserDetailsAuthenticationProvider
-    {
-
-        @Override
-        protected void additionalAuthenticationChecks(UserDetails userDetails,
-                UsernamePasswordAuthenticationToken authentication)
-                throws AuthenticationException {
-            // Assumed to be done in the retrieveUser method
-        }
-
-        @Override
-        protected UserDetails retrieveUser(String username,
-                UsernamePasswordAuthenticationToken authentication)
-                throws AuthenticationException {
-            return GithubSecurityRealm.this.authenticate(username,
-                    authentication.getCredentials().toString());
-        }
-
-    }
+    
 
  
     /**

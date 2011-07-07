@@ -1,0 +1,27 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  <div>
+    <!-- <link type="text/css" rel="stylesheet" href="${rootURL}/plugin/openid/openid.css"/>
+    <script type="text/javascript" src="${rootURL}/plugin/openid//openid-prototype.js"/>
+    <script type="text/javascript" src="${rootURL}/plugin/openid//openid-en.js"/> -->
+
+    <div id="openid_choice">
+      <p>Please click your account provider:</p>
+      <div id="openid_btns"></div>
+    </div>
+    <div id="openid_input_area">
+      <input id="openid" name="openid_identifier" type="text" value="http://"/>
+      <f:submit value="${%Login!}"/>
+    </div>
+    <script>
+      Behaviour.addLoadEvent(function() {
+        openid.img_path = '${rootURL}/plugin/openid/';
+        openid.signin_text = "${%Login}";
+        openid.init('openid');
+        // makeButton($('openid_submit'),openid.submit);
+      });
+    </script>
+    <!--
+        OpenID: <input type="text" name="openid" style="background: url('${rootURL}/plugin/openid/openid.gif') center left no-repeat; padding-left:20px"/>
+    -->
+  </div>
+</j:jelly>
