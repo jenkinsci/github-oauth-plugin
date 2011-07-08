@@ -19,8 +19,8 @@ import org.json.JSONTokener;
 /**
  * @author mocleiri
  * 
- * to hold the authentication token from the github oauth process.
- *
+ *         to hold the authentication token from the github oauth process.
+ * 
  */
 public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
@@ -29,17 +29,19 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 	 */
 	private static final long serialVersionUID = 1L;
 	private final String accessToken;
-	
+
 	private String userName = null;
 
 	public GithubAuthenticationToken(String accessToken) {
-		
-		super (new GrantedAuthority[] {});
-		
+
+		super(new GrantedAuthority[] {});
+
 		this.accessToken = accessToken;
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see org.acegisecurity.Authentication#getCredentials()
 	 */
 	public Object getCredentials() {
@@ -47,50 +49,46 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 		return "";
 	}
 
-	private String httpGet (String path) throws ClientProtocolException, IOException {
-	
+	private String httpGet(String path) throws ClientProtocolException,
+			IOException {
+
 		HttpClient client = new DefaultHttpClient();
-		
-		String url = "https://api.github.com/" + path + "?access_token=" + accessToken;
-		
+
+		String url = "https://api.github.com/" + path + "?access_token="
+				+ accessToken;
+
 		HttpResponse r = client.execute(new HttpGet(url));
-		
+
 		return EntityUtils.toString(r.getEntity());
-		
+
 	}
-	
-	
-	/* (non-Javadoc)
+
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see org.acegisecurity.Authentication#getPrincipal()
 	 */
 	public Object getPrincipal() {
-		
-		if (userName == null)
-		{
-			
-		
-		try {
-			String json = httpGet("user");
-			
-			JSONTokener tokener = new JSONTokener(json);
-			
-			JSONObject obj = new JSONObject(tokener);
-			
-			
-			String userName = obj.getString("login");
-			
-			this.userName = userName;
-			
-			
 
-			
-			
-		} catch (Exception e) {
-			
-			// fall through
-		}		
+		if (userName == null) {
+
+			try {
+				String json = httpGet("user");
+
+				JSONTokener tokener = new JSONTokener(json);
+
+				JSONObject obj = new JSONObject(tokener);
+
+				String userName = obj.getString("login");
+
+				this.userName = userName;
+
+			} catch (Exception e) {
+
+				// fall through
+			}
 		}
-		
+
 		return this.userName;
 	}
 
