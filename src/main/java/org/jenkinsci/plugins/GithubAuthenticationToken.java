@@ -4,7 +4,6 @@
 package org.jenkinsci.plugins;
 
 import java.io.IOException;
-import java.net.URI;
 
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.providers.AbstractAuthenticationToken;
@@ -14,7 +13,8 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
-import org.jfree.util.Log;
+import org.json.JSONObject;
+import org.json.JSONTokener;
 
 /**
  * @author mocleiri
@@ -29,6 +29,8 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 	 */
 	private static final long serialVersionUID = 1L;
 	private final String accessToken;
+	
+	private String userName = null;
 
 	public GithubAuthenticationToken(String accessToken) {
 		
@@ -42,7 +44,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 	 */
 	public Object getCredentials() {
 		// TODO Auto-generated method stub
-		return null;
+		return "";
 	}
 
 	private String httpGet (String path) throws ClientProtocolException, IOException {
@@ -63,18 +65,33 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 	 */
 	public Object getPrincipal() {
 		
+		if (userName == null)
+		{
+			
+		
 		try {
 			String json = httpGet("user");
 			
-			System.out.println(json);
+			JSONTokener tokener = new JSONTokener(json);
+			
+			JSONObject obj = new JSONObject(tokener);
+			
+			
+			String userName = obj.getString("login");
+			
+			this.userName = userName;
+			
+			
+
+			
 			
 		} catch (Exception e) {
 			
 			// fall through
 		}		
+		}
 		
-		// TODO Auto-generated method stub
-		return null;
+		return this.userName;
 	}
 
 }

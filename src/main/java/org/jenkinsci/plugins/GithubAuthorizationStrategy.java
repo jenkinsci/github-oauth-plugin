@@ -33,7 +33,7 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 		@Override
 		public boolean hasPermission(Authentication a, Permission permission) {
 			// TODO Auto-generated method stub
-			return false;
+			return true;
 		}
 
 		public GithubACL() {

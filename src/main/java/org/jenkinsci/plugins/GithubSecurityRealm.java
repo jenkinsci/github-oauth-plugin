@@ -4,22 +4,28 @@ package org.jenkinsci.plugins;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
+import hudson.model.Hudson;
 import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
 
 import java.io.IOException;
 import java.util.logging.Logger;
 
-import net.sf.json.JSONObject;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 
 import org.acegisecurity.Authentication;
-import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.AuthenticationManager;
-import org.acegisecurity.BadCredentialsException;
+import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
-import org.acegisecurity.providers.anonymous.AnonymousAuthenticationToken;
 import org.acegisecurity.userdetails.UserDetails;
+import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.HttpPost;
@@ -157,20 +163,31 @@ public class GithubSecurityRealm extends SecurityRealm
 
 
 
+
+   
+
+    /* (non-Javadoc)
+	 * @see hudson.security.SecurityRealm#allowsSignup()
+	 */
 	@Override
-	public SecurityComponents createSecurityComponents() {
-		return new SecurityComponents(
-			 // copied from the openid-plugin
-				 new AuthenticationManager() {
-		                public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-		                    if (authentication instanceof AnonymousAuthenticationToken
-		                    ||  authentication instanceof UsernamePasswordAuthenticationToken)
-		                        return authentication;
-		                    throw new BadCredentialsException("Unexpected authentication type: "+authentication);
-		                }
-				 
-		});
+	public boolean allowsSignup() {
+		return false;
 	}
+
+
+
+	@Override
+    public SecurityComponents createSecurityComponents() {
+        return new SecurityComponents(new AuthenticationManager() {
+            public Authentication authenticate(Authentication authentication) {
+                return authentication;
+            }
+        }, new UserDetailsService() {
+            public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
+                throw new UsernameNotFoundException(username);
+            }
+        });
+    }
 
 	
 
@@ -211,33 +228,7 @@ public class GithubSecurityRealm extends SecurityRealm
 			// TODO Auto-generated constructor stub
 		}
 
-		/* (non-Javadoc)
-		 * @see hudson.model.Descriptor#configure(org.kohsuke.stapler.StaplerRequest, net.sf.json.JSONObject)
-		 */
-		@Override
-		public boolean configure(StaplerRequest req, JSONObject json)
-				throws FormException {
-			// TODO Auto-generated method stub
-			return super.configure(req, json);
-		}
-
-		/* (non-Javadoc)
-		 * @see hudson.model.Descriptor#save()
-		 */
-		@Override
-		public synchronized void save() {
-			// TODO Auto-generated method stub
-			super.save();
-		}
-
-		/* (non-Javadoc)
-		 * @see hudson.model.Descriptor#load()
-		 */
-		@Override
-		public synchronized void load() {
-			// TODO Auto-generated method stub
-			super.load();
-		}
+		
         
 			
         
@@ -263,65 +254,6 @@ public class GithubSecurityRealm extends SecurityRealm
         if (true)
         	throw new UsernameNotFoundException("implemtnation required");
 
-//        connectionString = "jdbc:mysql://" + myServer + "/" +
-//                myDatabase;
-//        LOGGER.info("GithubSecurity: Connection String - " + connectionString);
-//        Connection conn = null;
-//        try
-//        {
-//            // Connect to the database
-//            Class.forName("com.mysql.jdbc.Driver").newInstance();
-//            conn = DriverManager.getConnection(connectionString,
-//                    myUsername, myPassword);
-//            LOGGER.info("GithubSecurity: Connection established.");
-//
-//            // Prepare the statement and query the user table
-//            // TODO: Review userQuery to see if there's a better way to do this
-//            String userQuery = "SELECT * FROM " + myDataTable + " WHERE " +
-//                    myUserField + " = ?";
-//            PreparedStatement statement = conn.prepareStatement(userQuery);
-//            //statement.setString(1, myDataTable);
-//            //statement.setString(2, myUserField);
-//            statement.setString(1, username);
-//            ResultSet results = statement.executeQuery();
-//            LOGGER.fine("GithubSecurity: Query executed.");
-//
-//            // Grab the first result (should be only user returned)
-//            if (results.first())
-//            {
-//                // Build the user detail
-//                Set<GrantedAuthority> groups = new HashSet<GrantedAuthority>();
-//                groups.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
-//                user = new GithubUserDetail(username, results.getString(myPassField),
-//                            true, true, true, true, 
-//                            groups.toArray(new GrantedAuthority[groups.size()]));
-//            }
-//            else
-//            {
-//                LOGGER.warning("GithubSecurity: Invalid Username or Password");
-//                throw new UsernameNotFoundException("MySQL: User not found");
-//            }
-//
-//        }
-//        catch (Exception e)
-//        {
-//            LOGGER.warning("GithubSecurity Realm Error: " + e.getLocalizedMessage());
-//        }
-//        finally
-//        {
-//            if (conn != null)
-//            {
-//                try
-//                {
-//                    conn.close();
-//                    LOGGER.info("GithubSecurity: Connection closed.");
-//                }
-//                catch (Exception ex)
-//                {
-//                    /** Ignore any errors **/
-//                }
-//            }
-//        }
         return user;
     }
 
