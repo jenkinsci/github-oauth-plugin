@@ -1,0 +1,19 @@
+<!--
+ 
+-->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+	<f:section title="Github Authorization Settings">
+		<f:entry title="Admin User Names"  field="adminUserNames">
+			<f:textbox />
+			Comma Separated list of user names that when authenticated should be given administrator rights.
+		</f:entry>
+		
+		 <f:entry title="Authenticated have READ permission" field="authenticatedUserReadPermission">
+ <f:checkbox />
+       If checked, Jenkins will allow any authenticated user READ access.
+       
+ </f:entry>
+		
+	</f:section>
+</j:jelly>
