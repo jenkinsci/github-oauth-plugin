@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.417</version><!-- which version of Jenkins is this plugin built against? -->
+    <version>1.419</version><!-- which version of Jenkins is this plugin built against? -->
   </parent>
 
   <groupId>org.jenkins-ci.plugins</groupId>
@@ -46,32 +46,13 @@
   </pluginRepositories>
   
   <dependencies>
-		
-	<dependency>
-	    	<groupId>org.apache.httpcomponents</groupId>
-		    <artifactId>httpcore</artifactId>
-		    <version>4.1</version>
-		</dependency>
+	
 		<dependency>
     		<groupId>org.apache.httpcomponents</groupId>
     		<artifactId>httpclient</artifactId>
     		<version>4.1</version>
 		</dependency>
-		<dependency>
-		    <groupId>org.apache.httpcomponents</groupId>
-		    <artifactId>httpclient-cache</artifactId>
-		    <version>4.1</version>
-		</dependency>
-		<dependency>
-		    <groupId>oauth.signpost</groupId>
-		    <artifactId>signpost-core</artifactId>
-		    <version>1.2.1.1</version>
-		</dependency>
-		<dependency>
-		    <groupId>oauth.signpost</groupId>
-		    <artifactId>signpost-commonshttp4</artifactId>
-		    <version>1.2.1.1</version>
-		</dependency>
+	
 		<dependency>
 		    <groupId>org.json</groupId>
 		    <artifactId>json</artifactId>
