@@ -4,6 +4,7 @@
 package org.jenkinsci.plugins;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.providers.AbstractAuthenticationToken;
@@ -13,8 +14,13 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
+import org.jfree.util.Log;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.kohsuke.github.GHOrganization;
+import org.kohsuke.github.GHTeam;
+import org.kohsuke.github.GHUser;
+import org.kohsuke.github.GitHub;
 
 /**
  * @author mocleiri
@@ -31,12 +37,26 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 	private final String accessToken;
 
 	private String userName = null;
+	private GitHub gh;
 
 	public GithubAuthenticationToken(String accessToken) {
 
 		super(new GrantedAuthority[] {});
 
 		this.accessToken = accessToken;
+		
+		gh = GitHub.connectUsingOAuth(accessToken);
+		
+		try {
+			GHUser me = gh.getMyself();
+			
+			this.userName = me.getLogin();
+			
+		} catch (IOException e) {
+			throw new RuntimeException("failed to load self:", e);
+		}
+		
+		
 	}
 
 	/*
@@ -49,19 +69,6 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 		return "";
 	}
 
-	private String httpGet(String path) throws ClientProtocolException,
-			IOException {
-
-		HttpClient client = new DefaultHttpClient();
-
-		String url = "https://api.github.com/" + path + "?access_token="
-				+ accessToken;
-
-		HttpResponse r = client.execute(new HttpGet(url));
-
-		return EntityUtils.toString(r.getEntity());
-
-	}
 
 	/*
 	 * (non-Javadoc)
@@ -69,27 +76,25 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 	 * @see org.acegisecurity.Authentication#getPrincipal()
 	 */
 	public Object getPrincipal() {
-
-		if (userName == null) {
-
-			try {
-				String json = httpGet("user");
-
-				JSONTokener tokener = new JSONTokener(json);
-
-				JSONObject obj = new JSONObject(tokener);
-
-				String userName = obj.getString("login");
-
-				this.userName = userName;
-
-			} catch (Exception e) {
-
-				// fall through
-			}
-		}
-
+		
 		return this.userName;
+	}
+
+	public boolean hasPushPermission(String candidateName, String organization,
+			String repository) {
+		
+		try {
+			GHOrganization org = gh.getOrganization(organization);
+			
+			Map<String, GHTeam> teamsMap = org.getTeams();
+			
+			
+			
+			return false;
+		} catch (IOException e) {
+		
+			return false;
+		}
 	}
 
 }

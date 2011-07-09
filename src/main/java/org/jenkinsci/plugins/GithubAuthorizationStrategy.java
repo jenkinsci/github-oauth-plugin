@@ -5,10 +5,13 @@ package org.jenkinsci.plugins;
 
 import hudson.Extension;
 import hudson.model.Descriptor;
+import hudson.model.Job;
+import hudson.plugins.git.GitSCM;
 import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -17,7 +20,9 @@ import java.util.List;
 import net.sf.json.JSONObject;
 
 import org.acegisecurity.Authentication;
-import org.kohsuke.stapler.DataBoundConstructor;
+import org.acegisecurity.context.SecurityContextHolder;
+import org.kohsuke.github.GHUser;
+import org.kohsuke.github.GitHub;
 import org.kohsuke.stapler.StaplerRequest;
 
 /**
@@ -60,7 +65,41 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 			this.authenticatedUserReadPermission = authenticatedUserReadPermission;
 			this.adminUserNameList = adminUserNameList;
 		}
+
 		
+		
+		
+		
+	}
+	
+	private static class GithubRequireCommitterACL extends ACL {
+
+		private final String organization;
+		private final String repository;
+		private final GithubAuthenticationToken authenticationToken;
+
+		/* (non-Javadoc)
+		 * @see hudson.security.ACL#hasPermission(org.acegisecurity.Authentication, hudson.security.Permission)
+		 */
+		@Override
+		public boolean hasPermission(Authentication a, Permission permission) {
+			
+			String candidateName = a.getName();
+			
+			
+			if (authenticationToken.hasPushPermission(candidateName, this.organization, this.repository))
+				return true;
+			else
+				return false;
+			
+		}
+
+		public GithubRequireCommitterACL(GithubAuthenticationToken token, String organization, String repository) {
+			super();
+			this.authenticationToken = token;
+			this.organization = organization;
+			this.repository = repository;
+		}
 		
 		
 	}
@@ -95,6 +134,36 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 	@Override
 	public ACL getRootACL() {
 		return new GithubACL(this.adminUserNameList, this.authenticatedUserReadPermission);
+	}
+
+	
+	
+	
+
+	/* (non-Javadoc)
+	 * @see hudson.security.AuthorizationStrategy#getACL(hudson.model.Job)
+	 */
+	@Override
+	public ACL getACL(Job<?, ?> project) {
+		
+
+		// we will get the project details
+		
+		
+//		GitSCM scm = project.getProperty(Git.class);
+		
+//		return super.getACL(project);
+		
+		 Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		 
+		 if (authentication != null && authentication instanceof GithubAuthenticationToken) {
+			 
+			 GithubAuthenticationToken token = (GithubAuthenticationToken) authentication;
+			 
+			 return new GithubRequireCommitterACL(token, "wicketstuff", "core");
+		 }
+//		 (new GithubAuthenticationToken(accessToken));
+		return new GithubACL(adminUserNameList, authenticatedUserReadPermission);
 	}
 
 	/* (non-Javadoc)
