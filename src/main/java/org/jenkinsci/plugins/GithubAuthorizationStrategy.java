@@ -5,13 +5,10 @@ package org.jenkinsci.plugins;
 
 import hudson.Extension;
 import hudson.model.Descriptor;
-import hudson.model.Job;
-import hudson.plugins.git.GitSCM;
 import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -20,9 +17,6 @@ import java.util.List;
 import net.sf.json.JSONObject;
 
 import org.acegisecurity.Authentication;
-import org.acegisecurity.context.SecurityContextHolder;
-import org.kohsuke.github.GHUser;
-import org.kohsuke.github.GitHub;
 import org.kohsuke.stapler.StaplerRequest;
 
 /**

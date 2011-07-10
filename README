@@ -4,7 +4,26 @@ The idea behind this plugin is that github already knows which users are committ
 
 So we should be able to have an authentication process using OAuth that allows users to login to jenkins using their github credentials.
 
-Nothing works yet but the plan is to use signpost-oauth or other example code to turn the login credentials into a user token.
+There are two key parts to this plugin:
 
-Once we know the user is in github we want to let them trigger builds for projects that they have push access on.
+A. GithubSecurityRealm: 
+
+This handles the authentication and acquisition of the github oauth token for the connecting user.
+
+This takes the client id and client secret from the application registration here: https://github.com/account/applications/new
+
+
+B. GithubAuthorizationStrategy:
+
+This defines:
+
+1. comma seperated list of users that should be given admin priviledges.
+
+2. comma seperated list of organizations whose members should be given read and build permissions on the jobs.
+
+3. check box to give other authenticated users read permission.
+
+The plugin works but there are still some areas like form validation that need work.  And some other cases where exceptions are thrown when perhaps there is a better way.
+
+
 
