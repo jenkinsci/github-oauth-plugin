@@ -5,19 +5,12 @@ package org.jenkinsci.plugins;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.providers.AbstractAuthenticationToken;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.util.EntityUtils;
-import org.jfree.util.Log;
-import org.json.JSONObject;
-import org.json.JSONTokener;
 import org.kohsuke.github.GHOrganization;
+import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHTeam;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
@@ -45,18 +38,18 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
 		this.accessToken = accessToken;
 		
-		gh = GitHub.connectUsingOAuth(accessToken);
-		
 		try {
+			
+			gh = GitHub.connectUsingOAuth(accessToken);
+		
 			GHUser me = gh.getMyself();
-			
+
 			this.userName = me.getLogin();
-			
+
 		} catch (IOException e) {
 			throw new RuntimeException("failed to load self:", e);
 		}
-		
-		
+
 	}
 
 	/*
@@ -69,32 +62,44 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 		return "";
 	}
 
-
 	/*
 	 * (non-Javadoc)
 	 * 
 	 * @see org.acegisecurity.Authentication#getPrincipal()
 	 */
 	public Object getPrincipal() {
-		
+
 		return this.userName;
 	}
 
-	public boolean hasPushPermission(String candidateName, String organization,
-			String repository) {
-		
+	/**
+	 * For some reason I can't get the github api to tell me for the current user the groups to which he belongs.
+	 * 
+	 * So this is a slightly larger consideration.  If the authenticated user is part of any team within the organization then they have permission.
+	 * 
+	 * @param candidateName
+	 * @param organization
+	 * @return
+	 */
+	public boolean hasOrganizationPermission(String candidateName, String organization) {
+
 		try {
-			GHOrganization org = gh.getOrganization(organization);
 			
-			Map<String, GHTeam> teamsMap = org.getTeams();
+			Map<String, GHOrganization> myOrgsMap = gh.getMyOrganizations();
 			
-			
+			if (myOrgsMap.keySet().contains(organization))
+				return true;
 			
 			return false;
+			
 		} catch (IOException e) {
-		
-			return false;
+
+			throw new RuntimeException("authorization failed for user = " + candidateName, e);
+
 		}
 	}
+
+	private static final Logger LOGGER = Logger
+			.getLogger(GithubAuthenticationToken.class.getName());
 
 }

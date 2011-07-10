@@ -29,7 +29,7 @@ import org.kohsuke.stapler.StaplerRequest;
  * @author mocleiri
  * 
  * 
- *
+ * 
  */
 public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 
@@ -40,133 +40,169 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 
 		@Override
 		public boolean hasPermission(Authentication a, Permission permission) {
-			
+
 			String p = a.getName();
+
+			if (p.equals("anonymous"))
+				return false;
 			
+			if (p.equals (SYSTEM.getPrincipal())) {
+				return true;
+			}
+
 			if (adminUserNameList.contains(p)) {
 				// if they are an admin then they have permission
 				return true;
-			}
-			else {
+			} else {
 				if (authenticatedUserReadPermission) {
-					if (permission.equals(Permission.READ))
-						// if we support authenticated read and this is a read request we allow it
+					
+					String[] parts = permission.getId().split("\\.") ;
+					if (parts[parts.length-1].toLowerCase().equals("read"))
+						
+						// if we support authenticated read and this is a read
+						// request we allow it
 						return true;
 				}
 			}
-			
+
 			// all other cases we don't allow access.
 			return false;
 		}
 
-		public GithubACL(List<String> adminUserNameList, boolean authenticatedUserReadPermission) {
+		public GithubACL(List<String> adminUserNameList,
+				boolean authenticatedUserReadPermission) {
 			super();
-			
+
 			this.authenticatedUserReadPermission = authenticatedUserReadPermission;
 			this.adminUserNameList = adminUserNameList;
+			
 		}
 
-		
-		
-		
-		
 	}
-	
-	private static class GithubRequireCommitterACL extends ACL {
 
-		private final String organization;
-		private final String repository;
+	private static class GithubRequireOrganizationMembershipACL extends ACL {
+		
 		private final GithubAuthenticationToken authenticationToken;
+		private final List<String> organizationNameList;
 
-		/* (non-Javadoc)
-		 * @see hudson.security.ACL#hasPermission(org.acegisecurity.Authentication, hudson.security.Permission)
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see
+		 * hudson.security.ACL#hasPermission(org.acegisecurity.Authentication,
+		 * hudson.security.Permission)
 		 */
 		@Override
 		public boolean hasPermission(Authentication a, Permission permission) {
-			
+
 			String candidateName = a.getName();
+
+			for (String organizationName : this.organizationNameList) {
+				
+				if (authenticationToken.hasOrganizationPermission(candidateName, organizationName)) {
+					
+					String[] parts = permission.getId().split("\\.");
+					
+					String test = parts[1].toLowerCase(); 
+					
+					if (test.equals("read") || test.equals("build"))
+						// check the permission
+						return true;
+				}
+				
 			
+			}
 			
-			if (authenticationToken.hasPushPermission(candidateName, this.organization, this.repository))
-				return true;
-			else
-				return false;
-			
+			// no match.
+			return false;
+
 		}
 
-		public GithubRequireCommitterACL(GithubAuthenticationToken token, String organization, String repository) {
+		public GithubRequireOrganizationMembershipACL(GithubAuthenticationToken token,
+				List<String>organizationNameList) {
 			super();
 			this.authenticationToken = token;
-			this.organization = organization;
-			this.repository = repository;
+			this.organizationNameList = organizationNameList;
 		}
-		
-		
+
 	}
-	
-	private List<String> adminUserNameList;
+
+	private final List<String> adminUserNameList;
 
 	private final boolean authenticatedUserReadPermission;
 	
+	private final List<String>organizationNameList;
+
 	/**
 	 * 
 	 */
-	public GithubAuthorizationStrategy(String adminUserNames, boolean authenticatedUserReadPermission) {
+	public GithubAuthorizationStrategy(String adminUserNames,
+			boolean authenticatedUserReadPermission, String organizationNames) {
 		super();
 		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
-		
+
 		this.adminUserNameList = new LinkedList<String>();
-		
+
 		String[] parts = adminUserNames.split(",");
-		
+
 		for (String part : parts) {
 			adminUserNameList.add(part);
 		}
 		
+		this.organizationNameList = new LinkedList<String>();
 		
-		
-		
+		parts = organizationNames.split(",");
+
+		for (String part : parts) {
+			organizationNameList.add(part);
+		}
+
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see hudson.security.AuthorizationStrategy#getRootACL()
 	 */
 	@Override
 	public ACL getRootACL() {
-		return new GithubACL(this.adminUserNameList, this.authenticatedUserReadPermission);
+		return new GithubACL(this.adminUserNameList,
+				this.authenticatedUserReadPermission);
 	}
 
-	
-	
-	
-
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see hudson.security.AuthorizationStrategy#getACL(hudson.model.Job)
 	 */
 	@Override
 	public ACL getACL(Job<?, ?> project) {
-		
 
 		// we will get the project details
-		
-		
-//		GitSCM scm = project.getProperty(Git.class);
-		
-//		return super.getACL(project);
-		
-		 Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		 
-		 if (authentication != null && authentication instanceof GithubAuthenticationToken) {
-			 
-			 GithubAuthenticationToken token = (GithubAuthenticationToken) authentication;
-			 
-			 return new GithubRequireCommitterACL(token, "wicketstuff", "core");
-		 }
-//		 (new GithubAuthenticationToken(accessToken));
-		return new GithubACL(adminUserNameList, authenticatedUserReadPermission);
+
+		// GitSCM scm = project.getProperty(Git.class);
+
+		// return super.getACL(project);
+
+		Authentication authentication = SecurityContextHolder.getContext()
+				.getAuthentication();
+
+		if (authentication != null
+				&& authentication instanceof GithubAuthenticationToken) {
+
+			GithubAuthenticationToken token = (GithubAuthenticationToken) authentication;
+
+			return new GithubRequireOrganizationMembershipACL(token, this.organizationNameList);
+		} else {
+			// (new GithubAuthenticationToken(accessToken));
+			return new GithubACL(adminUserNameList,
+					authenticatedUserReadPermission);
+		}
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see hudson.security.AuthorizationStrategy#getGroups()
 	 */
 	@Override
@@ -175,30 +211,30 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 	}
 
 	@Extension
-    public static final class DescriptorImpl extends Descriptor<AuthorizationStrategy> {
-        public String getDisplayName() {
-            return "Github Commiter Authorization Strategy";
-        }
+	public static final class DescriptorImpl extends
+			Descriptor<AuthorizationStrategy> {
+		public String getDisplayName() {
+			return "Github Commiter Authorization Strategy";
+		}
 
-        public String getHelpFile() {
-            return "/help/security/github-committer-auth-strategy.html";
-        }
+		public String getHelpFile() {
+			return "/help/security/github-committer-auth-strategy.html";
+		}
 
-        
-        
 		@Override
 		public GithubAuthorizationStrategy newInstance(StaplerRequest req,
 				JSONObject formData) throws FormException {
+
+			String adminUserNames = formData.getString("adminUserNames");
+			;
+			boolean authorizedReadPermission = formData
+					.getBoolean("authenticatedUserReadPermission");
+
+			String organizationNames = formData.getString ("organizationNames");
 			
-			
-			
-			String adminUserNames = formData.getString("adminUserNames");;
-			boolean authorizedReadPermission =formData.getBoolean("authenticatedUserReadPermission");
-			
-			return new GithubAuthorizationStrategy(adminUserNames, authorizedReadPermission);
+			return new GithubAuthorizationStrategy(adminUserNames,
+					authorizedReadPermission, organizationNames);
 		}
 
-        
-       
-    }
+	}
 }

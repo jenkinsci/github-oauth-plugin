@@ -9,6 +9,12 @@
 			Comma Separated list of user names that when authenticated should be given administrator rights.
 		</f:entry>
 		
+		<f:entry title="Participant in Organization"  field="organizationNames">
+			<f:textbox />
+			Comma Separated list of organization names that if a user is registered with will have job view and build rights.
+		</f:entry>
+		
+		
 		 <f:entry title="Authenticated have READ permission" field="authenticatedUserReadPermission">
  <f:checkbox />
        If checked, Jenkins will allow any authenticated user READ access.

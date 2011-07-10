@@ -1,4 +1,3 @@
-
 package org.jenkinsci.plugins;
 
 import hudson.Extension;
@@ -42,35 +41,25 @@ import org.springframework.dao.DataAccessException;
 
 /**
  * 
- * Implementation of the AbstractPasswordBasedSecurityRealm that uses github oauth to verify the user can login.
+ * Implementation of the AbstractPasswordBasedSecurityRealm that uses github
+ * oauth to verify the user can login.
  * 
- * This is based on the MySQLSecurityRealm from the mysql-auth-plugin written by Alex Ackerman.
+ * This is based on the MySQLSecurityRealm from the mysql-auth-plugin written by
+ * Alex Ackerman.
  */
-public class GithubSecurityRealm extends SecurityRealm 
-{
+public class GithubSecurityRealm extends SecurityRealm {
 
-    private String clientID;
-	private String clientSecret; 
-
+	private String clientID;
+	private String clientSecret;
 
 	@DataBoundConstructor
-    public GithubSecurityRealm(String clientID, String clientSecret)
-    {
+	public GithubSecurityRealm(String clientID, String clientSecret) {
 		super();
-		
-		if (clientID == null || clientID.length() == 0)
-			this.clientID = "2885d186c7c7a37d9a10";
-		else	
-			this.clientID = Util.fixEmptyAndTrim(clientID);
-		
-		if (clientSecret == null || clientSecret.length() == 0)
-			this.clientSecret = "1593de427008eed6b5d76a9d8180b30f2036d276";
-		else 
-			this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
-    	
-    }
-	
-	
+
+		this.clientID = Util.fixEmptyAndTrim(clientID);
+		this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
+
+	}
 
 	/**
 	 * @return the clientID
@@ -79,8 +68,6 @@ public class GithubSecurityRealm extends SecurityRealm
 		return clientID;
 	}
 
-
-
 	/**
 	 * @return the clientSecret
 	 */
@@ -88,85 +75,75 @@ public class GithubSecurityRealm extends SecurityRealm
 		return clientSecret;
 	}
 
+	public HttpResponse doCommenceLogin(@Header("Referer") final String referer)
+			throws IOException {
 
+		return new HttpRedirect(
+				"https://github.com/login/oauth/authorize?client_id="
+						+ clientID + "&scope=user,public_repo,repo");
 
-	public HttpResponse doCommenceLogin(@Header("Referer") final String referer) throws IOException {
-		 
-		return new HttpRedirect("https://github.com/login/oauth/authorize?client_id=" + clientID);
-		
-		 
-	 }
-	
-	/**
-     * This is where the user comes back to at the end of the OpenID redirect ping-pong.
-     */
-    public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
-    	
-    	
-    	String code = request.getParameter("code");
-    	
-    	Log.info("test");
-    	
-    	HttpPost httpost = new HttpPost("https://github.com/login/oauth/access_token?" +
-                "client_id="+clientID+"&" +
-                "client_secret=" + clientSecret + "&" +
-                "code=" + code);
-
-
-       DefaultHttpClient httpclient = new DefaultHttpClient();
-       
-		org.apache.http.HttpResponse response = httpclient.execute(httpost);
-		
-        HttpEntity entity = response.getEntity();
-        
-        String content = EntityUtils.toString(entity);
-        
-
-        
-
-        // When HttpClient instance is no longer needed, 
-        // shut down the connection manager to ensure
-        // immediate deallocation of all system resources
-        httpclient.getConnectionManager().shutdown();        
-        
-        String accessToken = extractToken (content);
-        
-        SecurityContextHolder.getContext().setAuthentication(new GithubAuthenticationToken(accessToken));
-    	
-    	return HttpResponses.redirectToContextRoot();
-    }
-	
-	
-	private String extractToken(String content) {
-		
-		
-			
-			String parts[] = content.split("&");
-			
-			
-			for (String part : parts) {
-		
-				if (content.contains("access_token")) {
-					
-					String tokenParts[] = part.split("=");
-					
-					return tokenParts[1];
-				}
-			
-				// fall through
-			}
-			
-			
-	
-			return null;
 	}
 
+	/**
+	 * This is where the user comes back to at the end of the OpenID redirect
+	 * ping-pong.
+	 */
+	public HttpResponse doFinishLogin(StaplerRequest request)
+			throws IOException {
 
+		String code = request.getParameter("code");
 
+		Log.info("test");
 
-   
+		HttpPost httpost = new HttpPost(
+				"https://github.com/login/oauth/access_token?" + "client_id="
+						+ clientID + "&" + "client_secret=" + clientSecret
+						+ "&" + "code=" + code);
 
-    /* (non-Javadoc)
+		DefaultHttpClient httpclient = new DefaultHttpClient();
+
+		org.apache.http.HttpResponse response = httpclient.execute(httpost);
+
+		HttpEntity entity = response.getEntity();
+
+		String content = EntityUtils.toString(entity);
+
+		// When HttpClient instance is no longer needed,
+		// shut down the connection manager to ensure
+		// immediate deallocation of all system resources
+		httpclient.getConnectionManager().shutdown();
+
+		String accessToken = extractToken(content);
+
+		GithubAuthenticationToken token;
+		SecurityContextHolder.getContext().setAuthentication(
+				token = new GithubAuthenticationToken(accessToken));
+
+		return HttpResponses.redirectToContextRoot();
+	}
+
+	private String extractToken(String content) {
+
+		String parts[] = content.split("&");
+
+		for (String part : parts) {
+
+			if (content.contains("access_token")) {
+
+				String tokenParts[] = part.split("=");
+
+				return tokenParts[1];
+			}
+
+			// fall through
+		}
+
+		return null;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see hudson.security.SecurityRealm#allowsSignup()
 	 */
 	@Override
@@ -174,50 +151,41 @@ public class GithubSecurityRealm extends SecurityRealm
 		return false;
 	}
 
-
-
 	@Override
-    public SecurityComponents createSecurityComponents() {
-        return new SecurityComponents(new AuthenticationManager() {
-            public Authentication authenticate(Authentication authentication) {
-                return authentication;
-            }
-        }, new UserDetailsService() {
-            public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
-                throw new UsernameNotFoundException(username);
-            }
-        });
-    }
-
-	
+	public SecurityComponents createSecurityComponents() {
+		return new SecurityComponents(new AuthenticationManager() {
+			public Authentication authenticate(Authentication authentication) {
+				return authentication;
+			}
+		}, new UserDetailsService() {
+			public UserDetails loadUserByUsername(String username)
+					throws UsernameNotFoundException, DataAccessException {
+				throw new UsernameNotFoundException(username);
+			}
+		});
+	}
 
 	@Override
 	public String getLoginUrl() {
-		
+
 		return "securityRealm/commenceLogin";
 	}
 
-
-
 	@Extension
-    public static final class DescriptorImpl extends Descriptor<SecurityRealm>
-    {
-    
-		private static DescriptorImpl instance = new DescriptorImpl();
-		
-        @Override
-        public String getHelpFile() {
-            return "/plugin/github-oauth/help/overview.html";
-        }
-        
-        @Override
-        public String getDisplayName() {
-            return "Github Authentication Plugin";
-        }
-        
-        
+	public static final class DescriptorImpl extends Descriptor<SecurityRealm> {
 
-		
+		private static DescriptorImpl instance = new DescriptorImpl();
+
+		@Override
+		public String getHelpFile() {
+			return "/plugin/github-oauth/help/overview.html";
+		}
+
+		@Override
+		public String getDisplayName() {
+			return "Github Authentication Plugin";
+		}
+
 		public DescriptorImpl() {
 			super();
 			// TODO Auto-generated constructor stub
@@ -228,59 +196,46 @@ public class GithubSecurityRealm extends SecurityRealm
 			// TODO Auto-generated constructor stub
 		}
 
-		
-        
-			
-        
-    }
+	}
 
-    
-    
-    	
-    /**
-     *
-     * @param username
-     * @return
-     * @throws UsernameNotFoundException
-     * @throws DataAccessException
-     */
-    @Override
-    public UserDetails loadUserByUsername(String username)
-            throws UsernameNotFoundException, DataAccessException
-    {
-        UserDetails user = null;
-        String connectionString;
-        
-        if (true)
-        	throw new UsernameNotFoundException("implemtnation required");
+	/**
+	 * 
+	 * @param username
+	 * @return
+	 * @throws UsernameNotFoundException
+	 * @throws DataAccessException
+	 */
+	@Override
+	public UserDetails loadUserByUsername(String username)
+			throws UsernameNotFoundException, DataAccessException {
+		UserDetails user = null;
+		String connectionString;
 
-        return user;
-    }
+		if (true)
+			throw new UsernameNotFoundException("implemtnation required");
 
-    /**
-     *
-     * @param groupname
-     * @return
-     * @throws UsernameNotFoundException
-     * @throws DataAccessException
-     */
-    @Override
-    public GroupDetails loadGroupByGroupname(String groupname)
-            throws UsernameNotFoundException, DataAccessException
-    {
-        LOGGER.warning("ERROR: Group lookup is not supported.");
-        throw new UsernameNotFoundException("GithubSecurityRealm: Non-supported function");
-    }
+		return user;
+	}
 
-    
+	/**
+	 * 
+	 * @param groupname
+	 * @return
+	 * @throws UsernameNotFoundException
+	 * @throws DataAccessException
+	 */
+	@Override
+	public GroupDetails loadGroupByGroupname(String groupname)
+			throws UsernameNotFoundException, DataAccessException {
+		LOGGER.warning("ERROR: Group lookup is not supported.");
+		throw new UsernameNotFoundException(
+				"GithubSecurityRealm: Non-supported function");
+	}
 
- 
-    /**
-     * Logger for debugging purposes.
-     */
-    private static final Logger LOGGER =
-            Logger.getLogger(GithubSecurityRealm.class.getName());
-
-   
+	/**
+	 * Logger for debugging purposes.
+	 */
+	private static final Logger LOGGER = Logger
+			.getLogger(GithubSecurityRealm.class.getName());
 
 }
