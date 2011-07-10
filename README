@@ -12,6 +12,13 @@ This handles the authentication and acquisition of the github oauth token for th
 
 This takes the client id and client secret from the application registration here: https://github.com/account/applications/new
 
+The entry should look like this:
+
+Main URL: http://127.0.0.1:8080
+Callback URL: http://127.0.0.1:8080/securityRealm/finishLogin
+
+With 127.0.0.1:8080 replaced with the hostname and port of your jenkins instance.
+
 
 B. GithubAuthorizationStrategy:
 
