@@ -8,6 +8,7 @@ import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import javax.servlet.Filter;
@@ -167,6 +168,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 		});
 	}
 
+	
 	@Override
 	public String getLoginUrl() {
 
@@ -176,11 +178,9 @@ public class GithubSecurityRealm extends SecurityRealm {
 	@Extension
 	public static final class DescriptorImpl extends Descriptor<SecurityRealm> {
 
-		private static DescriptorImpl instance = new DescriptorImpl();
-
 		@Override
 		public String getHelpFile() {
-			return "/plugin/github-oauth/help-security-realm.html";
+			return "/plugin/github-oauth/help/help-security-realm.html";
 		}
 
 		@Override
@@ -197,8 +197,6 @@ public class GithubSecurityRealm extends SecurityRealm {
 			super(clazz);
 			// TODO Auto-generated constructor stub
 		}
-		
-		
 
 	}
 

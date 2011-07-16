@@ -253,7 +253,7 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 		}
 
 		public String getHelpFile() {
-			return "/help-authorization-strategy.html";
+			return "/plugin/github-oauth/help/help-authorization-strategy.html";
 		}
 
 //		
