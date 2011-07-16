@@ -1,0 +1,21 @@
+<div>
+ 
+ Authentication requires a valid OAuth application to be registered with github.com.
+ <br/>
+ Using your github account you can create a new application registration using this link:
+  https://github.com/account/applications/new
+  <br/>
+  
+You can use any name you want but bear in mind this is what github will show to the users when they authenticate and authorize this plugin to act on their behalf. 
+<br/>
+
+The entry should look like this:
+
+<table>
+<tr><th>Main URL</th><td>http://127.0.0.1:8080</td></tr>
+<tr><th>Callback URL</th><td>http://127.0.0.1:8080/securityRealm/finishLogin</td></tr>
+</table>
+
+With <b>127.0.0.1:8080</b> replaced with the public hostname and port of your jenkins instance.
+
+</div>

@@ -16,7 +16,7 @@ import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 
 /**
- * @author Mike
+ * @author mocleiri
  * 
  */
 public class GihubAPITest extends TestCase {

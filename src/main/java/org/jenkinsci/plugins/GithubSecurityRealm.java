@@ -80,7 +80,9 @@ public class GithubSecurityRealm extends SecurityRealm {
 
 		return new HttpRedirect(
 				"https://github.com/login/oauth/authorize?client_id="
-						+ clientID + "&scope=user,public_repo,repo");
+						+ clientID);
+		
+		//  + "&scope=user,public_repo,repo"
 
 	}
 
@@ -178,7 +180,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 
 		@Override
 		public String getHelpFile() {
-			return "/plugin/github-oauth/help/overview.html";
+			return "/plugin/github-oauth/help-security-realm.html";
 		}
 
 		@Override
@@ -195,6 +197,8 @@ public class GithubSecurityRealm extends SecurityRealm {
 			super(clazz);
 			// TODO Auto-generated constructor stub
 		}
+		
+		
 
 	}
 

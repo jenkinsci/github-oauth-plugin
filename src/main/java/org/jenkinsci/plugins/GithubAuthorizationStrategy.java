@@ -4,20 +4,38 @@
 package org.jenkinsci.plugins;
 
 import hudson.Extension;
+import hudson.diagnosis.OldDataMonitor;
 import hudson.model.Descriptor;
 import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
+import hudson.security.GlobalMatrixAuthorizationStrategy;
 import hudson.security.Permission;
+import hudson.util.RobustReflectionConverter;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.Map.Entry;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import net.sf.json.JSONObject;
 
 import org.acegisecurity.Authentication;
+import org.apache.commons.lang.StringUtils;
+import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
+
+import com.thoughtworks.xstream.converters.Converter;
+import com.thoughtworks.xstream.converters.MarshallingContext;
+import com.thoughtworks.xstream.converters.UnmarshallingContext;
+import com.thoughtworks.xstream.io.HierarchicalStreamReader;
+import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 
 /**
  * @author mocleiri
@@ -27,7 +45,9 @@ import org.kohsuke.stapler.StaplerRequest;
  */
 public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 
-	
+	private static final String ORGANIZATION_NAMES = "organizationNames";
+	private static final String AUTHENTICATED_USER_READ_PERMISSION = "authenticatedUserReadPermission";
+	private static final String ADMIN_USER_NAMES = "adminUserNames";
 
 	private static class GithubRequireOrganizationMembershipACL extends ACL {
 
@@ -113,50 +133,56 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 		}
 
 		public GithubRequireOrganizationMembershipACL(
-				List<String> adminUserNameList,
-				List<String> organizationNameList,
+				String adminUserNames,
+				String organizationNames,
 				boolean authenticatedUserReadPermission) {
 			super();
 			this.authenticatedUserReadPermission = authenticatedUserReadPermission;
-			this.adminUserNameList = adminUserNameList;
-			this.organizationNameList = organizationNameList;
+			
+
+			this.adminUserNameList = new LinkedList<String>();
+
+			String[] parts = adminUserNames.split(",");
+
+			for (String part : parts) {
+				adminUserNameList.add(part);
+			}
+
+			this.organizationNameList = new LinkedList<String>();
+
+			parts = organizationNames.split(",");
+
+			for (String part : parts) {
+				organizationNameList.add(part);
+			}
 			
 		}
 
 	}
 
-	private final List<String> adminUserNameList;
+	private final String adminUserNames;
 
 	private final boolean authenticatedUserReadPermission;
 
-	private final List<String> organizationNameList;
+	private final String organizationNames;
 
+	
 	/**
 	 * 
 	 */
+	@DataBoundConstructor
 	public GithubAuthorizationStrategy(String adminUserNames,
 			boolean authenticatedUserReadPermission, String organizationNames) {
 		super();
+		this.adminUserNames = adminUserNames;
 		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
+		this.organizationNames = organizationNames;
 
-		this.adminUserNameList = new LinkedList<String>();
-
-		String[] parts = adminUserNames.split(",");
-
-		for (String part : parts) {
-			adminUserNameList.add(part);
-		}
-
-		this.organizationNameList = new LinkedList<String>();
-
-		parts = organizationNames.split(",");
-
-		for (String part : parts) {
-			organizationNameList.add(part);
-		}
-
+		rootACL = new GithubRequireOrganizationMembershipACL(this.adminUserNames, this.organizationNames,
+				this.authenticatedUserReadPermission);
 	}
 
+	private ACL rootACL = null;
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -165,8 +191,7 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 	@Override
 	public ACL getRootACL() {
 
-	return new GithubRequireOrganizationMembershipACL(this.adminUserNameList, this.organizationNameList,
-			this.authenticatedUserReadPermission);
+	return rootACL;
 
 }
 
@@ -182,31 +207,123 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 		return new ArrayList<String>(0);
 	}
 
+
+
+	
+
+
+
+	/**
+	 * @return the adminUserNames
+	 */
+	public String getAdminUserNames() {
+		return adminUserNames;
+	}
+
+
+
+	/**
+	 * @return the authenticatedUserReadPermission
+	 */
+	public boolean isAuthenticatedUserReadPermission() {
+		return authenticatedUserReadPermission;
+	}
+
+
+
+	/**
+	 * @return the organizationNames
+	 */
+	public String getOrganizationNames() {
+		return organizationNames;
+	}
+
+
+
+
+
+
+
 	@Extension
 	public static final class DescriptorImpl extends
 			Descriptor<AuthorizationStrategy> {
+		
 		public String getDisplayName() {
 			return "Github Commiter Authorization Strategy";
 		}
 
 		public String getHelpFile() {
-			return "/help/security/github-committer-auth-strategy.html";
+			return "/help-authorization-strategy.html";
 		}
 
-		@Override
-		public GithubAuthorizationStrategy newInstance(StaplerRequest req,
-				JSONObject formData) throws FormException {
-
-			String adminUserNames = formData.getString("adminUserNames");
-			;
-			boolean authorizedReadPermission = formData
-					.getBoolean("authenticatedUserReadPermission");
-
-			String organizationNames = formData.getString("organizationNames");
-
-			return new GithubAuthorizationStrategy(adminUserNames,
-					authorizedReadPermission, organizationNames);
-		}
+//		
+//		@Override
+//		public GithubAuthorizationStrategy newInstance(StaplerRequest req,
+//				JSONObject formData) throws FormException {
+//
+//			String adminUserNames = formData.getString(ADMIN_USER_NAMES);
+//			
+//			boolean authorizedReadPermission = formData
+//					.getBoolean(AUTHENTICATED_USER_READ_PERMISSION);
+//
+//			String organizationNames = formData.getString(ORGANIZATION_NAMES);
+//
+//			return new GithubAuthorizationStrategy(adminUserNames,
+//					authorizedReadPermission, organizationNames);
+//		}
 
 	}
+	
+	public static class ConverterImpl implements Converter {
+        public boolean canConvert(Class type) {
+            if (type==GithubAuthorizationStrategy.class)
+            	return true;
+            else
+            	return false;
+        }
+
+        public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
+        	GithubAuthorizationStrategy strategy = (GithubAuthorizationStrategy)source;
+
+            // Output in alphabetical order for readability.
+        	
+        	writer.startNode(ADMIN_USER_NAMES);
+        	writer.setValue(strategy.getAdminUserNames());
+        	writer.endNode();
+        	
+        	writer.startNode(ORGANIZATION_NAMES);
+        	writer.setValue(strategy.getOrganizationNames());
+        	writer.endNode();
+        	
+        	writer.startNode(AUTHENTICATED_USER_READ_PERMISSION);
+        	writer.setValue(String.valueOf(strategy.isAuthenticatedUserReadPermission()));
+        	writer.endNode();
+        	
+
+        }
+
+        public Object unmarshal(HierarchicalStreamReader reader, final UnmarshallingContext context) {
+
+                reader.moveDown();
+
+                String adminUserNames = reader.getValue();
+                
+                reader.moveUp();
+                
+                reader.moveDown();
+                
+                String organizationNames = reader.getValue();
+                
+                reader.moveUp();
+                
+                reader.moveDown();
+                
+                boolean authorizedReadPermission = Boolean.valueOf(reader.getValue());
+         
+			return new GithubAuthorizationStrategy(adminUserNames,
+					authorizedReadPermission, organizationNames);
+        }
+
+      
+    }
 }
