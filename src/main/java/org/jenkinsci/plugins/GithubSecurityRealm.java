@@ -83,6 +83,9 @@ public class GithubSecurityRealm extends SecurityRealm {
 				"https://github.com/login/oauth/authorize?client_id="
 						+ clientID);
 		
+		// we only need the readonly scope to get the group membership info.
+		// if we extend for other repo aware details the token scope may need to be specified.
+		// this can be done by adding a scope paramter to the above url.
 		//  + "&scope=user,public_repo,repo"
 
 	}
@@ -118,9 +121,8 @@ public class GithubSecurityRealm extends SecurityRealm {
 
 		String accessToken = extractToken(content);
 
-		GithubAuthenticationToken token;
 		SecurityContextHolder.getContext().setAuthentication(
-				token = new GithubAuthenticationToken(accessToken));
+				new GithubAuthenticationToken(accessToken));
 
 		return HttpResponses.redirectToContextRoot();
 	}
