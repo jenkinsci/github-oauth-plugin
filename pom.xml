@@ -10,7 +10,7 @@
   <artifactId>github-oauth</artifactId>
   <version>0.1-SNAPSHOT</version>
 <name>Github Authentication plugin</name>
-<description>A Jenkins plugin that signs users in using their github credentials and further requires that the developers have commit access.</description>
+<description>A Jenkins authentication plugin that delegates to github.  We also implement an Authorization Strategy that users the acquired OAuth token to interact with the Github API to determine a users level of access to Jenkins.</description>
   <packaging>hpi</packaging>
   
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Github+OAuth+Plugin</url>
@@ -32,9 +32,9 @@
 </developers>
 
  <scm>
-    <connection>scm:git:ssh://github.com/jenkinsci/github-oauth.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/github-oauth.git</developerConnection>
-    <url>https://github.com/jenkinsci/github-oauth</url>
+    <connection>scm:git:ssh://github.com/jenkinsci/github-oauth-plugin.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/github-oauth-plugin.git</developerConnection>
+    <url>https://github.com/jenkinsci/github-oauth-plugin</url>
   </scm>
 
   <!-- get every artifact through maven.glassfish.org, which proxies all the artifacts that we need -->

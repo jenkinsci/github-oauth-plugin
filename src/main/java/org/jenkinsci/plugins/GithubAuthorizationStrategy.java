@@ -174,6 +174,10 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 	public GithubAuthorizationStrategy(String adminUserNames,
 			boolean authenticatedUserReadPermission, String organizationNames) {
 		super();
+		
+//		if (adminUserNames == null || adminUserNames.trim().length() == 0)
+//			throw new RuntimeException ("admin");
+		
 		this.adminUserNames = adminUserNames;
 		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
 		this.organizationNames = organizationNames;
