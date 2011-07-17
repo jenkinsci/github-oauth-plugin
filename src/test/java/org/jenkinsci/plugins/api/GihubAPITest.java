@@ -18,7 +18,9 @@ import org.kohsuke.github.GitHub;
 /**
  * @author mocleiri
  * 
+ * we ignore this test when running the automated tests.
  */
+@Ignore 
 public class GihubAPITest extends TestCase {
 
 	/**
