@@ -3,27 +3,19 @@ package org.jenkinsci.plugins;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
-import hudson.model.Hudson;
 import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.logging.Logger;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-
 import org.acegisecurity.Authentication;
+import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.AuthenticationManager;
-import org.acegisecurity.GrantedAuthority;
+import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
+import org.acegisecurity.providers.anonymous.AnonymousAuthenticationToken;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
@@ -59,7 +51,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 
 		this.clientID = Util.fixEmptyAndTrim(clientID);
 		this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
-
+		
 	}
 
 	/**
@@ -75,6 +67,14 @@ public class GithubSecurityRealm extends SecurityRealm {
 	public String getClientSecret() {
 		return clientSecret;
 	}
+
+	
+	
+//	@Override
+//	public Filter createFilter(FilterConfig filterConfig) {
+//		
+//		return new GithubOAuthAuthenticationFilter();
+//	}
 
 	public HttpResponse doCommenceLogin(@Header("Referer") final String referer)
 			throws IOException {
@@ -158,9 +158,15 @@ public class GithubSecurityRealm extends SecurityRealm {
 
 	@Override
 	public SecurityComponents createSecurityComponents() {
+		
+           
+		
 		return new SecurityComponents(new AuthenticationManager() {
-			public Authentication authenticate(Authentication authentication) {
-				return authentication;
+			
+				 public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+		                if (authentication instanceof GithubAuthenticationToken)
+		                    return authentication;
+		                throw new BadCredentialsException("Unexpected authentication type: "+authentication);
 			}
 		}, new UserDetailsService() {
 			public UserDetails loadUserByUsername(String username)
