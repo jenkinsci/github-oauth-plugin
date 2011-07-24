@@ -102,18 +102,19 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 				
 				String p = a.getName();
 
-				if (p.equals("anonymous"))
-					return false;
 
 				if (p.equals(SYSTEM.getPrincipal())) {
+					// give system user full access
 					return true;
 				}
 
 				if (adminUserNameList.contains(p)) {
-					// if they are an admin then they have permission
+					// if they are an admin then they have all permissions
 					return true;
 				} else {
-					if (authenticatedUserReadPermission) {
+					
+					// anonymous must have read access at the root level
+					if (a.getName().equals("anonymous") || authenticatedUserReadPermission) {
 
 						String[] parts = permission.getId().split("\\.");
 						if (parts[parts.length - 1].toLowerCase().equals("read"))
