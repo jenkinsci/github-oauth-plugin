@@ -8,7 +8,7 @@
 
   <groupId>org.jenkins-ci.plugins</groupId>
   <artifactId>github-oauth</artifactId>
-  <version>0.2-SNAPSHOT</version>
+  <version>0.2</version>
 <name>Github Authentication plugin</name>
 <description>A Jenkins authentication plugin that delegates to github.  We also implement an Authorization Strategy that users the acquired OAuth token to interact with the Github API to determine a users level of access to Jenkins.</description>
   <packaging>hpi</packaging>
@@ -26,15 +26,14 @@
 	<developer>
 		<id>mocleiri</id>
 		<name>Michael O'Cleirigh</name>
-		<email>michael.ocleirigh[at]rivulet.ca</email>
-		<timezone>-4</timezone>
+		<timezone>-5</timezone>
 	</developer>
 </developers>
 
  <scm>
     <connection>scm:git:ssh://github.com/jenkinsci/github-oauth-plugin.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/github-oauth-plugin.git</developerConnection>
-    <url>https://github.com/jenkinsci/github-oauth-plugin</url>
+    <url>https://github.com/jenkinsci/github-oauth-plugin/tree/release-0.2</url>
   </scm>
 
   <!-- get every artifact through maven.glassfish.org, which proxies all the artifacts that we need -->
