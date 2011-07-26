@@ -30,13 +30,17 @@ B. GithubAuthorizationStrategy:
 
 This defines:
 
-1. comma seperated list of users that should be given admin priviledges.
+1. comma separated list of users that should be given admin privileges.
 
-2. comma seperated list of organizations whose members should be given read and build permissions on the jobs.
+2. comma separated list of organizations whose members should be given read and build permissions on the jobs.
 
 3. check box to give other authenticated users read permission.
 
 The plugin works but there are still some areas like form validation that need work.  And some other cases where exceptions are thrown when perhaps there is a better way.
+
+Notes:
+
+The user must be a public member in the organizations that are declared.
 
 License
 -------
