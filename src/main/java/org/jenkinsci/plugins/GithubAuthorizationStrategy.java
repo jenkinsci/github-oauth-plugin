@@ -4,8 +4,14 @@
 package org.jenkinsci.plugins;
 
 import hudson.Extension;
-import hudson.model.Build;
+import hudson.Util;
+import hudson.model.Item;
+import hudson.model.AbstractProject;
+import hudson.model.BuildAuthorizationToken;
 import hudson.model.Descriptor;
+import hudson.model.Job;
+import hudson.model.Node;
+import hudson.model.Project;
 import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
@@ -18,6 +24,9 @@ import java.util.List;
 import jenkins.model.Jenkins;
 
 import org.acegisecurity.Authentication;
+import org.apache.commons.httpclient.URIException;
+import org.apache.commons.httpclient.util.URIUtil;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Stapler;
 
@@ -100,13 +109,76 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 				if (a.getName().equals("anonymous")) {
 					// deny anonymous users
 					// everyone must be logged in
-					String requestURI = Stapler.getCurrentRequest().getOriginalRequestURI();
-					
+					String requestURI = Stapler.getCurrentRequest()
+							.getOriginalRequestURI();
+
 					if (requestURI.matches("^.*\\/job\\/.*/build$")) {
-						
-						if (permission.getId().equals("hudson.model.Hudson.Read") || permission.getId().equals("hudson.model.Item.Read"))
-							return true;
-						
+
+						/*
+						 * pull out the job name then look up the authentication
+						 * token and test it
+						 */
+
+						String parts[] = requestURI.split("/");
+
+						boolean started = false;
+
+						String projectName = null;
+
+						for (String part : parts) {
+
+							if (part.equals("job")) {
+								started = true;
+								continue;
+							}
+
+							if (started) {
+								try {
+									projectName =  URIUtil.decode(part);
+								} catch (URIException e) {
+									// should log here.
+									return false;
+								}
+								break;
+							}
+
+						}
+
+						String authorizedBuildToken = null;
+
+						if (projectName != null) {
+
+//							 Item item = Jenkins.getInstance().getItemByFullName(projectName);
+							
+							Item item = null;
+							
+							
+								if (item != null && item instanceof AbstractProject) {
+									
+										AbstractProject ap = (AbstractProject) item;
+										
+										BuildAuthorizationToken buildToken = ap
+												.getAuthToken();
+
+										authorizedBuildToken = buildToken
+												.getToken();
+								}
+
+							String buildToken = (String) Stapler
+									.getCurrentRequest().getParameter("token");
+
+							// ensure they have a valid build token
+
+							if (permission.getId().equals(
+									"hudson.model.Hudson.Read")
+									|| permission.getId().equals(
+											"hudson.model.Item.Read")
+									&& authorizedBuildToken != null
+									&& authorizedBuildToken.equals(buildToken))
+								return true;
+
+						}
+
 						// else fall through to false.
 					}
 					return false;
@@ -161,7 +233,7 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 				organizationNames, authenticatedUserReadPermission);
 	}
 
-	private ACL rootACL = null;
+	private GithubRequireOrganizationMembershipACL rootACL = null;
 
 	/*
 	 * (non-Javadoc)
