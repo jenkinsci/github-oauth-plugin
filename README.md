@@ -30,11 +30,14 @@ B. GithubAuthorizationStrategy:
 
 This defines:
 
-1. comma separated list of users that should be given admin privileges.
+1. Comma separated list of users that should be given admin privileges.
 
-2. comma separated list of organizations whose members should be given read and build permissions on the jobs.
+2. Comma separated list of organizations whose members should be given read and build permissions on the jobs.
 
-3. check box to give other authenticated users read permission.
+3. Check box to give other authenticated users read permission.
+
+4. Check box to allow anonymous users READ permission for the /github-webhook.  
+This only has meaning if the github-plugin is installed and the remote github repository post commit hook has been setup accordingly.
 
 The plugin works but there are still some areas like form validation that need work.  And some other cases where exceptions are thrown when perhaps there is a better way.
 
