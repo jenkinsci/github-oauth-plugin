@@ -47,6 +47,7 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 		private final List<String> organizationNameList;
 		private final List<String> adminUserNameList;
 		private final boolean authenticatedUserReadPermission;
+		private final boolean allowGithubWebHookPermission;
 
 		/*
 		 * (non-Javadoc)
@@ -112,72 +113,16 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 					String requestURI = Stapler.getCurrentRequest()
 							.getOriginalRequestURI();
 
-					if (requestURI.matches("^.*\\/job\\/.*/build$")) {
+					if (requestURI.matches("^/github-webhook$") && allowGithubWebHookPermission == true) {
 
-						/*
-						 * pull out the job name then look up the authentication
-						 * token and test it
-						 */
-
-						String parts[] = requestURI.split("/");
-
-						boolean started = false;
-
-						String projectName = null;
-
-						for (String part : parts) {
-
-							if (part.equals("job")) {
-								started = true;
-								continue;
-							}
-
-							if (started) {
-								try {
-									projectName =  URIUtil.decode(part);
-								} catch (URIException e) {
-									// should log here.
-									return false;
-								}
-								break;
-							}
-
-						}
-
-						String authorizedBuildToken = null;
-
-						if (projectName != null) {
-
-//							 Item item = Jenkins.getInstance().getItemByFullName(projectName);
-							
-							Item item = null;
-							
-							
-								if (item != null && item instanceof AbstractProject) {
-									
-										AbstractProject ap = (AbstractProject) item;
-										
-										BuildAuthorizationToken buildToken = ap
-												.getAuthToken();
-
-										authorizedBuildToken = buildToken
-												.getToken();
-								}
-
-							String buildToken = (String) Stapler
-									.getCurrentRequest().getParameter("token");
-
-							// ensure they have a valid build token
+							// allow if the permission was configured.
 
 							if (permission.getId().equals(
 									"hudson.model.Hudson.Read")
 									|| permission.getId().equals(
-											"hudson.model.Item.Read")
-									&& authorizedBuildToken != null
-									&& authorizedBuildToken.equals(buildToken))
+											"hudson.model.Item.Read"))
 								return true;
 
-						}
 
 						// else fall through to false.
 					}
@@ -197,9 +142,10 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 
 		public GithubRequireOrganizationMembershipACL(String adminUserNames,
 				String organizationNames,
-				boolean authenticatedUserReadPermission) {
+				boolean authenticatedUserReadPermission, boolean allowGithubWebHookPermission) {
 			super();
 			this.authenticatedUserReadPermission = authenticatedUserReadPermission;
+			this.allowGithubWebHookPermission = allowGithubWebHookPermission;
 
 			this.adminUserNameList = new LinkedList<String>();
 
@@ -226,11 +172,11 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 	 */
 	@DataBoundConstructor
 	public GithubAuthorizationStrategy(String adminUserNames,
-			boolean authenticatedUserReadPermission, String organizationNames) {
+			boolean authenticatedUserReadPermission, String organizationNames, boolean allowGithubWebHookPermission) {
 		super();
 
 		rootACL = new GithubRequireOrganizationMembershipACL(adminUserNames,
-				organizationNames, authenticatedUserReadPermission);
+				organizationNames, authenticatedUserReadPermission, allowGithubWebHookPermission);
 	}
 
 	private GithubRequireOrganizationMembershipACL rootACL = null;
