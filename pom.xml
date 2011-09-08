@@ -1,98 +1,110 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>org.jenkins-ci.plugins</groupId>
-    <artifactId>plugin</artifactId>
-    <version>1.420</version><!-- which version of Jenkins is this plugin built against? -->
-  </parent>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.jenkins-ci.plugins</groupId>
+		<artifactId>plugin</artifactId>
+		<version>1.420</version><!-- which version of Jenkins is this plugin built 
+			against? -->
+	</parent>
 
-  <groupId>org.jenkins-ci.plugins</groupId>
-  <artifactId>github-oauth</artifactId>
-  <version>0.3-SNAPSHOT</version>
-<name>Github Authentication plugin</name>
-<description>A Jenkins authentication plugin that delegates to github.  We also implement an Authorization Strategy that users the acquired OAuth token to interact with the Github API to determine a users level of access to Jenkins.</description>
-  <packaging>hpi</packaging>
-  
-  <url>http://wiki.jenkins-ci.org/display/JENKINS/Github+OAuth+Plugin</url>
+	<groupId>org.jenkins-ci.plugins</groupId>
+	<artifactId>github-oauth</artifactId>
+	<version>0.3-SNAPSHOT</version>
+	<name>Github Authentication plugin</name>
+	<description>A Jenkins authentication plugin that delegates to github.  We also implement an Authorization Strategy that users the acquired OAuth token to interact with the Github API to determine a users level of access to Jenkins.</description>
+	<packaging>hpi</packaging>
 
- <licenses>
-    <license>
-      <name>MIT license</name>
-      <comments>All source code is under the MIT license.</comments>
-    </license>
-  </licenses>
+	<url>http://wiki.jenkins-ci.org/display/JENKINS/Github+OAuth+Plugin</url>
 
-<developers>
-	<developer>
-		<id>mocleiri</id>
-		<name>Michael O'Cleirigh</name>
-		<timezone>-5</timezone>
-	</developer>
-</developers>
+	<licenses>
+		<license>
+			<name>MIT license</name>
+			<comments>All source code is under the MIT license.</comments>
+		</license>
+	</licenses>
 
- <scm>
-    <connection>scm:git:ssh://github.com/jenkinsci/github-oauth-plugin.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/github-oauth-plugin.git</developerConnection>
-    <url>https://github.com/jenkinsci/github-oauth-plugin</url>
-  </scm>
+	<developers>
+		<developer>
+			<id>mocleiri</id>
+			<name>Michael O'Cleirigh</name>
+			<timezone>-5</timezone>
+		</developer>
+	</developers>
 
-  <!-- get every artifact through maven.glassfish.org, which proxies all the artifacts that we need -->
-  <repositories>
-    <repository>
-      <id>m.g.o-public</id>
-      <url>http://maven.glassfish.org/content/groups/public/</url>
-    </repository>
-  </repositories>
+	<scm>
+		<connection>scm:git:ssh://github.com/jenkinsci/github-oauth-plugin.git</connection>
+		<developerConnection>scm:git:ssh://git@github.com/jenkinsci/github-oauth-plugin.git</developerConnection>
+		<url>https://github.com/jenkinsci/github-oauth-plugin</url>
+	</scm>
 
-  <pluginRepositories>
-    <pluginRepository>
-      <id>m.g.o-public</id>
-      <url>http://maven.glassfish.org/content/groups/public/</url>
-    </pluginRepository>
-  </pluginRepositories>
-  
-  <dependencies>
-	
+	<!-- get every artifact through maven.glassfish.org, which proxies all the 
+		artifacts that we need -->
+	<repositories>
+		<repository>
+			<id>m.g.o-public</id>
+			<url>http://maven.glassfish.org/content/groups/public/</url>
+		</repository>
+	</repositories>
+
+	<pluginRepositories>
+		<pluginRepository>
+			<id>m.g.o-public</id>
+			<url>http://maven.glassfish.org/content/groups/public/</url>
+		</pluginRepository>
+	</pluginRepositories>
+
+	<dependencies>
+
 		<dependency>
-    		<groupId>org.apache.httpcomponents</groupId>
-    		<artifactId>httpclient</artifactId>
-    		<version>4.1</version>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>4.1</version>
 		</dependency>
-	
-		<dependency>
-    <groupId>org.kohsuke</groupId>
-    <artifactId>github-api</artifactId>
-    <version>1.10</version>
-	</dependency>
 
 		<dependency>
-		    <groupId>org.json</groupId>
-		    <artifactId>json</artifactId>
-		    <version>20090211</version>
+			<groupId>org.kohsuke</groupId>
+			<artifactId>github-api</artifactId>
+			<version>1.10</version>
 		</dependency>
-		</dependencies>
-		
-		<build>
-			<plugins>
-<plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>2.3.2</version>
-        <configuration>
-          <source>1.6</source>
-          <target>1.6</target>
-          <debug>true</debug>
-        </configuration>
-      </plugin>
-			</plugins>
-		</build>
-		
-		<properties>
-		
+
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20090211</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.3.2</version>
+				<configuration>
+					<source>1.6</source>
+					<target>1.6</target>
+					<debug>true</debug>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.jvnet.hudson.tools</groupId>
+				<artifactId>maven-hpi-plugin</artifactId>
+				<extensions>true</extensions>
+				<configuration>
+					<compatibleSinceVersion>0.3</compatibleSinceVersion>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+	<properties>
+
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-		
-		</properties>
+
+	</properties>
 </project>
