@@ -87,7 +87,7 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#getOrganizationNameList()
 	 */
 	public String getOrganizationNames() {
-		return StringUtils.join(rootACL.getOrganizationNameList(), ",");
+		return StringUtils.join(rootACL.getOrganizationNameList(), ", ");
 	}
 
 
@@ -97,7 +97,7 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#getAdminUserNameList()
 	 */
 	public String getAdminUserNames() {
-		return StringUtils.join(rootACL.getAdminUserNameList(), ",");
+		return StringUtils.join(rootACL.getAdminUserNameList(), ", ");
 	}
 
 

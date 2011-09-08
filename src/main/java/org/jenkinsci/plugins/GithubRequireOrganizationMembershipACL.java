@@ -127,7 +127,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 			String[] parts = adminUserNames.split(",");
 
 			for (String part : parts) {
-				adminUserNameList.add(part);
+				adminUserNameList.add(part.trim());
 			}
 
 			this.organizationNameList = new LinkedList<String>();
@@ -135,7 +135,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 			parts = organizationNames.split(",");
 
 			for (String part : parts) {
-				organizationNameList.add(part);
+				organizationNameList.add(part.trim());
 			}
 
 		}
