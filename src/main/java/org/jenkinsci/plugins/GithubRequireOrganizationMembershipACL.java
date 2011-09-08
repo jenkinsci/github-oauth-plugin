@@ -82,13 +82,13 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 					return true;
 				}
 
-				if (a.getName().equals("anonymous")) {
+				if (p.equals("anonymous")) {
 					// deny anonymous users
 					// everyone must be logged in
 					String requestURI = Stapler.getCurrentRequest()
 							.getOriginalRequestURI();
 
-					if (requestURI.matches("^/github-webhook$") && allowGithubWebHookPermission == true) {
+					if (requestURI.matches("/github-webhook$") && allowGithubWebHookPermission == true) {
 
 							// allow if the permission was configured.
 
