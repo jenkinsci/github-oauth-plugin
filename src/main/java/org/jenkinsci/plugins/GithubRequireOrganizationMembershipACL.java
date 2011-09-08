@@ -88,7 +88,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 					String requestURI = Stapler.getCurrentRequest()
 							.getOriginalRequestURI();
 
-					if (requestURI.matches("^/github-webhook$") && allowGithubWebHookPermission == true) {
+					if (requestURI.matches("\\.*/github-webhook") && allowGithubWebHookPermission == true) {
 
 							// allow if the permission was configured.
 
