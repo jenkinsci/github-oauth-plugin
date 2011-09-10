@@ -26,14 +26,15 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
+import hudson.security.ACL;
+import hudson.security.Permission;
+
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Logger;
 
 import org.acegisecurity.Authentication;
 import org.kohsuke.stapler.Stapler;
-
-import hudson.security.ACL;
-import hudson.security.Permission;
 
 /**
  * @author Mike
@@ -41,6 +42,8 @@ import hudson.security.Permission;
  */
 public class GithubRequireOrganizationMembershipACL extends ACL {
 
+    	private static final Logger log = Logger.getLogger(GithubRequireOrganizationMembershipACL.class.getName());
+    	
 		private final List<String> organizationNameList;
 		private final List<String> adminUserNameList;
 		private final boolean authenticatedUserReadPermission;
@@ -62,9 +65,11 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
 				String candidateName = a.getName();
 
-				if (adminUserNameList.contains(candidateName))
+				if (adminUserNameList.contains(candidateName)) {
 					// if they are an admin then they have permission
+					 log.info("Granting Admin rights to user "+candidateName);
 					return true;
+				}
 
 				if (authenticatedUserReadPermission) {
 
@@ -73,6 +78,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
 						// if we support authenticated read and this is a read
 						// request we allow it
+						 log.info("Granting Authenticated User read permission to user "+candidateName);
 						return true;
 				}
 
@@ -85,9 +91,12 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
 						String test = parts[parts.length - 1].toLowerCase();
 
-						if (test.equals("read") || test.equals("build"))
+						if (test.equals("read") || test.equals("build")) {
 							// check the permission
+							
+							log.info("Granting READ and BUILD rights to user "+candidateName + " a member of " + organizationName);
 							return true;
+						}
 					}
 
 				}
@@ -101,6 +110,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
 				if (p.equals(SYSTEM.getPrincipal())) {
 					// give system user full access
+					 log.info("Granting Full rights to SYSTEM user.");
 					return true;
 				}
 
@@ -117,8 +127,10 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 							if (permission.getId().equals(
 									"hudson.model.Hudson.Read")
 									|| permission.getId().equals(
-											"hudson.model.Item.Read"))
+											"hudson.model.Item.Read")) {
+								log.info("Granting READ writes to github-webhook url: " + requestURI);
 								return true;
+							}
 
 
 						// else fall through to false.
@@ -128,6 +140,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
 				if (adminUserNameList.contains(p)) {
 					// if they are an admin then they have all permissions
+					 log.info("Granting Admin rights to user "+a.getName());
 					return true;
 				}
 
