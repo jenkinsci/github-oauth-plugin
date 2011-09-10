@@ -41,7 +41,6 @@ import hudson.security.Permission;
  */
 public class GithubRequireOrganizationMembershipACL extends ACL {
 
-
 		private final List<String> organizationNameList;
 		private final List<String> adminUserNameList;
 		private final boolean authenticatedUserReadPermission;
@@ -111,7 +110,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 					String requestURI = Stapler.getCurrentRequest()
 							.getOriginalRequestURI();
 
-					if (requestURI.matches("*/github-webhook/?$") && allowGithubWebHookPermission == true) {
+					if (requestURI.matches(".*github-webhook.*") && allowGithubWebHookPermission == true) {
 
 							// allow if the permission was configured.
 

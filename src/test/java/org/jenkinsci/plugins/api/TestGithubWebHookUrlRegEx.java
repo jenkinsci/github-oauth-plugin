@@ -70,6 +70,15 @@ public class TestGithubWebHookUrlRegEx extends TestCase {
 		
 		assertTrue(questionNested.matches(regex));
 		
+		
+		String full = "http://hostname.com/jenkins/github-webhook";
+		
+		assertTrue(full.matches(regex));
+			
+		String fullNested = "http://hostname.com/subfolder/jenkins/github-webhook";
+		
+		assertTrue(fullNested.matches(regex));
+		
 	}
 
 }
