@@ -67,7 +67,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
 				if (adminUserNameList.contains(candidateName)) {
 					// if they are an admin then they have permission
-					 log.info("Granting Admin rights to user "+candidateName);
+					 log.finest("Granting Admin rights to user "+candidateName);
 					return true;
 				}
 
@@ -78,7 +78,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
 						// if we support authenticated read and this is a read
 						// request we allow it
-						 log.info("Granting Authenticated User read permission to user "+candidateName);
+						 log.finest("Granting Authenticated User read permission to user "+candidateName);
 						return true;
 				}
 
@@ -94,7 +94,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 						if (test.equals("read") || test.equals("build")) {
 							// check the permission
 							
-							log.info("Granting READ and BUILD rights to user "+candidateName + " a member of " + organizationName);
+							log.finest("Granting READ and BUILD rights to user "+candidateName + " a member of " + organizationName);
 							return true;
 						}
 					}
@@ -110,7 +110,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
 				if (p.equals(SYSTEM.getPrincipal())) {
 					// give system user full access
-					 log.info("Granting Full rights to SYSTEM user.");
+					 log.finest("Granting Full rights to SYSTEM user.");
 					return true;
 				}
 
@@ -135,12 +135,14 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
 						// else fall through to false.
 					}
+					
+					log.info("Denying anonymous READ permission to url: " + requestURI);
 					return false;
 				}
 
 				if (adminUserNameList.contains(p)) {
 					// if they are an admin then they have all permissions
-					 log.info("Granting Admin rights to user "+a.getName());
+					 log.finest("Granting Admin rights to user "+a.getName());
 					return true;
 				}
 
