@@ -128,7 +128,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 									"hudson.model.Hudson.Read")
 									|| permission.getId().equals(
 											"hudson.model.Item.Read")) {
-								log.info("Granting READ writes to github-webhook url: " + requestURI);
+								log.info("Granting READ access for github-webhook url: " + requestURI);
 								return true;
 							}
 
@@ -136,7 +136,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 						// else fall through to false.
 					}
 					
-					log.info("Denying anonymous READ permission to url: " + requestURI);
+					log.finer("Denying anonymous READ permission to url: " + requestURI);
 					return false;
 				}
 
