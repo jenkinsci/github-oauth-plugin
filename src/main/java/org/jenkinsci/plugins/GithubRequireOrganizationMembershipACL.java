@@ -48,6 +48,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 		private final List<String> adminUserNameList;
 		private final boolean authenticatedUserReadPermission;
 		private final boolean allowGithubWebHookPermission;
+		private final boolean allowAnonymousReadPermission;
 
 		/*
 		 * (non-Javadoc)
@@ -115,8 +116,13 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 				}
 
 				if (p.equals("anonymous")) {
-					// deny anonymous users
-					// everyone must be logged in
+					
+					if (allowAnonymousReadPermission && checkReadPermission(permission)) {
+						// grant anonymous read permission if that is desired to anonymous users
+						return true;
+					}
+					
+					
 					String requestURI = Stapler.getCurrentRequest()
 							.getOriginalRequestURI();
 
@@ -124,10 +130,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
 							// allow if the permission was configured.
 
-							if (permission.getId().equals(
-									"hudson.model.Hudson.Read")
-									|| permission.getId().equals(
-											"hudson.model.Item.Read")) {
+							if (checkReadPermission(permission)) {
 								log.info("Granting READ access for github-webhook url: " + requestURI);
 								return true;
 							}
@@ -146,18 +149,36 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 					return true;
 				}
 
+				// else: 
+				// deny request
+				//				
 				return false;
 
 			}
 
 		}
+		
+		
+
+
+private boolean checkReadPermission(Permission permission) {
+	if (permission.getId().equals(
+			"hudson.model.Hudson.Read")
+			|| permission.getId().equals(
+					"hudson.model.Item.Read")) {
+		return true;
+	}
+	else
+		return false;
+}
 
 		public GithubRequireOrganizationMembershipACL(String adminUserNames,
 				String organizationNames,
-				boolean authenticatedUserReadPermission, boolean allowGithubWebHookPermission) {
+				boolean authenticatedUserReadPermission, boolean allowGithubWebHookPermission, boolean allowAnonymousReadPermission) {
 			super();
 			this.authenticatedUserReadPermission = authenticatedUserReadPermission;
 			this.allowGithubWebHookPermission = allowGithubWebHookPermission;
+			this.allowAnonymousReadPermission = allowAnonymousReadPermission;
 
 			this.adminUserNameList = new LinkedList<String>();
 
@@ -192,6 +213,18 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 		public boolean isAllowGithubWebHookPermission() {
 			return allowGithubWebHookPermission;
 		}
+
+
+
+
+		/**
+		 * @return the allowAnonymousReadPermission
+		 */
+		public boolean isAllowAnonymousReadPermission() {
+			return allowAnonymousReadPermission;
+		}
+		
+		
 
 		
 		

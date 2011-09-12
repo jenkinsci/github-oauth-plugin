@@ -59,18 +59,19 @@ import org.kohsuke.stapler.Stapler;
  * 
  * 
  */
-public class GithubAuthorizationStrategy extends AuthorizationStrategy {
+public class GithubAuthorizationStrategy extends AuthorizationStrategy { 
 
 		/**
+		 * @param allowAnonymousReadPermission 
 	 * 
 	 */
 	@DataBoundConstructor
 	public GithubAuthorizationStrategy(String adminUserNames,
-			boolean authenticatedUserReadPermission, String organizationNames, boolean allowGithubWebHookPermission) {
+			boolean authenticatedUserReadPermission, String organizationNames, boolean allowGithubWebHookPermission, boolean allowAnonymousReadPermission) { 
 		super();
 
 		rootACL = new GithubRequireOrganizationMembershipACL(adminUserNames,
-				organizationNames, authenticatedUserReadPermission, allowGithubWebHookPermission);
+				organizationNames, authenticatedUserReadPermission, allowGithubWebHookPermission, allowAnonymousReadPermission);
 	}
 
 	private final GithubRequireOrganizationMembershipACL rootACL;
