@@ -59,19 +59,22 @@ import org.kohsuke.stapler.Stapler;
  * 
  * 
  */
-public class GithubAuthorizationStrategy extends AuthorizationStrategy { 
+public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 
-		/**
-		 * @param allowAnonymousReadPermission 
+	/**
+	 * @param allowAnonymousReadPermission
 	 * 
 	 */
 	@DataBoundConstructor
 	public GithubAuthorizationStrategy(String adminUserNames,
-			boolean authenticatedUserReadPermission, String organizationNames, boolean allowGithubWebHookPermission, boolean allowAnonymousReadPermission) { 
+			boolean authenticatedUserReadPermission, String organizationNames,
+			boolean allowGithubWebHookPermission,
+			boolean allowAnonymousReadPermission) {
 		super();
 
 		rootACL = new GithubRequireOrganizationMembershipACL(adminUserNames,
-				organizationNames, authenticatedUserReadPermission, allowGithubWebHookPermission, allowAnonymousReadPermission);
+				organizationNames, authenticatedUserReadPermission,
+				allowGithubWebHookPermission, allowAnonymousReadPermission);
 	}
 
 	private final GithubRequireOrganizationMembershipACL rootACL;
@@ -87,8 +90,6 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 		return rootACL;
 
 	}
-	
-	
 
 	/*
 	 * (non-Javadoc)
@@ -100,12 +101,10 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 		return new ArrayList<String>(0);
 	}
 
-	  private Object readResolve() {
-		  return this;
-	  }
-	  
-	  
-	  
+	private Object readResolve() {
+		return this;
+	}
+
 	/**
 	 * @return
 	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#getOrganizationNameList()
@@ -113,8 +112,6 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 	public String getOrganizationNames() {
 		return StringUtils.join(rootACL.getOrganizationNameList(), ", ");
 	}
-
-
 
 	/**
 	 * @return
@@ -124,8 +121,6 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 		return StringUtils.join(rootACL.getAdminUserNameList(), ", ");
 	}
 
-
-
 	/**
 	 * @return
 	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAuthenticatedUserReadPermission()
@@ -133,8 +128,6 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 	public boolean isAuthenticatedUserReadPermission() {
 		return rootACL.isAuthenticatedUserReadPermission();
 	}
-
-
 
 	/**
 	 * @return
@@ -144,6 +137,14 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 		return rootACL.isAllowGithubWebHookPermission();
 	}
 
+	
+	/**
+	 * @return
+	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAllowAnonymousReadPermission()
+	 */
+	public boolean isAllowAnonymousReadPermission() {
+		return rootACL.isAllowAnonymousReadPermission();
+	}
 
 
 	@Extension
