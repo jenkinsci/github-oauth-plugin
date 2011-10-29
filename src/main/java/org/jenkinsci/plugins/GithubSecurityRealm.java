@@ -68,19 +68,28 @@ import org.springframework.dao.DataAccessException;
  */
 public class GithubSecurityRealm extends SecurityRealm {
 
+	private String githubUri;
 	private String clientID;
 	private String clientSecret;
 
 	@DataBoundConstructor
-	public GithubSecurityRealm(String clientID, String clientSecret) {
+	public GithubSecurityRealm(String githubUri, String clientID, String clientSecret) {
 		super();
 
+		this.githubUri = Util.fixEmptyAndTrim(githubUri);
 		this.clientID = Util.fixEmptyAndTrim(clientID);
 		this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
 		
 	}
 
 	/**
+	 * @return the uri to Github (varies for Github Enterprise Edition)
+	 */
+	public String getGithubUri() {
+		return githubUri;
+	}
+	
+     /**
 	 * @return the clientID
 	 */
 	public String getClientID() {
@@ -106,7 +115,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 			throws IOException {
 
 		return new HttpRedirect(
-				"https://github.com/login/oauth/authorize?client_id="
+				githubUri + "/login/oauth/authorize?client_id="
 						+ clientID);
 		
 		// we only need the readonly scope to get the group membership info.
@@ -128,7 +137,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 		Log.info("test");
 
 		HttpPost httpost = new HttpPost(
-				"https://github.com/login/oauth/access_token?" + "client_id="
+				githubUri + "/login/oauth/access_token?" + "client_id="
 						+ clientID + "&" + "client_secret=" + clientSecret
 						+ "&" + "code=" + code);
 
