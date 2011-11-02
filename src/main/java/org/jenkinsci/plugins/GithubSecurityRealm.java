@@ -68,6 +68,8 @@ import org.springframework.dao.DataAccessException;
  */
 public class GithubSecurityRealm extends SecurityRealm {
 
+	private static final String DEFAULT_URI = "https://github.com";
+	
 	private String githubUri;
 	private String clientID;
 	private String clientSecret;
@@ -86,7 +88,11 @@ public class GithubSecurityRealm extends SecurityRealm {
 	 * @return the uri to Github (varies for Github Enterprise Edition)
 	 */
 	public String getGithubUri() {
-		return githubUri;
+		
+		if (githubUri == null)
+			return DEFAULT_URI;
+		else
+			return githubUri;
 	}
 	
      /**
