@@ -148,10 +148,10 @@ public class GithubSecurityRealm extends SecurityRealm {
 			writer.setValue(realm.getClientID());
 			writer.endNode();
 
-			writer.startNode("secretID");
+			writer.startNode("clientSecret");
 			writer.setValue(realm.getClientSecret());
 			writer.endNode();
-
+			
 		}
 
 		public Object unmarshal(HierarchicalStreamReader reader,
