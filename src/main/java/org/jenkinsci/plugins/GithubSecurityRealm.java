@@ -32,6 +32,7 @@ import hudson.model.Descriptor;
 import hudson.model.Fingerprint.RangeSet;
 import hudson.security.GroupDetails;
 import hudson.security.Permission;
+import hudson.security.HudsonPrivateSecurityRealm.Details;
 import hudson.security.SecurityRealm;
 
 import java.io.IOException;
@@ -54,11 +55,14 @@ import org.acegisecurity.providers.anonymous.AnonymousAuthenticationToken;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
+import org.apache.bcel.generic.ATHROW;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.jfree.util.Log;
+import org.kohsuke.github.GHOrganization;
+import org.kohsuke.github.GHUser;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Header;
 import org.kohsuke.stapler.HttpRedirect;
@@ -66,6 +70,7 @@ import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.StaplerRequest;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataRetrievalFailureException;
 
 import com.thoughtworks.xstream.converters.ConversionException;
 import com.thoughtworks.xstream.converters.Converter;
@@ -397,30 +402,55 @@ public class GithubSecurityRealm extends SecurityRealm {
 	@Override
 	public UserDetails loadUserByUsername(String username)
 			throws UsernameNotFoundException, DataAccessException {
-		UserDetails user = null;
-		String connectionString;
+		GHUser user = null;
 
-		if (true)
-			throw new UsernameNotFoundException("implemtnation required");
-
-		return user;
+		GithubAuthenticationToken authToken =  (GithubAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+		
+		try {
+			
+			GroupDetails group = loadGroupByGroupname(username);
+			
+			if (group != null) {
+				throw new UsernameNotFoundException ("user("+username+") is also an organization");
+			}
+			
+			user = authToken.loadUser(username);
+			
+			if (user != null)
+				return new GithubOAuthUserDetails(user);
+			else
+				throw new UsernameNotFoundException("no known user: " + username);
+		} catch (IOException e) {
+			throw new DataRetrievalFailureException("loadUserByUsername (username=" + username +")", e);
+		}
 	}
 
 	/**
 	 * 
-	 * @param groupname
+	 * @param groupName
 	 * @return
 	 * @throws UsernameNotFoundException
 	 * @throws DataAccessException
 	 */
 	@Override
-	public GroupDetails loadGroupByGroupname(String groupname)
+	public GroupDetails loadGroupByGroupname(String groupName)
 			throws UsernameNotFoundException, DataAccessException {
-		LOGGER.warning("ERROR: Group lookup is not supported.");
-		throw new UsernameNotFoundException(
-				"GithubSecurityRealm: Non-supported function");
+		
+		GithubAuthenticationToken authToken =  (GithubAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+		
+		try {
+			GHOrganization org = authToken.loadOrganization(groupName);
+			
+			if (org != null)
+				return new GithubOAuthGroupDetails(org);
+			else
+				throw new UsernameNotFoundException("no known group: " + groupName);
+		} catch (IOException e) {
+			throw new DataRetrievalFailureException("loadGroupByGroupname (groupname=" + groupName +")", e);
+		}
 	}
 
+	
 	/**
 	 * Logger for debugging purposes.
 	 */

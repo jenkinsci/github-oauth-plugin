@@ -60,16 +60,16 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 		super(new GrantedAuthority[] {});
 
 		this.accessToken = accessToken;
-		
+
 		try {
-			
+
 			gh = GitHub.connectUsingOAuth(accessToken);
-		
+
 			GHUser me = gh.getMyself();
 
 			if (me != null)
 				setAuthenticated(true);
-			
+
 			this.userName = me.getLogin();
 
 		} catch (IOException e) {
@@ -100,28 +100,32 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 	}
 
 	/**
-	 * For some reason I can't get the github api to tell me for the current user the groups to which he belongs.
+	 * For some reason I can't get the github api to tell me for the current
+	 * user the groups to which he belongs.
 	 * 
-	 * So this is a slightly larger consideration.  If the authenticated user is part of any team within the organization then they have permission.
+	 * So this is a slightly larger consideration. If the authenticated user is
+	 * part of any team within the organization then they have permission.
 	 * 
 	 * @param candidateName
 	 * @param organization
 	 * @return
 	 */
-	public boolean hasOrganizationPermission(String candidateName, String organization) {
+	public boolean hasOrganizationPermission(String candidateName,
+			String organization) {
 
 		try {
-			
+
 			Map<String, GHOrganization> myOrgsMap = gh.getMyOrganizations();
-			
+
 			if (myOrgsMap.keySet().contains(organization))
 				return true;
-			
+
 			return false;
-			
+
 		} catch (IOException e) {
 
-			throw new RuntimeException("authorization failed for user = " + candidateName, e);
+			throw new RuntimeException("authorization failed for user = "
+					+ candidateName, e);
 
 		}
 	}
@@ -129,4 +133,36 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 	private static final Logger LOGGER = Logger
 			.getLogger(GithubAuthenticationToken.class.getName());
 
+	public GHUser loadUser(String username) throws IOException {
+		if (gh != null && isAuthenticated())
+			return gh.getUser(username);
+		else
+			return null;
+	}
+
+	public GHOrganization loadOrganization(String organization)
+			throws IOException {
+
+		if (gh != null && isAuthenticated())
+			return gh.getOrganization(organization);
+		else
+			return null;
+
+	}
+
+	public GHTeam loadTeam(String organization, String team) throws IOException {
+		if (gh != null && isAuthenticated()) {
+
+			GHOrganization org = gh.getOrganization(organization);
+
+			if (org != null) {
+				Map<String, GHTeam> teamMap = org.getTeams();
+
+				return teamMap.get(team);
+			} else
+				return null;
+
+		} else
+			return null;
+	}
 }
