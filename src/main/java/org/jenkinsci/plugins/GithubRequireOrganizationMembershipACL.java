@@ -38,195 +38,200 @@ import org.kohsuke.stapler.Stapler;
 
 /**
  * @author Mike
- *
+ * 
  */
 public class GithubRequireOrganizationMembershipACL extends ACL {
 
-    	private static final Logger log = Logger.getLogger(GithubRequireOrganizationMembershipACL.class.getName());
-    	
-		private final List<String> organizationNameList;
-		private final List<String> adminUserNameList;
-		private final boolean authenticatedUserReadPermission;
-		private final boolean allowGithubWebHookPermission;
-		private final boolean allowAnonymousReadPermission;
+	private static final Logger log = Logger
+			.getLogger(GithubRequireOrganizationMembershipACL.class.getName());
 
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see
-		 * hudson.security.ACL#hasPermission(org.acegisecurity.Authentication,
-		 * hudson.security.Permission)
-		 */
-		@Override
-		public boolean hasPermission(Authentication a, Permission permission) {
+	private final List<String> organizationNameList;
+	private final List<String> adminUserNameList;
+	private final boolean authenticatedUserReadPermission;
+	private final boolean allowGithubWebHookPermission;
+	private final boolean allowAnonymousReadPermission;
 
-			if (a != null && a instanceof GithubAuthenticationToken) {
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see hudson.security.ACL#hasPermission(org.acegisecurity.Authentication,
+	 * hudson.security.Permission)
+	 */
+	@Override
+	public boolean hasPermission(Authentication a, Permission permission) {
 
-				GithubAuthenticationToken authenticationToken = (GithubAuthenticationToken) a;
+		if (a != null && a instanceof GithubAuthenticationToken) {
 
-				String candidateName = a.getName();
+			if (!a.isAuthenticated())
+				return false;
 
-				if (adminUserNameList.contains(candidateName)) {
-					// if they are an admin then they have permission
-					 log.finest("Granting Admin rights to user "+candidateName);
-					return true;
+			GithubAuthenticationToken authenticationToken = (GithubAuthenticationToken) a;
+
+			String candidateName = a.getName();
+
+			if (adminUserNameList.contains(candidateName)) {
+				// if they are an admin then they have permission
+				log.finest("Granting Admin rights to user " + candidateName);
+				return true;
+			}
+
+			if (authenticatedUserReadPermission) {
+
+				if (checkReadPermission(permission)) {
+
+					// if we support authenticated read and this is a read
+					// request we allow it
+					log.finest("Granting Authenticated User read permission to user "
+							+ candidateName);
+				return true;
 				}
+			}
 
-				if (authenticatedUserReadPermission) {
+			for (String organizationName : this.organizationNameList) {
+
+				if (authenticationToken.hasOrganizationPermission(
+						candidateName, organizationName)) {
 
 					String[] parts = permission.getId().split("\\.");
-					if (parts[parts.length - 1].toLowerCase().equals("read"))
 
-						// if we support authenticated read and this is a read
-						// request we allow it
-						 log.finest("Granting Authenticated User read permission to user "+candidateName);
-						return true;
-				}
+					String test = parts[parts.length - 1].toLowerCase();
 
-				for (String organizationName : this.organizationNameList) {
+					if (checkReadPermission(permission)
+							|| testBuildPermission(permission)) {
+						// check the permission
 
-					if (authenticationToken.hasOrganizationPermission(
-							candidateName, organizationName)) {
-
-						String[] parts = permission.getId().split("\\.");
-
-						String test = parts[parts.length - 1].toLowerCase();
-
-						if (test.equals("read") || test.equals("build")) {
-							// check the permission
-							
-							log.finest("Granting READ and BUILD rights to user "+candidateName + " a member of " + organizationName);
-							return true;
-						}
-					}
-
-				}
-
-				// no match.
-				return false;
-
-			} else {
-
-				String p = a.getName();
-
-				if (p.equals(SYSTEM.getPrincipal())) {
-					// give system user full access
-					 log.finest("Granting Full rights to SYSTEM user.");
-					return true;
-				}
-
-				if (p.equals("anonymous")) {
-					
-					if (allowAnonymousReadPermission && checkReadPermission(permission)) {
-						// grant anonymous read permission if that is desired to anonymous users
+						log.finest("Granting READ and BUILD rights to user "
+								+ candidateName + " a member of "
+								+ organizationName);
 						return true;
 					}
-					
-					
-					String requestURI = Stapler.getCurrentRequest()
-							.getOriginalRequestURI();
-
-					if (requestURI.matches(".*github-webhook.*") && allowGithubWebHookPermission == true) {
-
-							// allow if the permission was configured.
-
-							if (checkReadPermission(permission)) {
-								log.info("Granting READ access for github-webhook url: " + requestURI);
-								return true;
-							}
-
-
-						// else fall through to false.
-					}
-					
-					log.finer("Denying anonymous READ permission to url: " + requestURI);
-					return false;
 				}
-
-				if (adminUserNameList.contains(p)) {
-					// if they are an admin then they have all permissions
-					 log.finest("Granting Admin rights to user "+a.getName());
-					return true;
-				}
-
-				// else: 
-				// deny request
-				//				
-				return false;
 
 			}
 
+			// no match.
+			return false;
+
+		} else {
+
+			String authenticatedUserName = a.getName();
+
+			if (authenticatedUserName.equals(SYSTEM.getPrincipal())) {
+				// give system user full access
+				log.finest("Granting Full rights to SYSTEM user.");
+				return true;
+			}
+
+			if (authenticatedUserName.equals("anonymous")) {
+
+				if (allowAnonymousReadPermission
+						&& checkReadPermission(permission)) {
+					// grant anonymous read permission if that is desired to
+					// anonymous users
+					return true;
+				}
+
+				String requestURI = Stapler.getCurrentRequest()
+						.getOriginalRequestURI();
+
+				if (requestURI.matches(".*github-webhook.*")
+						&& allowGithubWebHookPermission == true) {
+
+					// allow if the permission was configured.
+
+					if (checkReadPermission(permission)) {
+						log.info("Granting READ access for github-webhook url: "
+								+ requestURI);
+						return true;
+					}
+
+					// else fall through to false.
+				}
+
+				log.finer("Denying anonymous READ permission to url: "
+						+ requestURI);
+				return false;
+			}
+
+			if (adminUserNameList.contains(authenticatedUserName)) {
+				// if they are an admin then they have all permissions
+				log.finest("Granting Admin rights to user " + a.getName());
+				return true;
+			}
+
+			// else:
+			// deny request
+			//
+			return false;
+
 		}
-		
-		
 
-
-private boolean checkReadPermission(Permission permission) {
-	if (permission.getId().equals(
-			"hudson.model.Hudson.Read")
-			|| permission.getId().equals(
-					"hudson.model.Item.Read")) {
-		return true;
 	}
-	else
-		return false;
-}
 
-		public GithubRequireOrganizationMembershipACL(String adminUserNames,
-				String organizationNames,
-				boolean authenticatedUserReadPermission, boolean allowGithubWebHookPermission, boolean allowAnonymousReadPermission) {
-			super();
-			this.authenticatedUserReadPermission = authenticatedUserReadPermission;
-			this.allowGithubWebHookPermission = allowGithubWebHookPermission;
-			this.allowAnonymousReadPermission = allowAnonymousReadPermission;
+	private boolean testBuildPermission(Permission permission) {
+		if (permission.getId().equals("hudson.model.Hudson.Build")
+				|| permission.getId().equals("hudson.model.Item.Build")) {
+			return true;
+		} else
+			return false;
+	}
 
-			this.adminUserNameList = new LinkedList<String>();
+	private boolean checkReadPermission(Permission permission) {
+		if (permission.getId().equals("hudson.model.Hudson.Read")
+				|| permission.getId().equals("hudson.model.Item.Read")) {
+			return true;
+		} else
+			return false;
+	}
 
-			String[] parts = adminUserNames.split(",");
+	public GithubRequireOrganizationMembershipACL(String adminUserNames,
+			String organizationNames, boolean authenticatedUserReadPermission,
+			boolean allowGithubWebHookPermission,
+			boolean allowAnonymousReadPermission) {
+		super();
+		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
+		this.allowGithubWebHookPermission = allowGithubWebHookPermission;
+		this.allowAnonymousReadPermission = allowAnonymousReadPermission;
 
-			for (String part : parts) {
-				adminUserNameList.add(part.trim());
-			}
+		this.adminUserNameList = new LinkedList<String>();
 
-			this.organizationNameList = new LinkedList<String>();
+		String[] parts = adminUserNames.split(",");
 
-			parts = organizationNames.split(",");
-
-			for (String part : parts) {
-				organizationNameList.add(part.trim());
-			}
-
+		for (String part : parts) {
+			adminUserNameList.add(part.trim());
 		}
 
-		public List<String> getOrganizationNameList() {
-			return organizationNameList;
+		this.organizationNameList = new LinkedList<String>();
+
+		parts = organizationNames.split(",");
+
+		for (String part : parts) {
+			organizationNameList.add(part.trim());
 		}
 
-		public List<String> getAdminUserNameList() {
-			return adminUserNameList;
-		}
+	}
 
-		public boolean isAuthenticatedUserReadPermission() {
-			return authenticatedUserReadPermission;
-		}
+	public List<String> getOrganizationNameList() {
+		return organizationNameList;
+	}
 
-		public boolean isAllowGithubWebHookPermission() {
-			return allowGithubWebHookPermission;
-		}
+	public List<String> getAdminUserNameList() {
+		return adminUserNameList;
+	}
 
+	public boolean isAuthenticatedUserReadPermission() {
+		return authenticatedUserReadPermission;
+	}
 
+	public boolean isAllowGithubWebHookPermission() {
+		return allowGithubWebHookPermission;
+	}
 
-
-		/**
-		 * @return the allowAnonymousReadPermission
-		 */
-		public boolean isAllowAnonymousReadPermission() {
-			return allowAnonymousReadPermission;
-		}
-		
-		
-
-		
-		
+	/**
+	 * @return the allowAnonymousReadPermission
+	 */
+	public boolean isAllowAnonymousReadPermission() {
+		return allowAnonymousReadPermission;
+	}
 
 }

@@ -67,9 +67,13 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 		
 			GHUser me = gh.getMyself();
 
+			if (me != null)
+				setAuthenticated(true);
+			
 			this.userName = me.getLogin();
 
 		} catch (IOException e) {
+			setAuthenticated(false);
 			throw new RuntimeException("failed to load self:", e);
 		}
 

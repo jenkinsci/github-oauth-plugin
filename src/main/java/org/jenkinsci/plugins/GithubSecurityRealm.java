@@ -266,6 +266,11 @@ public class GithubSecurityRealm extends SecurityRealm {
 			throws IOException {
 
 		String code = request.getParameter("code");
+		
+		if (code == null || code.trim().length() == 0) {
+			Log.info("doFinishLogin: missing code.");
+			return HttpResponses.redirectToContextRoot();
+		}
 
 		Log.info("test");
 
@@ -287,9 +292,17 @@ public class GithubSecurityRealm extends SecurityRealm {
 		httpclient.getConnectionManager().shutdown();
 
 		String accessToken = extractToken(content);
+		
+		if (accessToken != null && accessToken.trim().length() > 0) {
 
+			// only set the access token if it exists.
 		SecurityContextHolder.getContext().setAuthentication(
 				new GithubAuthenticationToken(accessToken));
+		
+		}
+		else {
+			Log.info("github did not return an access token.");
+		}
 
 		return HttpResponses.redirectToContextRoot();
 	}
