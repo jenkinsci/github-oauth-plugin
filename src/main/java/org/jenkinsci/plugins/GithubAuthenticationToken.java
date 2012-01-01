@@ -27,13 +27,16 @@ THE SOFTWARE.
 package org.jenkinsci.plugins;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import hudson.security.SecurityRealm;
 import org.acegisecurity.GrantedAuthority;
+import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.providers.AbstractAuthenticationToken;
 import org.kohsuke.github.GHOrganization;
-import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHTeam;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
@@ -52,50 +55,42 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 	private static final long serialVersionUID = 1L;
 	private final String accessToken;
 
-	private String userName = null;
-	private GitHub gh;
+	private final String userName;
+	private final GitHub gh;
 
-	public GithubAuthenticationToken(String accessToken) {
+    private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
+
+	public GithubAuthenticationToken(String accessToken) throws IOException {
 
 		super(new GrantedAuthority[] {});
 
 		this.accessToken = accessToken;
+        this.gh = GitHub.connectUsingOAuth(accessToken);
 
-		try {
+        GHUser me = gh.getMyself();
+        assert me!=null;
 
-			gh = GitHub.connectUsingOAuth(accessToken);
+        setAuthenticated(true);
 
-			GHUser me = gh.getMyself();
-
-			if (me != null)
-				setAuthenticated(true);
-
-			this.userName = me.getLogin();
-
-		} catch (IOException e) {
-			setAuthenticated(false);
-			throw new RuntimeException("failed to load self:", e);
-		}
-
+        this.userName = me.getLogin();
+        authorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
+        for (String name : gh.getMyOrganizations().keySet())
+            authorities.add(new GrantedAuthorityImpl(name));
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.acegisecurity.Authentication#getCredentials()
-	 */
+    @Override
+    public GrantedAuthority[] getAuthorities() {
+        return authorities.toArray(new GrantedAuthority[authorities.size()]);
+    }
+
 	public Object getCredentials() {
-		// TODO Auto-generated method stub
-		return "";
+		return ""; // do not expose the credential
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.acegisecurity.Authentication#getPrincipal()
-	 */
-	public Object getPrincipal() {
-
+    /**
+     * Returns the login name in GitHub.
+     */
+	public String getPrincipal() {
 		return this.userName;
 	}
 
