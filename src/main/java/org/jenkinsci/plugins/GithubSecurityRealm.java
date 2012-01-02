@@ -91,7 +91,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 
 	private static final String DEFAULT_URI = "https://github.com";
 
-	private String githubUri;
+    private String githubUri;
 	private String clientID;
 	private String clientSecret;
 
@@ -249,8 +249,10 @@ public class GithubSecurityRealm extends SecurityRealm {
 	// return new GithubOAuthAuthenticationFilter();
 	// }
 
-	public HttpResponse doCommenceLogin(@Header("Referer") final String referer)
+	public HttpResponse doCommenceLogin(StaplerRequest request, @Header("Referer") final String referer)
 			throws IOException {
+
+        request.getSession().setAttribute(REFERER_ATTRIBUTE,referer);
 
 		return new HttpRedirect(githubUri + "/login/oauth/authorize?client_id="
 				+ clientID);
@@ -309,7 +311,9 @@ public class GithubSecurityRealm extends SecurityRealm {
 			Log.info("github did not return an access token.");
 		}
 
-		return HttpResponses.redirectToContextRoot();
+        String referer = (String)request.getSession().getAttribute(REFERER_ATTRIBUTE);
+        if (referer!=null)  return HttpResponses.redirectTo(referer);
+		return HttpResponses.redirectToContextRoot();   // referer should be always there, but be defensive
 	}
 
 	private String extractToken(String content) {
@@ -454,7 +458,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 	/**
 	 * Logger for debugging purposes.
 	 */
-	private static final Logger LOGGER = Logger
-			.getLogger(GithubSecurityRealm.class.getName());
+	private static final Logger LOGGER = Logger.getLogger(GithubSecurityRealm.class.getName());
 
+    private static final String REFERER_ATTRIBUTE = GithubSecurityRealm.class.getName()+".referer";
 }
