@@ -38,6 +38,7 @@ import hudson.security.SecurityRealm;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
@@ -45,6 +46,7 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.logging.Logger;
 
+import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.AuthenticationManager;
@@ -253,16 +255,18 @@ public class GithubSecurityRealm extends SecurityRealm {
 			throws IOException {
 
         request.getSession().setAttribute(REFERER_ATTRIBUTE,referer);
+        
+        Set<String> scopes = new HashSet<String>();
+        for (GitHubOAuthScope s : Jenkins.getInstance().getExtensionList(GitHubOAuthScope.class)) {
+            scopes.addAll(s.getScopesToRequest());
+        }
+        String suffix="";
+        if (!scopes.isEmpty()) {
+            suffix = "&scope="+Util.join(scopes,",");
+        }
 
 		return new HttpRedirect(githubUri + "/login/oauth/authorize?client_id="
-				+ clientID);
-
-		// we only need the readonly scope to get the group membership info.
-		// if we extend for other repo aware details the token scope may need to
-		// be specified.
-		// this can be done by adding a scope paramter to the above url.
-		// + "&scope=user,public_repo,repo"
-
+				+ clientID + suffix);
 	}
 
 	/**
