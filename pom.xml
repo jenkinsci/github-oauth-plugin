@@ -225,6 +225,30 @@
 										<ignore></ignore>
 									</action>
 								</pluginExecution>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>
+											org.jenkins-ci.tools
+										</groupId>
+										<artifactId>
+											maven-hpi-plugin
+										</artifactId>
+										<versionRange>
+											[1.74,)
+										</versionRange>
+										<goals>
+											<goal>insert-test</goal>
+											<goal>
+												resolve-test-dependencies
+											</goal>
+											<goal>test-hpl</goal>
+											<goal>validate</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore></ignore>
+									</action>
+								</pluginExecution>
 							</pluginExecutions>
 						</lifecycleMappingMetadata>
 					</configuration>
