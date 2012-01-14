@@ -30,6 +30,7 @@ import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.Fingerprint.RangeSet;
+import hudson.model.User;
 import hudson.security.GroupDetails;
 import hudson.security.Permission;
 import hudson.security.HudsonPrivateSecurityRealm.Details;
@@ -46,6 +47,7 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.logging.Logger;
 
+import hudson.tasks.Mailer;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
@@ -65,6 +67,7 @@ import org.apache.http.util.EntityUtils;
 import org.jfree.util.Log;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHUser;
+import org.kohsuke.github.GitHub;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Header;
 import org.kohsuke.stapler.HttpRedirect;
@@ -309,10 +312,14 @@ public class GithubSecurityRealm extends SecurityRealm {
 			String githubServer = githubUri.replaceFirst("http.*\\/\\/", "");
 			
 			// only set the access token if it exists.
-		SecurityContextHolder.getContext().setAuthentication(
-				new GithubAuthenticationToken(accessToken, githubServer));
-		
-		}
+            GithubAuthenticationToken auth = new GithubAuthenticationToken(accessToken,githubServer);
+            SecurityContextHolder.getContext().setAuthentication(auth);
+
+            GHUser self = auth.getGitHub().getMyself();
+            User u = User.current();
+            u.setFullName(self.getName());
+            u.addProperty(new Mailer.UserProperty(self.getEmail()));
+        }
 		else {
 			Log.info("github did not return an access token.");
 		}
