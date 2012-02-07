@@ -60,12 +60,12 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
     private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
 
-	public GithubAuthenticationToken(String accessToken) throws IOException {
+	public GithubAuthenticationToken(String accessToken, String githubServer) throws IOException {
 
 		super(new GrantedAuthority[] {});
 
 		this.accessToken = accessToken;
-        this.gh = GitHub.connectUsingOAuth(accessToken);
+        this.gh = GitHub.connectUsingOAuth(githubServer, accessToken);
 
         GHUser me = gh.getMyself();
         assert me!=null;
