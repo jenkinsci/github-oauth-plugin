@@ -3,3 +3,5 @@ work
 .classpath
 .project
 .settings
+*.iml
+.idea
