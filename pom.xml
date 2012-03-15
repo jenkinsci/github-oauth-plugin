@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.jenkins-ci.plugins</groupId>
 		<artifactId>plugin</artifactId>
-		<version>1.420</version><!-- which version of Jenkins is this plugin built 
+		<version>1.431</version><!-- which version of Jenkins is this plugin built
 			against? -->
 	</parent>
 
@@ -39,23 +39,21 @@
 		<url>https://github.com/jenkinsci/github-oauth-plugin</url>
 	</scm>
 
-	<!-- get every artifact through maven.glassfish.org, which proxies all the 
-		artifacts that we need -->
-	<repositories>
-		<repository>
-			<id>m.g.o-public</id>
-			<url>http://maven.glassfish.org/content/groups/public/</url>
-		</repository>
-	</repositories>
+	<!-- Use repositories suggested in plugin tutorial: https://wiki.jenkins-ci.org/display/JENKINS/Plugin+tutorial -->
+  <repositories>
+    <repository>
+      <id>repo.jenkins-ci.org</id>
+      <url>http://repo.jenkins-ci.org/public/</url>
+    </repository>
+  </repositories>
+  <pluginRepositories>
+    <pluginRepository>
+      <id>repo.jenkins-ci.org</id>
+      <url>http://repo.jenkins-ci.org/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
 
-	<pluginRepositories>
-		<pluginRepository>
-			<id>m.g.o-public</id>
-			<url>http://maven.glassfish.org/content/groups/public/</url>
-		</pluginRepository>
-	</pluginRepositories>
-
-	<dependencies>
+  <dependencies>
 
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
