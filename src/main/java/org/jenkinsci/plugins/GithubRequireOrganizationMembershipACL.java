@@ -49,7 +49,8 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 	private final List<String> adminUserNameList;
 	private final boolean authenticatedUserReadPermission;
 	private final boolean allowGithubWebHookPermission;
-	private final boolean allowAnonymousReadPermission;
+    private final boolean allowCcTrayPermission;
+    private final boolean allowAnonymousReadPermission;
 
 	/*
 	 * (non-Javadoc)
@@ -135,12 +136,26 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 						.getOriginalRequestURI();
 
 				if (requestURI.matches(".*github-webhook.*")
-						&& allowGithubWebHookPermission == true) {
+						&& allowGithubWebHookPermission) {
 
 					// allow if the permission was configured.
 
 					if (checkReadPermission(permission)) {
 						log.info("Granting READ access for github-webhook url: "
+								+ requestURI);
+						return true;
+					}
+
+					// else fall through to false.
+				}
+
+				if (requestURI.matches(".*cc\\.xml")
+						&& allowCcTrayPermission) {
+
+					// allow if the permission was configured.
+
+					if (checkReadPermission(permission)) {
+						log.info("Granting READ access for cctray url: "
 								+ requestURI);
 						return true;
 					}
@@ -187,11 +202,13 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 	public GithubRequireOrganizationMembershipACL(String adminUserNames,
 			String organizationNames, boolean authenticatedUserReadPermission,
 			boolean allowGithubWebHookPermission,
+            boolean allowCcTrayPermission,
 			boolean allowAnonymousReadPermission) {
 		super();
 		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
 		this.allowGithubWebHookPermission = allowGithubWebHookPermission;
-		this.allowAnonymousReadPermission = allowAnonymousReadPermission;
+        this.allowCcTrayPermission = allowCcTrayPermission;
+        this.allowAnonymousReadPermission = allowAnonymousReadPermission;
 
 		this.adminUserNameList = new LinkedList<String>();
 
@@ -227,7 +244,11 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 		return allowGithubWebHookPermission;
 	}
 
-	/**
+    public boolean isAllowCcTrayPermission() {
+        return allowCcTrayPermission;
+    }
+
+    /**
 	 * @return the allowAnonymousReadPermission
 	 */
 	public boolean isAllowAnonymousReadPermission() {
