@@ -29,10 +29,12 @@ package org.jenkinsci.plugins;
 import hudson.security.ACL;
 import hudson.security.Permission;
 
+import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
 
+import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.kohsuke.stapler.Stapler;
 
@@ -132,31 +134,29 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 					return true;
 				}
 
-				String requestURI = Stapler.getCurrentRequest()
-						.getOriginalRequestURI();
+                if (allowGithubWebHookPermission &&
+                        (currentUriPathEquals( "github-webhook" ) ||
+                         currentUriPathEquals( "github-webhook/" ))) {
 
-				if (requestURI.matches(".*github-webhook.*")
-						&& allowGithubWebHookPermission) {
 
 					// allow if the permission was configured.
 
 					if (checkReadPermission(permission)) {
 						log.info("Granting READ access for github-webhook url: "
-								+ requestURI);
+								+ requestURI());
 						return true;
 					}
 
 					// else fall through to false.
 				}
 
-				if (requestURI.matches(".*cc\\.xml")
-						&& allowCcTrayPermission) {
+				if (allowCcTrayPermission && currentUriPathEquals("cc.xml")) {
 
 					// allow if the permission was configured.
 
 					if (checkReadPermission(permission)) {
 						log.info("Granting READ access for cctray url: "
-								+ requestURI);
+								+ requestURI());
 						return true;
 					}
 
@@ -164,7 +164,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 				}
 
 				log.finer("Denying anonymous READ permission to url: "
-						+ requestURI);
+						+ requestURI());
 				return false;
 			}
 
@@ -183,7 +183,16 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
 	}
 
-	private boolean testBuildPermission(Permission permission) {
+    private boolean currentUriPathEquals( String specificPath ) {
+        String basePath = URI.create(Jenkins.getInstance().getRootUrl()).getPath();
+        return URI.create(requestURI()).getPath().equals(basePath + specificPath);
+    }
+
+    private String requestURI() {
+        return Stapler.getCurrentRequest().getOriginalRequestURI();
+    }
+
+    private boolean testBuildPermission(Permission permission) {
 		if (permission.getId().equals("hudson.model.Hudson.Build")
 				|| permission.getId().equals("hudson.model.Item.Build")) {
 			return true;
