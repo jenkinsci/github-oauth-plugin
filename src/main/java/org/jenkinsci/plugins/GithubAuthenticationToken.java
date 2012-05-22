@@ -78,6 +78,13 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
             authorities.add(new GrantedAuthorityImpl(name));
 	}
 
+    /**
+     * Gets the OAuth access token, so that it can be persisted and used elsewhere.
+     */
+    public String getAccessToken() {
+        return accessToken;
+    }
+
     public GitHub getGitHub() {
         return gh;
     }
