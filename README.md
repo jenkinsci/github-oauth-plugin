@@ -16,7 +16,7 @@ A. GithubSecurityRealm:
 
 This handles the authentication and acquisition of the github oauth token for the connecting user.
 
-This takes the client id and client secret from the application registration here: https://github.com/account/applications/new
+This takes the client id and client secret from the application registration here: https://github.com/settings/applications/new
 
 The entry should look like this:
 
