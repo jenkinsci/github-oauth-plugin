@@ -165,8 +165,8 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 				}
 
 				if (allowBuildPermission &&
-						(currentUriPathIncludes("/build")) ||
-						(currentUriPathIncludes("/buildWithParameters"))) {
+						(currentUriPathMatches("\\/job\\/[^\\/]*\\/build$")) ||
+						(currentUriPathMatches("\\/job\\/[^\\/]*\\/buildWithParameters$"))) {
 
 					// allow if the permission was configured.
 
@@ -204,8 +204,8 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
         return URI.create(requestURI()).getPath().equals(basePath + specificPath);
     }
 
-    private boolean currentUriPathIncludes( String specificPath ) {
-        return URI.create(requestURI()).getPath().indexOf(specificPath) >= 0;
+    private boolean currentUriPathMatches( String expression ) {
+        return URI.create(requestURI()).getPath().matches(expression);
     }
 
     private String requestURI() {
