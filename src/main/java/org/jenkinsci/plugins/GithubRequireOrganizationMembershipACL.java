@@ -52,6 +52,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 	private final boolean authenticatedUserReadPermission;
 	private final boolean allowGithubWebHookPermission;
     private final boolean allowCcTrayPermission;
+    private final boolean allowEmbeddableBuildStatusIconPermission;
     private final boolean allowAnonymousReadPermission;
 
 	/*
@@ -163,6 +164,17 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 					// else fall through to false.
 				}
 
+                if (allowEmbeddableBuildStatusIconPermission && currentUriIsEmbeddableBuildStatusIcon()) {
+                    // allow if the permission was configured
+                    if (checkReadPermission(permission)) {
+                        log.info("Granting READ access for embeddable build status icon: "
+                                + requestURI());
+                        return true;
+                    }
+
+                    // else false through to false
+                }
+
 				log.finer("Denying anonymous READ permission to url: "
 						+ requestURI());
 				return false;
@@ -186,6 +198,32 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
     private boolean currentUriPathEquals( String specificPath ) {
         String basePath = URI.create(Jenkins.getInstance().getRootUrl()).getPath();
         return URI.create(requestURI()).getPath().equals(basePath + specificPath);
+    }
+
+    private boolean currentUriIsEmbeddableBuildStatusIcon() {
+        // example: http://192.168.2.2:8080/jenkins/job/ci-uploadr/badge/icon
+        String basePath = URI.create(Jenkins.getInstance().getRootUrl()).getPath();
+        String requestPath = URI.create(requestURI()).getPath();
+
+        boolean hasMatch = false;
+        java.util.Collection<java.lang.String> jobNames = Jenkins.getInstance().getJobNames();
+
+System.out.println(requestPath);
+System.out.println("-----");
+        // iterate over job names and try to match against the request URI
+        for (String jobName: jobNames) {
+            String testPath = basePath + "/job/" + jobName + "/badge/icon";
+
+            System.out.println(testPath);
+
+
+            if (requestPath.equals(testPath)) {
+                hasMatch = true;
+//                break;
+            }
+        }
+
+        return hasMatch;
     }
 
     private String requestURI() {
@@ -212,11 +250,13 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 			String organizationNames, boolean authenticatedUserReadPermission,
 			boolean allowGithubWebHookPermission,
             boolean allowCcTrayPermission,
+            boolean allowEmbeddableBuildStatusIconPermission,
 			boolean allowAnonymousReadPermission) {
 		super();
 		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
 		this.allowGithubWebHookPermission = allowGithubWebHookPermission;
         this.allowCcTrayPermission = allowCcTrayPermission;
+        this.allowEmbeddableBuildStatusIconPermission = allowEmbeddableBuildStatusIconPermission;
         this.allowAnonymousReadPermission = allowAnonymousReadPermission;
 
 		this.adminUserNameList = new LinkedList<String>();
@@ -255,6 +295,10 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
     public boolean isAllowCcTrayPermission() {
         return allowCcTrayPermission;
+    }
+
+    public boolean isAllowEmbeddableBuildStatusIconPermission() {
+        return allowEmbeddableBuildStatusIconPermission;
     }
 
     /**
