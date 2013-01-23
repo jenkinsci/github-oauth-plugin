@@ -29,10 +29,12 @@ package org.jenkinsci.plugins;
 import hudson.security.ACL;
 import hudson.security.Permission;
 
+import java.io.File;
 import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
@@ -202,27 +204,51 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
     private boolean currentUriIsEmbeddableBuildStatusIcon() {
         // example: http://192.168.2.2:8080/jenkins/job/ci-uploadr/badge/icon
-        String basePath = URI.create(Jenkins.getInstance().getRootUrl()).getPath();
-        String requestPath = URI.create(requestURI()).getPath();
+        String basePath     = URI.create(Jenkins.getInstance().getRootUrl()).getPath();
+        String requestPath  = URI.create(requestURI()).getPath();
+        boolean hasMatch    = false;
 
-        boolean hasMatch = false;
-        java.util.Collection<java.lang.String> jobNames = Jenkins.getInstance().getJobNames();
-
-System.out.println(requestPath);
-System.out.println("-----");
+        /**
+         * getJobNames() seems to result in an endless loop...
+         *
         // iterate over job names and try to match against the request URI
-        for (String jobName: jobNames) {
+        for (String jobName: Jenkins.getInstance().getJobNames()) {
             String testPath = basePath + "/job/" + jobName + "/badge/icon";
-
-            System.out.println(testPath);
-
 
             if (requestPath.equals(testPath)) {
                 hasMatch = true;
-//                break;
             }
         }
+         */
 
+        // while iterating over the jobNames is more ideal, getJobNames() results
+        // in an endless loop, crashing Jenkins. As a workaround we are going to
+        // check the validity of the request by pattern matching and job path
+        // checking
+        String jobName = requestPath
+                .replaceFirst(basePath + "job/", "")
+                .replace("/badge/icon", "");
+        String jobPath = Jenkins.getInstance().getRootDir().getPath() + "/jobs/" + jobName;
+
+        // check if
+        // 1a. the request starts with job/
+        //  b. the request end with /badge/icon
+        //  c. the job path exists
+        //
+        // OR
+        //
+        // 2.  the request starts with /static
+        //
+        if (    (   requestPath.startsWith(basePath + "job/") &&
+                    requestPath.endsWith("/badge/icon") &&
+                    new File(jobPath).exists())
+                || (
+                    requestPath.startsWith(basePath + "static/")
+                )) {
+            hasMatch = true;
+        }
+
+        // valid or not?
         return hasMatch;
     }
 

@@ -39,6 +39,8 @@ This defines:
 4. Check box to allow anonymous users READ permission for the /github-webhook.  
 This only has meaning if the github-plugin is installed and the remote github repository post commit hook has been setup accordingly.
 
+5. Check box to allow anonymous users READ permission for the /job/*/badge/icon [embeddable build status icon](https://wiki.jenkins-ci.org/display/JENKINS/Embeddable+Build+Status+Plugin).
+
 The plugin works but there are still some areas like form validation that need work.  And some other cases where exceptions are thrown when perhaps there is a better way.
 
 Notes:
