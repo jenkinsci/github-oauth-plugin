@@ -309,10 +309,8 @@ public class GithubSecurityRealm extends SecurityRealm {
 		
 		if (accessToken != null && accessToken.trim().length() > 0) {
 
-			String githubServer = githubUri.replaceFirst("http.*\\/\\/", "");
-			
 			// only set the access token if it exists.
-            GithubAuthenticationToken auth = new GithubAuthenticationToken(accessToken,githubServer);
+            GithubAuthenticationToken auth = new GithubAuthenticationToken(accessToken,githubUri);
             SecurityContextHolder.getContext().setAuthentication(auth);
 
             GHUser self = auth.getGitHub().getMyself();
