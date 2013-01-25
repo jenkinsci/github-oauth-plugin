@@ -202,11 +202,6 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
     }
 
     private boolean currentUriIsEmbeddableBuildStatusIcon() {
-        // example: http://192.168.2.2:8080/jenkins/job/ci-uploadr/badge/icon
-        String basePath     = URI.create(Jenkins.getInstance().getRootUrl()).getPath();
-        String requestPath  = URI.create(requestURI()).getPath();
-        boolean hasMatch    = false;
-
         /**
          * getJobNames() seems to result in an endless loop...
          *
@@ -222,33 +217,32 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
         // while iterating over the jobNames is more ideal, getJobNames() results
         // in an endless loop, crashing Jenkins. As a workaround we are going to
-        // check the validity of the request by pattern matching and job path
-        // checking
-        String jobName = requestPath
-                .replaceFirst(basePath + "job/", "")
-                .replace("/badge/icon", "");
-        String jobPath = Jenkins.getInstance().getRootDir().getPath() + "/jobs/" + jobName;
-
-        // check if
-        // 1a. the request starts with job/
-        //  b. the request end with /badge/icon
-        //  c. the job path exists
+        // check the validity of the request by checking for:
+        // A. - the request was made to /.../job/.../badge/icon
+        //      example: /jenkins/job/ci-uploadr/badge/icon
+        //    - the path of this job exists on disk
         //
         // OR
         //
-        // 2.  the request starts with /static
-        //
-        if (    (   requestPath.startsWith(basePath + "job/") &&
-                    requestPath.endsWith("/badge/icon") &&
-                    new File(jobPath).exists())
-                || (
-                    requestPath.startsWith(basePath + "static/")
-                )) {
-            hasMatch = true;
-        }
+        // B. it is a request for a static resource (/.../static/...)
+        //    example: /jenkins/static/b43fedd5/plugin/embeddable-build-status/status/success.png
+        String requestPath  = URI.create(requestURI()).getPath();
+        String jobName      = requestPath
+                .replace("/badge/icon", "")
+                .replaceAll(".*/","");
+        String jobPath      = Jenkins.getInstance().getRootDir().getPath() + "/jobs/" + jobName;
+        String baseURI      = Jenkins.getInstance()
+                .getRootUrlFromRequest()
+                .replace("http://", "")
+                .replaceFirst("[^/]+/", "")
+                .replaceAll("/$", "");
+        Boolean isStaticRequest = (requestPath.startsWith("/" + baseURI + "/static/") &&
+                requestPath.contains("/plugin/embeddable-build-status/"));
+        Boolean isEmbeddableBadgeIcon = requestPath.equals("/" + baseURI + "/job/" + jobName + "/badge/icon");
+        Boolean jobPathExists   = new File(jobPath).exists();
 
         // valid or not?
-        return hasMatch;
+        return ((isEmbeddableBadgeIcon && jobPathExists) || isStaticRequest);
     }
 
     private String requestURI() {
