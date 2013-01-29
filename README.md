@@ -1,3 +1,15 @@
+Notice Plugin not currently maintained
+======================================
+
+Due to having a little baby at home now I don't have any time to maintain this plugin.
+
+If you send mail to the jenkins dev mailing list 
+you can get commit access to the jenkinsci fork where you can make a new releases containing 
+either your or other peoples enhancements and get it released in a way where others can download 
+it through the jenkins plugin download mechanism.
+
+I can grant commit access and ticket access to anyone who is interested in continuing work on this plugin.
+
 Jenkins Github OAuth Plugin
 ============================
 
