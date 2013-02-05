@@ -26,27 +26,18 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
+import com.thoughtworks.xstream.converters.ConversionException;
+import com.thoughtworks.xstream.converters.Converter;
+import com.thoughtworks.xstream.converters.MarshallingContext;
+import com.thoughtworks.xstream.converters.UnmarshallingContext;
+import com.thoughtworks.xstream.io.HierarchicalStreamReader;
+import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
-import hudson.model.Fingerprint.RangeSet;
 import hudson.model.User;
 import hudson.security.GroupDetails;
-import hudson.security.Permission;
-import hudson.security.HudsonPrivateSecurityRealm.Details;
 import hudson.security.SecurityRealm;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.Map.Entry;
-import java.util.logging.Logger;
-
 import hudson.tasks.Mailer;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
@@ -54,12 +45,9 @@ import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.AuthenticationManager;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.context.SecurityContextHolder;
-import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
-import org.acegisecurity.providers.anonymous.AnonymousAuthenticationToken;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
-import org.apache.bcel.generic.ATHROW;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -67,7 +55,6 @@ import org.apache.http.util.EntityUtils;
 import org.jfree.util.Log;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHUser;
-import org.kohsuke.github.GitHub;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Header;
 import org.kohsuke.stapler.HttpRedirect;
@@ -77,12 +64,10 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataRetrievalFailureException;
 
-import com.thoughtworks.xstream.converters.ConversionException;
-import com.thoughtworks.xstream.converters.Converter;
-import com.thoughtworks.xstream.converters.MarshallingContext;
-import com.thoughtworks.xstream.converters.UnmarshallingContext;
-import com.thoughtworks.xstream.io.HierarchicalStreamReader;
-import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  * 
@@ -268,7 +253,7 @@ public class GithubSecurityRealm extends SecurityRealm {
             suffix = "&scope="+Util.join(scopes,",");
         }
 
-		return new HttpRedirect(githubUri + "/login/oauth/authorize?client_id="
+		return new HttpRedirect(extractAuthenticationUrl(githubUri) + "/login/oauth/authorize?client_id="
 				+ clientID + suffix);
 	}
 
@@ -286,9 +271,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 			return HttpResponses.redirectToContextRoot();
 		}
 
-		Log.info("test");
-
-		HttpPost httpost = new HttpPost(githubUri
+		HttpPost httpost = new HttpPost(extractAuthenticationUrl(githubUri)
 				+ "/login/oauth/access_token?" + "client_id=" + clientID + "&"
 				+ "client_secret=" + clientSecret + "&" + "code=" + code);
 
@@ -328,6 +311,16 @@ public class GithubSecurityRealm extends SecurityRealm {
         if (referer!=null)  return HttpResponses.redirectTo(referer);
 		return HttpResponses.redirectToContextRoot();   // referer should be always there, but be defensive
 	}
+
+    protected String extractAuthenticationUrl(String apiUrl) {
+        if (!apiUrl.equalsIgnoreCase(DEFAULT_URI)) {
+            int index = apiUrl.lastIndexOf("/api");
+            if (index != -1) {
+                return apiUrl.substring(0, index);
+            }
+        }
+        return apiUrl;
+    }
 
 	private String extractToken(String content) {
 
