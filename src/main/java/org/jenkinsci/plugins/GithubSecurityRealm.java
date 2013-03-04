@@ -96,7 +96,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 
 	private static final String DEFAULT_URI = "https://github.com";
 
-    private String githubUri;
+	private String githubUri;
 	private String clientID;
 	private String clientSecret;
 
@@ -257,16 +257,16 @@ public class GithubSecurityRealm extends SecurityRealm {
 	public HttpResponse doCommenceLogin(StaplerRequest request, @Header("Referer") final String referer)
 			throws IOException {
 
-        request.getSession().setAttribute(REFERER_ATTRIBUTE,referer);
-        
-        Set<String> scopes = new HashSet<String>();
-        for (GitHubOAuthScope s : Jenkins.getInstance().getExtensionList(GitHubOAuthScope.class)) {
-            scopes.addAll(s.getScopesToRequest());
-        }
-        String suffix="";
-        if (!scopes.isEmpty()) {
-            suffix = "&scope="+Util.join(scopes,",");
-        }
+		request.getSession().setAttribute(REFERER_ATTRIBUTE,referer);
+
+		Set<String> scopes = new HashSet<String>();
+		for (GitHubOAuthScope s : Jenkins.getInstance().getExtensionList(GitHubOAuthScope.class)) {
+			scopes.addAll(s.getScopesToRequest());
+		}
+		String suffix="";
+		if (!scopes.isEmpty()) {
+		    suffix = "&scope="+Util.join(scopes,",");
+		}
 
 		return new HttpRedirect(githubUri + "/login/oauth/authorize?client_id="
 				+ clientID + suffix);
@@ -312,20 +312,23 @@ public class GithubSecurityRealm extends SecurityRealm {
 			String githubServer = githubUri.replaceFirst("http.*\\/\\/", "");
 			
 			// only set the access token if it exists.
-            GithubAuthenticationToken auth = new GithubAuthenticationToken(accessToken,githubServer);
-            SecurityContextHolder.getContext().setAuthentication(auth);
+			GithubAuthenticationToken auth = new GithubAuthenticationToken(accessToken,githubServer);
+			SecurityContextHolder.getContext().setAuthentication(auth);
 
-            GHUser self = auth.getGitHub().getMyself();
-            User u = User.current();
-            u.setFullName(self.getName());
-            u.addProperty(new Mailer.UserProperty(self.getEmail()));
-        }
+			GHUser self = auth.getGitHub().getMyself();
+			User u = User.current();
+			u.setFullName(self.getName());
+			// Set email from github only if empty
+			if (u.getProperty(Mailer.UserProperty.class).getAddress() == null) {
+			    u.addProperty(new Mailer.UserProperty(self.getEmail()));
+			}
+		}
 		else {
 			Log.info("github did not return an access token.");
 		}
 
-        String referer = (String)request.getSession().getAttribute(REFERER_ATTRIBUTE);
-        if (referer!=null)  return HttpResponses.redirectTo(referer);
+	String referer = (String)request.getSession().getAttribute(REFERER_ATTRIBUTE);
+	if (referer!=null)  return HttpResponses.redirectTo(referer);
 		return HttpResponses.redirectToContextRoot();   // referer should be always there, but be defensive
 	}
 
@@ -473,5 +476,5 @@ public class GithubSecurityRealm extends SecurityRealm {
 	 */
 	private static final Logger LOGGER = Logger.getLogger(GithubSecurityRealm.class.getName());
 
-    private static final String REFERER_ATTRIBUTE = GithubSecurityRealm.class.getName()+".referer";
+	private static final String REFERER_ATTRIBUTE = GithubSecurityRealm.class.getName()+".referer";
 }
