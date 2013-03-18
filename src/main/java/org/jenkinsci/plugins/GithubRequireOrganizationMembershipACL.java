@@ -29,6 +29,7 @@ package org.jenkinsci.plugins;
 import hudson.security.ACL;
 import hudson.security.Permission;
 
+import java.io.File;
 import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
@@ -52,6 +53,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 	private final boolean authenticatedUserReadPermission;
 	private final boolean allowGithubWebHookPermission;
     private final boolean allowCcTrayPermission;
+    private final boolean allowEmbeddableBuildStatusIconPermission;
     private final boolean allowAnonymousReadPermission;
 
 	/*
@@ -163,6 +165,17 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 					// else fall through to false.
 				}
 
+                if (allowEmbeddableBuildStatusIconPermission && currentUriIsEmbeddableBuildStatusIcon()) {
+                    // allow if the permission was configured
+                    if (checkReadPermission(permission)) {
+                        log.info("Granting READ access for embeddable build status icon: "
+                                + requestURI());
+                        return true;
+                    }
+
+                    // else false through to false
+                }
+
 				log.finer("Denying anonymous READ permission to url: "
 						+ requestURI());
 				return false;
@@ -186,6 +199,50 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
     private boolean currentUriPathEquals( String specificPath ) {
         String basePath = URI.create(Jenkins.getInstance().getRootUrl()).getPath();
         return URI.create(requestURI()).getPath().equals(basePath + specificPath);
+    }
+
+    private boolean currentUriIsEmbeddableBuildStatusIcon() {
+        /**
+         * getJobNames() seems to result in an endless loop...
+         *
+        // iterate over job names and try to match against the request URI
+        for (String jobName: Jenkins.getInstance().getJobNames()) {
+            String testPath = basePath + "/job/" + jobName + "/badge/icon";
+
+            if (requestPath.equals(testPath)) {
+                hasMatch = true;
+            }
+        }
+         */
+
+        // while iterating over the jobNames is more ideal, getJobNames() results
+        // in an endless loop, crashing Jenkins. As a workaround we are going to
+        // check the validity of the request by checking for:
+        // A. - the request was made to /.../job/.../badge/icon
+        //      example: /jenkins/job/ci-uploadr/badge/icon
+        //    - the path of this job exists on disk
+        //
+        // OR
+        //
+        // B. it is a request for a static resource (/.../static/...)
+        //    example: /jenkins/static/b43fedd5/plugin/embeddable-build-status/status/success.png
+        String requestPath  = URI.create(requestURI()).getPath();
+        String jobName      = requestPath
+                .replace("/badge/icon", "")
+                .replaceAll(".*/","");
+        String jobPath      = Jenkins.getInstance().getRootDir().getPath() + "/jobs/" + jobName;
+        String baseURI      = Jenkins.getInstance()
+                .getRootUrlFromRequest()
+                .replace("http://", "")
+                .replaceFirst("[^/]+/", "")
+                .replaceAll("/$", "");
+        Boolean isStaticRequest = (requestPath.startsWith("/" + baseURI + "/static/") &&
+                requestPath.contains("/plugin/embeddable-build-status/"));
+        Boolean isEmbeddableBadgeIcon = requestPath.equals("/" + baseURI + "/job/" + jobName + "/badge/icon");
+        Boolean jobPathExists   = new File(jobPath).exists();
+
+        // valid or not?
+        return ((isEmbeddableBadgeIcon && jobPathExists) || isStaticRequest);
     }
 
     private String requestURI() {
@@ -212,11 +269,13 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 			String organizationNames, boolean authenticatedUserReadPermission,
 			boolean allowGithubWebHookPermission,
             boolean allowCcTrayPermission,
+            boolean allowEmbeddableBuildStatusIconPermission,
 			boolean allowAnonymousReadPermission) {
 		super();
 		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
 		this.allowGithubWebHookPermission = allowGithubWebHookPermission;
         this.allowCcTrayPermission = allowCcTrayPermission;
+        this.allowEmbeddableBuildStatusIconPermission = allowEmbeddableBuildStatusIconPermission;
         this.allowAnonymousReadPermission = allowAnonymousReadPermission;
 
 		this.adminUserNameList = new LinkedList<String>();
@@ -255,6 +314,10 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
     public boolean isAllowCcTrayPermission() {
         return allowCcTrayPermission;
+    }
+
+    public boolean isAllowEmbeddableBuildStatusIconPermission() {
+        return allowEmbeddableBuildStatusIconPermission;
     }
 
     /**
