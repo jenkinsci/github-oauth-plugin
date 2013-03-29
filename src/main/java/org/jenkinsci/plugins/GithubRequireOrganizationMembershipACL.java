@@ -40,7 +40,7 @@ import org.kohsuke.stapler.Stapler;
 
 /**
  * @author Mike
- * 
+ *
  */
 public class GithubRequireOrganizationMembershipACL extends ACL {
 
@@ -51,12 +51,13 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 	private final List<String> adminUserNameList;
 	private final boolean authenticatedUserReadPermission;
 	private final boolean allowGithubWebHookPermission;
-    private final boolean allowCcTrayPermission;
-    private final boolean allowAnonymousReadPermission;
+  private final boolean allowCcTrayPermission;
+	private final boolean allowBuildPermission;
+  private final boolean allowAnonymousReadPermission;
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see hudson.security.ACL#hasPermission(org.acegisecurity.Authentication,
 	 * hudson.security.Permission)
 	 */
@@ -163,6 +164,21 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 					// else fall through to false.
 				}
 
+				if (allowBuildPermission &&
+						(currentUriPathMatches("\\/job\\/[^\\/]*\\/build$")) ||
+						(currentUriPathMatches("\\/job\\/[^\\/]*\\/buildWithParameters$"))) {
+
+					// allow if the permission was configured.
+
+					if (checkReadPermission(permission)) {
+						log.info("Granting READ access for /build url: "
+								+ requestURI());
+						return true;
+					}
+
+					// else fall through to false.
+				}
+
 				log.finer("Denying anonymous READ permission to url: "
 						+ requestURI());
 				return false;
@@ -188,6 +204,10 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
         return URI.create(requestURI()).getPath().equals(basePath + specificPath);
     }
 
+    private boolean currentUriPathMatches( String expression ) {
+        return URI.create(requestURI()).getPath().matches(expression);
+    }
+
     private String requestURI() {
         return Stapler.getCurrentRequest().getOriginalRequestURI();
     }
@@ -211,12 +231,14 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 	public GithubRequireOrganizationMembershipACL(String adminUserNames,
 			String organizationNames, boolean authenticatedUserReadPermission,
 			boolean allowGithubWebHookPermission,
-            boolean allowCcTrayPermission,
+      boolean allowCcTrayPermission,
+      boolean allowBuildPermission,
 			boolean allowAnonymousReadPermission) {
 		super();
 		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
 		this.allowGithubWebHookPermission = allowGithubWebHookPermission;
         this.allowCcTrayPermission = allowCcTrayPermission;
+        this.allowBuildPermission = allowBuildPermission;
         this.allowAnonymousReadPermission = allowAnonymousReadPermission;
 
 		this.adminUserNameList = new LinkedList<String>();
@@ -253,10 +275,13 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 		return allowGithubWebHookPermission;
 	}
 
-    public boolean isAllowCcTrayPermission() {
-        return allowCcTrayPermission;
-    }
+  public boolean isAllowCcTrayPermission() {
+    return allowCcTrayPermission;
+  }
 
+  public boolean isAllowBuildPermission() {
+  	return allowBuildPermission;
+  }
     /**
 	 * @return the allowAnonymousReadPermission
 	 */
