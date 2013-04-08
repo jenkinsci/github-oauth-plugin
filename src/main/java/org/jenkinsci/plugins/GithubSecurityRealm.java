@@ -85,10 +85,10 @@ import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 
 /**
- * 
+ *
  * Implementation of the AbstractPasswordBasedSecurityRealm that uses github
  * oauth to verify the user can login.
- * 
+ *
  * This is based on the MySQLSecurityRealm from the mysql-auth-plugin written by
  * Alex Ackerman.
  */
@@ -161,7 +161,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 			writer.startNode("clientSecret");
 			writer.setValue(realm.getClientSecret());
 			writer.endNode();
-			
+
 		}
 
 		public Object unmarshal(HierarchicalStreamReader reader,
@@ -220,7 +220,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 			} else if (node.toLowerCase().equals("githuburi")) {
 				realm.setGithubUri(value);
 			} else
-				throw new ConversionException("invalid node value = " + node);
+				throw new ConversionException("Invalid node value = " + node);
 
 		}
 
@@ -258,7 +258,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 			throws IOException {
 
         request.getSession().setAttribute(REFERER_ATTRIBUTE,referer);
-        
+
         Set<String> scopes = new HashSet<String>();
         for (GitHubOAuthScope s : Jenkins.getInstance().getExtensionList(GitHubOAuthScope.class)) {
             scopes.addAll(s.getScopesToRequest());
@@ -280,7 +280,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 			throws IOException {
 
 		String code = request.getParameter("code");
-		
+
 		if (code == null || code.trim().length() == 0) {
 			Log.info("doFinishLogin: missing code.");
 			return HttpResponses.redirectToContextRoot();
@@ -306,11 +306,11 @@ public class GithubSecurityRealm extends SecurityRealm {
 		httpclient.getConnectionManager().shutdown();
 
 		String accessToken = extractToken(content);
-		
+
 		if (accessToken != null && accessToken.trim().length() > 0) {
 
 			String githubServer = githubUri.replaceFirst("http.*\\/\\/", "");
-			
+
 			// only set the access token if it exists.
             GithubAuthenticationToken auth = new GithubAuthenticationToken(accessToken,githubServer);
             SecurityContextHolder.getContext().setAuthentication(auth);
@@ -321,7 +321,7 @@ public class GithubSecurityRealm extends SecurityRealm {
             u.addProperty(new Mailer.UserProperty(self.getEmail()));
         }
 		else {
-			Log.info("github did not return an access token.");
+			Log.info("Github did not return an access token.");
 		}
 
         String referer = (String)request.getSession().getAttribute(REFERER_ATTRIBUTE);
@@ -350,7 +350,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see hudson.security.SecurityRealm#allowsSignup()
 	 */
 	@Override
@@ -410,7 +410,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param username
 	 * @return
 	 * @throws UsernameNotFoundException
@@ -422,28 +422,31 @@ public class GithubSecurityRealm extends SecurityRealm {
 		GHUser user = null;
 
 		GithubAuthenticationToken authToken =  (GithubAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
-		
+
+		if (authToken == null)
+			throw new UsernameNotFoundException("No known user: " + username);
+
 		try {
-			
+
 			GroupDetails group = loadGroupByGroupname(username);
-			
+
 			if (group != null) {
 				throw new UsernameNotFoundException ("user("+username+") is also an organization");
 			}
-			
+
 			user = authToken.loadUser(username);
-			
+
 			if (user != null)
 				return new GithubOAuthUserDetails(user);
 			else
-				throw new UsernameNotFoundException("no known user: " + username);
+				throw new UsernameNotFoundException("No known user: " + username);
 		} catch (IOException e) {
 			throw new DataRetrievalFailureException("loadUserByUsername (username=" + username +")", e);
 		}
 	}
 
 	/**
-	 * 
+	 *
 	 * @param groupName
 	 * @return
 	 * @throws UsernameNotFoundException
@@ -452,22 +455,25 @@ public class GithubSecurityRealm extends SecurityRealm {
 	@Override
 	public GroupDetails loadGroupByGroupname(String groupName)
 			throws UsernameNotFoundException, DataAccessException {
-		
+
 		GithubAuthenticationToken authToken =  (GithubAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
-		
+
+		if(authToken == null)
+			throw new UsernameNotFoundException("No known group: " + groupName);
+
 		try {
 			GHOrganization org = authToken.loadOrganization(groupName);
-			
+
 			if (org != null)
 				return new GithubOAuthGroupDetails(org);
 			else
-				throw new UsernameNotFoundException("no known group: " + groupName);
+				throw new UsernameNotFoundException("No known group: " + groupName);
 		} catch (IOException e) {
 			throw new DataRetrievalFailureException("loadGroupByGroupname (groupname=" + groupName +")", e);
 		}
 	}
 
-	
+
 	/**
 	 * Logger for debugging purposes.
 	 */
