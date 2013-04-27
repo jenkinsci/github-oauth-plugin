@@ -145,6 +145,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 			if (System.currentTimeMillis() - GITHUB_ORGANIZATION_CACHE_TIMEOUT 
 					> userOrganizationClearTime) {
 				userOrganizationCache.clear();
+				userOrganizationClearTime = System.currentTimeMillis();
 			}
 			
 			if (!userOrganizationCache.containsKey(candidateName)) {
