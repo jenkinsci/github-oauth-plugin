@@ -37,6 +37,7 @@ import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.kohsuke.stapler.Stapler;
+import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * @author Mike
@@ -126,45 +127,22 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 			}
 
 			if (authenticatedUserName.equals("anonymous")) {
-
-				if (allowAnonymousReadPermission
-						&& checkReadPermission(permission)) {
-					// grant anonymous read permission if that is desired to
-					// anonymous users
-					return true;
-				}
-
-                if (allowGithubWebHookPermission &&
-                        (currentUriPathEquals( "github-webhook" ) ||
-                         currentUriPathEquals( "github-webhook/" ))) {
-
-
-					// allow if the permission was configured.
-
-					if (checkReadPermission(permission)) {
-						log.info("Granting READ access for github-webhook url: "
-								+ requestURI());
+				if (checkReadPermission(permission)) {
+					if (allowAnonymousReadPermission) {
 						return true;
 					}
-
-					// else fall through to false.
-				}
-
-				if (allowCcTrayPermission && currentUriPathEquals("cc.xml")) {
-
-					// allow if the permission was configured.
-
-					if (checkReadPermission(permission)) {
-						log.info("Granting READ access for cctray url: "
-								+ requestURI());
+					if (allowGithubWebHookPermission &&
+							(currentUriPathEquals("github-webhook") ||
+							 currentUriPathEquals("github-webhook/"))) {
+						log.info("Granting READ access for github-webhook url: " + requestURI());
 						return true;
 					}
-
-					// else fall through to false.
+					if (allowCcTrayPermission && currentUriPathEquals("cc.xml")) {
+						log.info("Granting READ access for cctray url: " + requestURI());
+						return true;
+					}
+					log.finer("Denying anonymous READ permission to url: " + requestURI());
 				}
-
-				log.finer("Denying anonymous READ permission to url: "
-						+ requestURI());
 				return false;
 			}
 
@@ -183,16 +161,22 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
 	}
 
-    private boolean currentUriPathEquals( String specificPath ) {
-        String basePath = URI.create(Jenkins.getInstance().getRootUrl()).getPath();
-        return URI.create(requestURI()).getPath().equals(basePath + specificPath);
-    }
+	private boolean currentUriPathEquals( String specificPath ) {
+		String requestUri = requestURI();
+		if (requestUri != null) {
+			String basePath = URI.create(Jenkins.getInstance().getRootUrl()).getPath();
+			return URI.create(requestUri).getPath().equals(basePath + specificPath);
+		} else {
+			return false;
+		}
+	}
 
-    private String requestURI() {
-        return Stapler.getCurrentRequest().getOriginalRequestURI();
-    }
+	private String requestURI() {
+		StaplerRequest currentRequest = Stapler.getCurrentRequest();
+		return (currentRequest == null) ? null : currentRequest.getOriginalRequestURI();
+	}
 
-    private boolean testBuildPermission(Permission permission) {
+	private boolean testBuildPermission(Permission permission) {
 		if (permission.getId().equals("hudson.model.Hudson.Build")
 				|| permission.getId().equals("hudson.model.Item.Build")) {
 			return true;
