@@ -30,6 +30,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import hudson.security.SecurityRealm;
@@ -57,6 +61,22 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
 	private final String userName;
 	private final GitHub gh;
+	
+	/**
+	 * Cache for faster organization based security 
+	 */
+	private static final ConcurrentMap<String, Set<String>> userOrganizationCache = 
+			new ConcurrentHashMap<String, Set<String>>();
+	
+	/**
+	 * System time in millis when organization cache was las cleared
+	 */
+	private static long userOrganizationClearTime = System.currentTimeMillis();
+	
+	/**
+	 * Organization cache timeout in milliseconds
+	 */
+	private static final long GITHUB_ORGANIZATION_CACHE_TIMEOUT = TimeUnit.HOURS.toMillis(24);
 
     private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
 
@@ -112,6 +132,8 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 	 * So this is a slightly larger consideration. If the authenticated user is
 	 * part of any team within the organization then they have permission.
 	 * 
+	 * It caches user organizations for 24 hours for faster web navigation.
+	 * 
 	 * @param candidateName
 	 * @param organization
 	 * @return
@@ -120,10 +142,19 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 			String organization) {
 
 		try {
-
-			Map<String, GHOrganization> myOrgsMap = gh.getMyOrganizations();
-
-			if (myOrgsMap.keySet().contains(organization))
+			
+			if (System.currentTimeMillis() - GITHUB_ORGANIZATION_CACHE_TIMEOUT 
+					> userOrganizationClearTime) {
+				userOrganizationCache.clear();
+				userOrganizationClearTime = System.currentTimeMillis();
+			}
+			
+			if (!userOrganizationCache.containsKey(candidateName)) {
+				userOrganizationCache.put(candidateName, 
+						gh.getMyOrganizations().keySet());
+			}
+			
+			if (userOrganizationCache.get(candidateName).contains(organization))
 				return true;
 
 			return false;
