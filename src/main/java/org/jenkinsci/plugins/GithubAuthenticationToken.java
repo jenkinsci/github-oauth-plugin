@@ -75,7 +75,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 	/**
 	 * Organization cache timeout in milliseconds
 	 */
-	private static final int GITHUB_ORGANIZATION_CACHE_TIMEOUT = 86400000; // 24h
+	private static final int GITHUB_ORGANIZATION_CACHE_TIMEOUT = TimeUnit.HOURS.toMillis(24);
 
     private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
 
