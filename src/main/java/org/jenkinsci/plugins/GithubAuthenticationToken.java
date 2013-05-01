@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import hudson.security.SecurityRealm;
@@ -75,7 +76,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 	/**
 	 * Organization cache timeout in milliseconds
 	 */
-	private static final int GITHUB_ORGANIZATION_CACHE_TIMEOUT = TimeUnit.HOURS.toMillis(24);
+	private static final long GITHUB_ORGANIZATION_CACHE_TIMEOUT = TimeUnit.HOURS.toMillis(24);
 
     private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
 
