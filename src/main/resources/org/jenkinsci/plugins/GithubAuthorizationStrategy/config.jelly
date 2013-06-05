@@ -12,21 +12,24 @@
 			<f:textbox />
 		</f:entry>
 		
-		 <f:entry title="Grant READ permissions to all Authenticated Users" field="authenticatedUserReadPermission" help="/plugin/github-oauth/help/auth/grant-read-to-authenticated-help.html">
- 		<f:checkbox />
+		<f:entry title="Grant READ permissions to all Authenticated Users" field="authenticatedUserReadPermission" help="/plugin/github-oauth/help/auth/grant-read-to-authenticated-help.html">
+ 		    <f:checkbox />
  		</f:entry>
  		
- 		 <f:entry title="Grant READ permissions for /github-webhook" field="allowGithubWebHookPermission" help="/plugin/github-oauth/help/auth/grant-read-to-github-webhook-help.html">
- 		<f:checkbox />
+ 		<f:entry title="Grant READ permissions for /github-webhook" field="allowGithubWebHookPermission" help="/plugin/github-oauth/help/auth/grant-read-to-github-webhook-help.html">
+ 		    <f:checkbox />
  		</f:entry>
  		
- 		 <f:entry title="Grant READ permissions for /cc.xml" field="allowCcTrayPermission" help="/plugin/github-oauth/help/auth/grant-read-to-cctray-help.html">
- 		<f:checkbox />
+ 		<f:entry title="Grant READ permissions for /job/*/badge/icon" field="allowEmbeddableBuildStatusIconPermission" help="/plugin/github-oauth/help/auth/grant-read-to-embedable-build-status-icon-help.html">
+ 		    <f:checkbox />
  		</f:entry>
 
- 		 <f:entry title="Grant READ permissions for Anonymous Users" field="allowAnonymousReadPermission" help="/plugin/github-oauth/help/auth/grant-read-to-anonymous-help.html">
- 		<f:checkbox />
+ 		<f:entry title="Grant READ permissions for /cc.xml" field="allowCcTrayPermission" help="/plugin/github-oauth/help/auth/grant-read-to-cctray-help.html">
+ 		    <f:checkbox />
  		</f:entry>
-		
+
+ 		<f:entry title="Grant READ permissions for Anonymous Users" field="allowAnonymousReadPermission" help="/plugin/github-oauth/help/auth/grant-read-to-anonymous-help.html">
+ 		    <f:checkbox />
+ 		</f:entry>
 	</f:section>
 </j:jelly>
