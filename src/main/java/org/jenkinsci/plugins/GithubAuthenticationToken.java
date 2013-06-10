@@ -59,8 +59,9 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 	private final GitHub gh;
 
     private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
+    private Map<String, GHOrganization> organizations;
 
-	public GithubAuthenticationToken(String accessToken, String githubServer) throws IOException {
+    public GithubAuthenticationToken(String accessToken, String githubServer) throws IOException {
 
 		super(new GrantedAuthority[] {});
 
@@ -105,36 +106,24 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 		return this.userName;
 	}
 
-	/**
-	 * For some reason I can't get the github api to tell me for the current
-	 * user the groups to which he belongs.
-	 * 
-	 * So this is a slightly larger consideration. If the authenticated user is
-	 * part of any team within the organization then they have permission.
-	 * 
-	 * @param candidateName
-	 * @param organization
-	 * @return
-	 */
-	public boolean hasOrganizationPermission(String candidateName,
-			String organization) {
+    /**
+     * Check whether the user is a member of the given organization.
+     *
+     * @param candidateName username
+     * @param organization  organization name to check for
+     * @return whether the user is a member of the given organization
+     */
+    public boolean hasOrganizationPermission(String candidateName,
+                                             String organization) {
+        if (organizations == null)
+            try {
+                organizations = gh.getMyOrganizations();
+            } catch (IOException e) {
+                throw new RuntimeException("authorization failed for user = " + candidateName, e);
+            }
 
-		try {
-
-			Map<String, GHOrganization> myOrgsMap = gh.getMyOrganizations();
-
-			if (myOrgsMap.keySet().contains(organization))
-				return true;
-
-			return false;
-
-		} catch (IOException e) {
-
-			throw new RuntimeException("authorization failed for user = "
-					+ candidateName, e);
-
-		}
-	}
+        return organizations.keySet().contains(organization);
+    }
 
 	private static final Logger LOGGER = Logger
 			.getLogger(GithubAuthenticationToken.class.getName());
