@@ -31,11 +31,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import hudson.security.SecurityRealm;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
@@ -65,18 +67,8 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 	/**
 	 * Cache for faster organization based security 
 	 */
-	private static final ConcurrentMap<String, Set<String>> userOrganizationCache = 
-			new ConcurrentHashMap<String, Set<String>>();
-	
-	/**
-	 * System time in millis when organization cache was las cleared
-	 */
-	private static long userOrganizationClearTime = System.currentTimeMillis();
-	
-	/**
-	 * Organization cache timeout in milliseconds
-	 */
-	private static final long GITHUB_ORGANIZATION_CACHE_TIMEOUT = TimeUnit.HOURS.toMillis(24);
+	private static final Cache<String, Set<String>> userOrganizationCache =
+            CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
 
     private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
 
@@ -142,30 +134,19 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 			String organization) {
 
 		try {
-			
-			if (System.currentTimeMillis() - GITHUB_ORGANIZATION_CACHE_TIMEOUT 
-					> userOrganizationClearTime) {
-				userOrganizationCache.clear();
-				userOrganizationClearTime = System.currentTimeMillis();
-			}
-			
-			if (!userOrganizationCache.containsKey(candidateName)) {
-				userOrganizationCache.put(candidateName, 
-						gh.getMyOrganizations().keySet());
-			}
-			
-			if (userOrganizationCache.get(candidateName).contains(organization))
-				return true;
+            Set<String> v = userOrganizationCache.get(candidateName,new Callable<Set<String>>() {
+                @Override
+                public Set<String> call() throws Exception {
+                    return gh.getMyOrganizations().keySet();
+                }
+            });
 
-			return false;
-
-		} catch (IOException e) {
-
-			throw new RuntimeException("authorization failed for user = "
-					+ candidateName, e);
-
-		}
-	}
+            return v.contains(organization);
+		} catch (ExecutionException e) {
+            throw new RuntimeException("authorization failed for user = "
+         					+ candidateName, e);
+        }
+    }
 
 	private static final Logger LOGGER = Logger
 			.getLogger(GithubAuthenticationToken.class.getName());
