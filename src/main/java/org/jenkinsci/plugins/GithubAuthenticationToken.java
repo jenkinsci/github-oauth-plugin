@@ -30,8 +30,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import hudson.security.SecurityRealm;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
@@ -57,6 +63,12 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
 	private final String userName;
 	private final GitHub gh;
+	
+	/**
+	 * Cache for faster organization based security 
+	 */
+	private static final Cache<String, Set<String>> userOrganizationCache =
+            CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
 
     private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
 
@@ -112,6 +124,8 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 	 * So this is a slightly larger consideration. If the authenticated user is
 	 * part of any team within the organization then they have permission.
 	 * 
+	 * It caches user organizations for 24 hours for faster web navigation.
+	 * 
 	 * @param candidateName
 	 * @param organization
 	 * @return
@@ -120,21 +134,19 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 			String organization) {
 
 		try {
+            Set<String> v = userOrganizationCache.get(candidateName,new Callable<Set<String>>() {
+                @Override
+                public Set<String> call() throws Exception {
+                    return gh.getMyOrganizations().keySet();
+                }
+            });
 
-			Map<String, GHOrganization> myOrgsMap = gh.getMyOrganizations();
-
-			if (myOrgsMap.keySet().contains(organization))
-				return true;
-
-			return false;
-
-		} catch (IOException e) {
-
-			throw new RuntimeException("authorization failed for user = "
-					+ candidateName, e);
-
-		}
-	}
+            return v.contains(organization);
+		} catch (ExecutionException e) {
+            throw new RuntimeException("authorization failed for user = "
+         					+ candidateName, e);
+        }
+    }
 
 	private static final Logger LOGGER = Logger
 			.getLogger(GithubAuthenticationToken.class.getName());
