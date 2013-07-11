@@ -183,7 +183,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 	 *
 	 * @return the URI to the API root of GitHub or GitHub Enterprise.
 	 */
-	private String getGithubApiUri() {
+	public String getGithubApiUri() {
 		return githubApiUri;
 	}
 
