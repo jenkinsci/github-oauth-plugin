@@ -47,10 +47,11 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
 	private static final Logger log = Logger
 			.getLogger(GithubRequireOrganizationMembershipACL.class.getName());
-
+	
 	private final List<String> organizationNameList;
 	private final List<String> adminUserNameList;
 	private final boolean authenticatedUserReadPermission;
+	private final boolean nonGitHubAuthenticatedUserReadPermission;
 	private final boolean allowGithubWebHookPermission;
     private final boolean allowCcTrayPermission;
     private final boolean allowAnonymousReadPermission;
@@ -119,7 +120,16 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 		} else {
 
 			String authenticatedUserName = a.getName();
-
+			
+			if (a.isAuthenticated() && authenticatedUserName.equals("authenticated")) {
+				if (nonGitHubAuthenticatedUserReadPermission && checkReadPermission(permission)) {
+					// if we support authenticated read and this is a read
+					// request we allow it
+					log.finest("Granting Authenticated User read permission to non-github user " + authenticatedUserName);
+					return true;
+				}
+			}
+			
 			if (authenticatedUserName.equals(SYSTEM.getPrincipal())) {
 				// give system user full access
 				log.finest("Granting Full rights to SYSTEM user.");
@@ -193,12 +203,15 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 	}
 
 	public GithubRequireOrganizationMembershipACL(String adminUserNames,
-			String organizationNames, boolean authenticatedUserReadPermission,
+			String organizationNames,
+			boolean authenticatedUserReadPermission,
+			boolean nonGitHubAuthenticatedUserReadPermission,
 			boolean allowGithubWebHookPermission,
             boolean allowCcTrayPermission,
 			boolean allowAnonymousReadPermission) {
 		super();
 		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
+		this.nonGitHubAuthenticatedUserReadPermission = nonGitHubAuthenticatedUserReadPermission;
 		this.allowGithubWebHookPermission = allowGithubWebHookPermission;
         this.allowCcTrayPermission = allowCcTrayPermission;
         this.allowAnonymousReadPermission = allowAnonymousReadPermission;
@@ -231,6 +244,10 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
 	public boolean isAuthenticatedUserReadPermission() {
 		return authenticatedUserReadPermission;
+	}
+	
+	public boolean isNonGitHubAuthenticatedUserReadPermission() {
+		return nonGitHubAuthenticatedUserReadPermission;
 	}
 
 	public boolean isAllowGithubWebHookPermission() {
