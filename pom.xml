@@ -30,6 +30,11 @@
 			<name>Michael O'Cleirigh</name>
 			<timezone>-5</timezone>
 		</developer>
+    <developer>
+      <id>skottler</id>
+      <name>Sam Kottler</name>
+      <timezone>-5</timezone>
+    </developer>
 	</developers>
 
 	<scm>
