@@ -317,6 +317,11 @@ public class GithubSecurityRealm extends SecurityRealm {
         for (GitHubOAuthScope s : Jenkins.getInstance().getExtensionList(GitHubOAuthScope.class)) {
             scopes.addAll(s.getScopesToRequest());
         }
+
+	// This grants read/write access to the profile, but seems to be the most restrictive scope
+	// that still allows access to /user/orgs
+	scopes.add("user");
+
         String suffix="";
         if (!scopes.isEmpty()) {
             suffix = "&scope="+Util.join(scopes,",");
