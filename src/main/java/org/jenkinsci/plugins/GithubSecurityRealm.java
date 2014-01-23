@@ -370,9 +370,9 @@ public class GithubSecurityRealm extends SecurityRealm {
 			User u = User.current();
 			u.setFullName(self.getName());
 			// Set email from github only if empty
-			if (u.getProperty(Mailer.UserProperty.class).getAddress() == null) {
+		    if (!u.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
 			    u.addProperty(new Mailer.UserProperty(self.getEmail()));
-			}
+		    }
 		}
 		else {
 			Log.info("Github did not return an access token.");
