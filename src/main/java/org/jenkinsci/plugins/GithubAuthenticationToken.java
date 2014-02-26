@@ -27,6 +27,7 @@ THE SOFTWARE.
 package org.jenkinsci.plugins;
 
 import java.io.IOException;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,9 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.HashSet;
 import java.util.logging.Logger;
+import java.util.logging.Level;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -43,6 +46,7 @@ import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.providers.AbstractAuthenticationToken;
 import org.kohsuke.github.GHOrganization;
+import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHTeam;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
@@ -68,6 +72,9 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 	 * Cache for faster organization based security 
 	 */
 	private static final Cache<String, Set<String>> userOrganizationCache =
+            CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
+
+	private static final Cache<String, Set<String>> repositoryCollaboratorsCache =
             CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
 
     private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
@@ -148,6 +155,41 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         }
     }
 
+    public boolean hasRepositoryPermission(final String repositoryName) {
+
+        try {
+            Set<String> collaborators = repositoryCollaboratorsCache.get(repositoryName,
+                new Callable<Set<String>>() {
+                    @Override
+                    public Set<String> call() throws Exception {
+                        GHRepository repository = loadRepository(repositoryName);
+                        if (repository == null) {
+                            return new HashSet<String>();
+                        } else {
+                            return repository.getCollaboratorNames();
+                        }
+                    }
+                }
+            );
+
+            return collaborators.contains(getName());
+        } catch (ExecutionException e) {
+            LOGGER.log(Level.SEVERE, "an exception was thrown", e);
+            throw new RuntimeException("authorization failed for user = "
+                        + getName(), e);
+        }
+    }
+
+    public boolean isPublicRepository(final String repositoryName) {
+        GHRepository repository = loadRepository(repositoryName);
+        if (repository == null) {
+            // If we don't have access its either not there or private & hidden from us
+            return false;
+        } else {
+            return !repository.isPrivate();
+        }
+    }
+
 	private static final Logger LOGGER = Logger
 			.getLogger(GithubAuthenticationToken.class.getName());
 
@@ -166,6 +208,22 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 		else
 			return null;
 
+	}
+
+	public GHRepository loadRepository(String repositoryName) {
+            try {
+                if (gh != null && isAuthenticated()) {
+                    return gh.getRepository(repositoryName);
+                } else {
+                    return null;
+                }
+            } catch(FileNotFoundException e) {
+                LOGGER.log(Level.WARNING, "Looks like a bad github URL OR the Jenkins user does not have access to the repository{0}", repositoryName);
+                return null;
+            } catch(IOException e) {
+                LOGGER.log(Level.WARNING, "Looks like a bad github URL OR the Jenkins user does not have access to the repository{0}", repositoryName);
+                return null;
+            }
 	}
 
 	public GHTeam loadTeam(String organization, String team) throws IOException {

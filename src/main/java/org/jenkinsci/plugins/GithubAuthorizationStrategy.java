@@ -91,6 +91,16 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 
 	}
 
+	public ACL getACL(Job<?,?> job) {
+		if(job instanceof AbstractProject) {
+			AbstractProject project = (AbstractProject)job;
+	                GithubRequireOrganizationMembershipACL githubACL = (GithubRequireOrganizationMembershipACL) getRootACL();
+			return githubACL.cloneForProject(project);
+		  } else {
+			return getRootACL();
+		  }
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
