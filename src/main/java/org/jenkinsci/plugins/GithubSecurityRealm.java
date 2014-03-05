@@ -38,6 +38,7 @@ import hudson.model.Descriptor;
 import hudson.model.User;
 import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
+import hudson.security.UserMayOrMayNotExistException;
 import hudson.tasks.Mailer;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
@@ -477,8 +478,9 @@ public class GithubSecurityRealm extends SecurityRealm {
 
 		GithubAuthenticationToken authToken =  (GithubAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
 
-		if (authToken == null)
-			throw new UsernameNotFoundException("No known user: " + username);
+		if (authToken == null) {
+			throw new UserMayOrMayNotExistException("Could not get auth token.");
+		}
 
 		try {
 
