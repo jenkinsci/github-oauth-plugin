@@ -171,7 +171,6 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         PowerMockito.when(mockProject.getScm()).thenReturn(new NullSCM());
 
         GithubRequireOrganizationMembershipACL acl = aclForProject(mockProject);
-        mockGithubRepositoryWithCollaborators(mockGithub, "some-org/another-private-repo", true, Arrays.asList("Him", "Her", "You"));
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
@@ -189,7 +188,6 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         PowerMockito.when(gitSCM.getUserRemoteConfigs()).thenReturn(userRemoteConfigs);
 
         GithubRequireOrganizationMembershipACL acl = aclForProject(mockProject);
-        mockGithubRepositoryWithCollaborators(mockGithub, "some-org/another-private-repo", true, Arrays.asList("Him", "Her", "You"));
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
