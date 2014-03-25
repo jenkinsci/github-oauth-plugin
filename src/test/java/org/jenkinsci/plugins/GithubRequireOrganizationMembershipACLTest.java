@@ -26,6 +26,7 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
+import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Project;
 import hudson.plugins.git.GitSCM;
@@ -58,7 +59,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
     private GithubRequireOrganizationMembershipACL aclForProject(Project project) {
         GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
-                true, true, true, true);
+                true, true, true, true, true);
         return acl.cloneForProject(project);
     }
 
@@ -100,7 +101,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
-        assertTrue(acl.hasRepositoryPermission(authenticationToken, Item.READ));
+        assertTrue(acl.hasPermission(authenticationToken, Item.READ));
     }
 
     @Test
@@ -112,7 +113,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
-        assertTrue(acl.hasRepositoryPermission(authenticationToken, Item.BUILD));
+        assertTrue(acl.hasPermission(authenticationToken, Item.BUILD));
     }
 
     @Test
@@ -124,7 +125,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
-        assertFalse(acl.hasRepositoryPermission(authenticationToken, Item.BUILD));
+        assertFalse(acl.hasPermission(authenticationToken, Item.BUILD));
     }
 
     @Test
@@ -136,7 +137,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
-        assertFalse(acl.hasRepositoryPermission(authenticationToken, Item.BUILD));
+        assertFalse(acl.hasPermission(authenticationToken, Item.BUILD));
     }
 
     @Test
@@ -148,7 +149,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
-        assertTrue(acl.hasRepositoryPermission(authenticationToken, Item.READ));
+        assertTrue(acl.hasPermission(authenticationToken, Item.READ));
     }
 
     @Test
@@ -160,7 +161,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
-        assertFalse(acl.hasRepositoryPermission(authenticationToken, Item.READ));
+        assertFalse(acl.hasPermission(authenticationToken, Item.READ));
     }
 
     @Test
@@ -174,7 +175,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
-        assertFalse(acl.hasRepositoryPermission(authenticationToken, Item.READ));
+        assertFalse(acl.hasPermission(authenticationToken, Item.READ));
     }
 
     @Test
@@ -192,7 +193,45 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
-        assertFalse(acl.hasRepositoryPermission(authenticationToken, Item.READ));
+        assertFalse(acl.hasPermission(authenticationToken, Item.READ));
     }
+
+    @Test
+    public void testGlobalReadAvailableDueToAuthenticatedUserReadPermission() throws IOException {
+        GitHub mockGithub = mockGithubAs("Me");
+        Project mockProject = mockProject("https://github.com/some-org/another-private-repo.git");
+        GithubRequireOrganizationMembershipACL acl = aclForProject(mockProject);
+        GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
+
+        assertFalse(acl.hasPermission(authenticationToken, Hudson.READ));
+
+    }
+
+    @Test
+    public void testWithoutUseRepositoryPermissionsSetCanReadDueToAuthenticatedUserReadPermission() throws IOException {
+        boolean useRepositoryPermissions = false;
+        boolean authenticatedUserReadPermission = true;
+        GitHub mockGithub = mockGithubAs("Me");
+        GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
+                authenticatedUserReadPermission, useRepositoryPermissions, true, true, true);
+
+        GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
+
+        assertTrue(acl.hasPermission(authenticationToken, Item.READ));
+    }
+
+    @Test
+    public void testWithoutUseRepositoryPermissionsSetCannotReadWithoutToAuthenticatedUserReadPermission() throws IOException {
+        boolean useRepositoryPermissions = false;
+        boolean authenticatedUserReadPermission = false;
+        GitHub mockGithub = mockGithubAs("Me");
+        GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
+                authenticatedUserReadPermission, useRepositoryPermissions, true, true, true);
+
+        GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
+
+        assertFalse(acl.hasPermission(authenticationToken, Item.READ));
+    }
+
 
 }

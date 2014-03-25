@@ -67,14 +67,16 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 	 */
 	@DataBoundConstructor
 	public GithubAuthorizationStrategy(String adminUserNames,
-			boolean authenticatedUserReadPermission, String organizationNames,
+			boolean authenticatedUserReadPermission, boolean useRepositoryPermissions,
+                        String organizationNames,
 			boolean allowGithubWebHookPermission, boolean allowCcTrayPermission,
 			boolean allowAnonymousReadPermission) {
 		super();
 
 		rootACL = new GithubRequireOrganizationMembershipACL(adminUserNames,
 				organizationNames, authenticatedUserReadPermission,
-				allowGithubWebHookPermission, allowCcTrayPermission, allowAnonymousReadPermission);
+                                useRepositoryPermissions, allowGithubWebHookPermission,
+                                allowCcTrayPermission, allowAnonymousReadPermission);
 	}
 
 	private final GithubRequireOrganizationMembershipACL rootACL;

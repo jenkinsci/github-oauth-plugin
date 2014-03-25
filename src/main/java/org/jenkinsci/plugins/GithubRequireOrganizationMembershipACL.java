@@ -55,6 +55,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 	private final List<String> organizationNameList;
 	private final List<String> adminUserNameList;
 	private final boolean authenticatedUserReadPermission;
+        private final boolean useRepositoryPermissions;
 	private final boolean allowGithubWebHookPermission;
     private final boolean allowCcTrayPermission;
     private final boolean allowAnonymousReadPermission;
@@ -85,7 +86,23 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 			}
 
 			if (this.project != null) {
-				return hasRepositoryPermission(authenticationToken, permission);
+				if (useRepositoryPermissions) {
+					if(hasRepositoryPermission(authenticationToken, permission)) {
+						log.finest("Granting Authenticated User " + permission.getId() +
+							" permission on project " + project.getName() +
+							"to user " + candidateName);
+						return true;
+					}
+				} else {
+					if (authenticatedUserReadPermission) {
+						if (checkReadPermission(permission)) {
+							log.finest("Granting Authenticated User read permission " +
+								"on project " + project.getName() +
+								"to user " + candidateName);
+							return true;
+						}
+					}
+				}
 			} else if (authenticatedUserReadPermission) {
 
 				if (checkReadPermission(permission)) {
@@ -229,11 +246,13 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
 	public GithubRequireOrganizationMembershipACL(String adminUserNames,
 			String organizationNames, boolean authenticatedUserReadPermission,
+                        boolean useRepositoryPermissions,
 			boolean allowGithubWebHookPermission,
             boolean allowCcTrayPermission,
 			boolean allowAnonymousReadPermission) {
 		super();
 		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
+                this.useRepositoryPermissions = useRepositoryPermissions;
 		this.allowGithubWebHookPermission = allowGithubWebHookPermission;
         this.allowCcTrayPermission = allowCcTrayPermission;
         this.allowAnonymousReadPermission = allowAnonymousReadPermission;
@@ -260,6 +279,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 	public GithubRequireOrganizationMembershipACL(List<String> adminUserNameList,
 			List<String> organizationNameList,
 			boolean authenticatedUserReadPermission,
+                        boolean useRepositoryPermissions,
 			boolean allowGithubWebHookPermission,
             boolean allowCcTrayPermission,
 			boolean allowAnonymousReadPermission,
@@ -268,6 +288,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 		this.adminUserNameList = adminUserNameList;
 		this.organizationNameList = organizationNameList;
 		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
+                this.useRepositoryPermissions = useRepositoryPermissions;
 		this.allowGithubWebHookPermission = allowGithubWebHookPermission;
         this.allowCcTrayPermission = allowCcTrayPermission;
         this.allowAnonymousReadPermission = allowAnonymousReadPermission;
@@ -279,6 +300,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 			this.adminUserNameList,
 			this.organizationNameList,
 			this.authenticatedUserReadPermission,
+                        this.useRepositoryPermissions,
 			this.allowGithubWebHookPermission,
             this.allowCcTrayPermission,
 			this.allowAnonymousReadPermission,
@@ -291,6 +313,10 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
 	public List<String> getAdminUserNameList() {
 		return adminUserNameList;
+	}
+
+	public boolean isUseRepositoryPermissions() {
+		return useRepositoryPermissions;
 	}
 
 	public boolean isAuthenticatedUserReadPermission() {
