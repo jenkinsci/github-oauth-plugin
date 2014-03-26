@@ -237,8 +237,10 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
             List<UserRemoteConfig> userRemoteConfigs = git.getUserRemoteConfigs();
             if (!userRemoteConfigs.isEmpty()) {
                 String repoUrl = userRemoteConfigs.get(0).getUrl();
-                GitHubRepositoryName githubRepositoryName = GitHubRepositoryName.create(repoUrl);
-                repositoryName = githubRepositoryName.userName + "/" + githubRepositoryName.repositoryName;
+                if (repoUrl != null) {
+                    GitHubRepositoryName githubRepositoryName = GitHubRepositoryName.create(repoUrl);
+                    repositoryName = githubRepositoryName.userName + "/" + githubRepositoryName.repositoryName;
+                }
             }
         }
         return repositoryName;

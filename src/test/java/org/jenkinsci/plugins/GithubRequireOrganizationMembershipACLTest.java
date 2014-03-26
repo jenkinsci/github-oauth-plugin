@@ -180,6 +180,17 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     @Test
     public void testNotGrantedReadWhenRepositoryIsEmpty() throws IOException {
         GitHub mockGithub = mockGithubAs("Me");
+        Project mockProject = mockProject(null);
+        GithubRequireOrganizationMembershipACL acl = aclForProject(mockProject);
+
+        GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
+
+        assertFalse(acl.hasPermission(authenticationToken, Item.READ));
+    }
+
+    @Test
+    public void testNotGrantedReadWhenRepositoryUrlIsEmpty() throws IOException {
+        GitHub mockGithub = mockGithubAs("Me");
         Project mockProject = PowerMockito.mock(Project.class);
         PowerMockito.when(mockProject.getScm()).thenReturn(new NullSCM());
         GitSCM gitSCM = PowerMockito.mock(GitSCM.class);
