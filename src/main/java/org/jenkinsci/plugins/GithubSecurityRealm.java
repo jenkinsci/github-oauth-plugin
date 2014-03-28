@@ -428,7 +428,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 		}, new UserDetailsService() {
 			public UserDetails loadUserByUsername(String username)
 					throws UsernameNotFoundException, DataAccessException {
-				throw new UsernameNotFoundException(username);
+			    return GithubSecurityRealm.this.loadUserByUsername(username);
 			}
 		});
 	}
@@ -484,7 +484,14 @@ public class GithubSecurityRealm extends SecurityRealm {
 
 		try {
 
-			GroupDetails group = loadGroupByGroupname(username);
+			GroupDetails group = null;
+            try {
+                group = loadGroupByGroupname(username);
+            } catch (DataRetrievalFailureException e) {
+                LOGGER.config("No group found with name: " + username);
+            } catch (UsernameNotFoundException e) {
+                LOGGER.config("No group found with name: " + username);
+            }
 
 			if (group != null) {
 				throw new UsernameNotFoundException ("user("+username+") is also an organization");
