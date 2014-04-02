@@ -12,6 +12,10 @@
 			<f:textbox />
 		</f:entry>
 		
+		<f:entry title="Use Github repository permissions" field="useRepositoryPermissions" help="/plugin/github-oauth/help/auth/use-repository-permissions-help.html">
+                    <f:checkbox />
+		</f:entry>
+
 		 <f:entry title="Grant READ permissions to all Authenticated Users" field="authenticatedUserReadPermission" help="/plugin/github-oauth/help/auth/grant-read-to-authenticated-help.html">
  		<f:checkbox />
  		</f:entry>

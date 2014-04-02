@@ -67,14 +67,16 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 	 */
 	@DataBoundConstructor
 	public GithubAuthorizationStrategy(String adminUserNames,
-			boolean authenticatedUserReadPermission, String organizationNames,
+			boolean authenticatedUserReadPermission, boolean useRepositoryPermissions,
+                        String organizationNames,
 			boolean allowGithubWebHookPermission, boolean allowCcTrayPermission,
 			boolean allowAnonymousReadPermission) {
 		super();
 
 		rootACL = new GithubRequireOrganizationMembershipACL(adminUserNames,
 				organizationNames, authenticatedUserReadPermission,
-				allowGithubWebHookPermission, allowCcTrayPermission, allowAnonymousReadPermission);
+                                useRepositoryPermissions, allowGithubWebHookPermission,
+                                allowCcTrayPermission, allowAnonymousReadPermission);
 	}
 
 	private final GithubRequireOrganizationMembershipACL rootACL;
@@ -89,6 +91,16 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 
 		return rootACL;
 
+	}
+
+	public ACL getACL(Job<?,?> job) {
+		if(job instanceof AbstractProject) {
+			AbstractProject project = (AbstractProject)job;
+	                GithubRequireOrganizationMembershipACL githubACL = (GithubRequireOrganizationMembershipACL) getRootACL();
+			return githubACL.cloneForProject(project);
+		  } else {
+			return getRootACL();
+		  }
 	}
 
 	/*
