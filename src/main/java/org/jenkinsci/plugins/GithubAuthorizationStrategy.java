@@ -135,6 +135,14 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 
 	/**
 	 * @return
+	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isUseRepositoryPermissions()
+	 */
+	public boolean isUseRepositoryPermissions() {
+		return rootACL.isUseRepositoryPermissions();
+	}
+
+	/**
+	 * @return
 	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAuthenticatedUserReadPermission()
 	 */
 	public boolean isAuthenticatedUserReadPermission() {
