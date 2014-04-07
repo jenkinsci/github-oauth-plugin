@@ -27,6 +27,7 @@ THE SOFTWARE.
 package org.jenkinsci.plugins;
 
 import hudson.model.AbstractProject;
+import hudson.model.Item;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.UserRemoteConfig;
 import hudson.scm.SCM;
@@ -56,6 +57,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 	private final List<String> adminUserNameList;
 	private final boolean authenticatedUserReadPermission;
         private final boolean useRepositoryPermissions;
+        private final boolean authenticatedUserCreateJobPermission;
 	private final boolean allowGithubWebHookPermission;
     private final boolean allowCcTrayPermission;
     private final boolean allowAnonymousReadPermission;
@@ -113,6 +115,10 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 							+ candidateName);
 				return true;
 				}
+			}
+
+			if (authenticatedUserCreateJobPermission && permission.equals(Item.CREATE)) {
+				return true;
 			}
 
 			for (String organizationName : this.organizationNameList) {
@@ -220,7 +226,18 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
         String repositoryName = getRepositoryName();
 
         if (repositoryName == null) {
-            return false;
+            if (authenticatedUserCreateJobPermission) {
+                if (permission.equals(Item.READ) ||
+                        permission.equals(Item.CONFIGURE) ||
+                        permission.equals(Item.DELETE) ||
+                        permission.equals(Item.EXTENDED_READ)) {
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
         } else if (checkReadPermission(permission) &&
                 authenticationToken.isPublicRepository(repositoryName)) {
             return true;
@@ -249,12 +266,14 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 	public GithubRequireOrganizationMembershipACL(String adminUserNames,
 			String organizationNames, boolean authenticatedUserReadPermission,
                         boolean useRepositoryPermissions,
+                        boolean authenticatedUserCreateJobPermission,
 			boolean allowGithubWebHookPermission,
             boolean allowCcTrayPermission,
 			boolean allowAnonymousReadPermission) {
 		super();
 		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
                 this.useRepositoryPermissions = useRepositoryPermissions;
+                this.authenticatedUserCreateJobPermission = authenticatedUserCreateJobPermission;
 		this.allowGithubWebHookPermission = allowGithubWebHookPermission;
         this.allowCcTrayPermission = allowCcTrayPermission;
         this.allowAnonymousReadPermission = allowAnonymousReadPermission;
@@ -282,6 +301,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 			List<String> organizationNameList,
 			boolean authenticatedUserReadPermission,
                         boolean useRepositoryPermissions,
+                        boolean authenticatedUserCreateJobPermission,
 			boolean allowGithubWebHookPermission,
             boolean allowCcTrayPermission,
 			boolean allowAnonymousReadPermission,
@@ -291,6 +311,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 		this.organizationNameList = organizationNameList;
 		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
                 this.useRepositoryPermissions = useRepositoryPermissions;
+                this.authenticatedUserCreateJobPermission = authenticatedUserCreateJobPermission;
 		this.allowGithubWebHookPermission = allowGithubWebHookPermission;
         this.allowCcTrayPermission = allowCcTrayPermission;
         this.allowAnonymousReadPermission = allowAnonymousReadPermission;
@@ -303,6 +324,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 			this.organizationNameList,
 			this.authenticatedUserReadPermission,
                         this.useRepositoryPermissions,
+			this.authenticatedUserCreateJobPermission,
 			this.allowGithubWebHookPermission,
             this.allowCcTrayPermission,
 			this.allowAnonymousReadPermission,
@@ -321,7 +343,11 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 		return useRepositoryPermissions;
 	}
 
-	public boolean isAuthenticatedUserReadPermission() {
+	public boolean isAuthenticatedUserCreateJobPermission() {
+		return authenticatedUserCreateJobPermission;
+	}
+
+        public boolean isAuthenticatedUserReadPermission() {
 		return authenticatedUserReadPermission;
 	}
 
