@@ -431,8 +431,8 @@ public class GithubSecurityRealm extends SecurityRealm {
 			}
 		}, new UserDetailsService() {
 			public UserDetails loadUserByUsername(String username)
-					throws UsernameNotFoundException, DataAccessException {
-				throw new UsernameNotFoundException(username);
+					throws UserMayOrMayNotExistException, DataAccessException {
+				throw new UserMayOrMayNotExistException("Cannot verify users in this context");
 			}
 		});
 	}
