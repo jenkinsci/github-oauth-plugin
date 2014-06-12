@@ -26,21 +26,23 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
-import com.thoughtworks.xstream.converters.ConversionException;
-import com.thoughtworks.xstream.converters.Converter;
-import com.thoughtworks.xstream.converters.MarshallingContext;
-import com.thoughtworks.xstream.converters.UnmarshallingContext;
-import com.thoughtworks.xstream.io.HierarchicalStreamReader;
-import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.User;
 import hudson.security.GroupDetails;
-import hudson.security.SecurityRealm;
 import hudson.security.UserMayOrMayNotExistException;
+import hudson.security.SecurityRealm;
 import hudson.tasks.Mailer;
+
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Logger;
+
 import jenkins.model.Jenkins;
+import jenkins.security.SecurityListener;
+
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.AuthenticationManager;
@@ -65,10 +67,12 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataRetrievalFailureException;
 
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Logger;
+import com.thoughtworks.xstream.converters.ConversionException;
+import com.thoughtworks.xstream.converters.Converter;
+import com.thoughtworks.xstream.converters.MarshallingContext;
+import com.thoughtworks.xstream.converters.UnmarshallingContext;
+import com.thoughtworks.xstream.io.HierarchicalStreamReader;
+import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 
 /**
  *
@@ -378,6 +382,8 @@ public class GithubSecurityRealm extends SecurityRealm {
 		    if (!u.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
 			    u.addProperty(new Mailer.UserProperty(self.getEmail()));
 		    }
+
+            SecurityListener.fireAuthenticated(new GithubOAuthUserDetails(self));
 		}
 		else {
 			Log.info("Github did not return an access token.");
