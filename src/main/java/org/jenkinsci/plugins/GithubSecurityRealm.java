@@ -324,7 +324,7 @@ public class GithubSecurityRealm extends SecurityRealm {
         } else {
             // We need repo scope in order to access private repos
             // See https://developer.github.com/v3/oauth/#scopes
-            suffix = "&scope=repo";
+            suffix = "&scope=repo,read:org";
         }
 
 		return new HttpRedirect(githubWebUri + "/login/oauth/authorize?client_id="
