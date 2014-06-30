@@ -41,6 +41,7 @@ import hudson.security.SecurityRealm;
 import hudson.security.UserMayOrMayNotExistException;
 import hudson.tasks.Mailer;
 import jenkins.model.Jenkins;
+import jenkins.security.SecurityListener;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.AuthenticationManager;
@@ -378,6 +379,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 		    if (!u.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
 			    u.addProperty(new Mailer.UserProperty(self.getEmail()));
 		    }
+            SecurityListener.fireAuthenticated(new GithubOAuthUserDetails(self));
 		}
 		else {
 			Log.info("Github did not return an access token.");
