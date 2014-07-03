@@ -33,6 +33,7 @@ import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Extension;
+import hudson.ProxyConfiguration;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.User;
@@ -49,10 +50,11 @@ import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.httpclient.URIException;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
@@ -71,6 +73,8 @@ import org.springframework.dao.DataRetrievalFailureException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -359,7 +363,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 				+ "client_secret=" + clientSecret + "&" + "code=" + code);
 
         DefaultHttpClient httpclient = new DefaultHttpClient();
-        HttpHost proxy = getProxy(githubWebUri);
+        HttpHost proxy = getProxy(httpost);
         if (proxy != null) {
             httpclient.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, proxy);
         }
@@ -424,19 +428,21 @@ public class GithubSecurityRealm extends SecurityRealm {
     /**
      * Returns the proxy to be used when connecting to the given URI.
      */
-    private HttpHost getProxy(String uri) {
-        String prefix = uri.startsWith("https") ? "https" : "http";
-        String proxyHost = System.getProperty(prefix + ".proxyHost");
-        if (StringUtils.isBlank(proxyHost)) {
-            return null;
-        }
+    private HttpHost getProxy(HttpUriRequest method) throws URIException {
 
-        String proxyPortStr = System.getProperty(prefix + ".proxyPort");
-        if (StringUtils.isBlank(proxyPortStr)) {
-            return new HttpHost(proxyHost);
-        } else {
-            int proxyPort = Integer.parseInt(proxyPortStr);
-            return new HttpHost(proxyHost, proxyPort);
+        ProxyConfiguration proxy = Jenkins.getInstance().proxy;
+        if (proxy==null)    return null;    // defensive check
+
+        Proxy p = proxy.createProxy(method.getURI().getHost());
+        switch (p.type()) {
+        case DIRECT:
+            return null;        // no proxy
+        case HTTP:
+            InetSocketAddress sa = (InetSocketAddress) p.address();
+            return new HttpHost(sa.getHostName(),sa.getPort());
+        case SOCKS:
+        default:
+            return null;        // not supported yet
         }
     }
 
