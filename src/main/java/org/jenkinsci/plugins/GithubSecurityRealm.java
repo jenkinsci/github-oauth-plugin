@@ -49,8 +49,11 @@ import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.jfree.util.Log;
@@ -355,7 +358,11 @@ public class GithubSecurityRealm extends SecurityRealm {
 				+ "/login/oauth/access_token?" + "client_id=" + clientID + "&"
 				+ "client_secret=" + clientSecret + "&" + "code=" + code);
 
-		DefaultHttpClient httpclient = new DefaultHttpClient();
+        DefaultHttpClient httpclient = new DefaultHttpClient();
+        HttpHost proxy = getProxy(githubWebUri);
+        if (proxy != null) {
+            httpclient.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, proxy);
+        }
 
 		org.apache.http.HttpResponse response = httpclient.execute(httpost);
 
@@ -414,7 +421,26 @@ public class GithubSecurityRealm extends SecurityRealm {
         }
     }
 
-    private String extractToken(String content) {
+    /**
+     * Returns the proxy to be used when connecting to the given URI.
+     */
+    private HttpHost getProxy(String uri) {
+        String prefix = uri.startsWith("https") ? "https" : "http";
+        String proxyHost = System.getProperty(prefix + ".proxyHost");
+        if (StringUtils.isBlank(proxyHost)) {
+            return null;
+        }
+
+        String proxyPortStr = System.getProperty(prefix + ".proxyPort");
+        if (StringUtils.isBlank(proxyPortStr)) {
+            return new HttpHost(proxyHost);
+        } else {
+            int proxyPort = Integer.parseInt(proxyPortStr);
+            return new HttpHost(proxyHost, proxyPort);
+        }
+    }
+
+	private String extractToken(String content) {
 
 		String parts[] = content.split("&");
 
