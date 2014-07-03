@@ -60,10 +60,18 @@ import org.kohsuke.stapler.Stapler;
  * 
  */
 public class GithubAuthorizationStrategy extends AuthorizationStrategy {
+    @Deprecated
+    public GithubAuthorizationStrategy(String adminUserNames,
+    			    boolean authenticatedUserReadPermission, boolean useRepositoryPermissions,
+                    String organizationNames,
+    			    boolean allowGithubWebHookPermission, boolean allowCcTrayPermission,
+    			    boolean allowAnonymousReadPermission) {
+    		this(adminUserNames, authenticatedUserReadPermission, useRepositoryPermissions, false, organizationNames, allowGithubWebHookPermission, allowCcTrayPermission, allowAnonymousReadPermission);
+    }
 
 	/**
 	 * @param allowAnonymousReadPermission
-	 * 
+	 * @since 0.19
 	 */
 	@DataBoundConstructor
 	public GithubAuthorizationStrategy(String adminUserNames,
