@@ -66,9 +66,13 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataRetrievalFailureException;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
+
+import static java.util.logging.Level.*;
 
 /**
  *
@@ -378,6 +382,8 @@ public class GithubSecurityRealm extends SecurityRealm {
 		    if (!u.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
 			    u.addProperty(new Mailer.UserProperty(self.getEmail()));
 		    }
+
+            fireAuthenticated(new GithubOAuthUserDetails(self));
 		}
 		else {
 			Log.info("Github did not return an access token.");
@@ -388,7 +394,27 @@ public class GithubSecurityRealm extends SecurityRealm {
 		return HttpResponses.redirectToContextRoot();   // referer should be always there, but be defensive
 	}
 
-	private String extractToken(String content) {
+    /**
+     * Calls {@code SecurityListener.fireAuthenticated()} but through reflection to avoid
+     * hard dependency on non-LTS core version.
+     */
+    private void fireAuthenticated(UserDetails details) {
+        try {
+            Class<?> c = Class.forName("jenkins.security.SecurityListener");
+            Method m = c.getMethod("fireAuthenticated", UserDetails.class);
+            m.invoke(null,details);
+        } catch (ClassNotFoundException e) {
+            // running with old core
+        } catch (NoSuchMethodException e) {
+            // running with old core
+        } catch (IllegalAccessException e) {
+            throw (Error)new IllegalAccessError(e.getMessage()).initCause(e);
+        } catch (InvocationTargetException e) {
+            LOGGER.log(WARNING, "Failed to invoke fireAuthenticated", e);
+        }
+    }
+
+    private String extractToken(String content) {
 
 		String parts[] = content.split("&");
 
