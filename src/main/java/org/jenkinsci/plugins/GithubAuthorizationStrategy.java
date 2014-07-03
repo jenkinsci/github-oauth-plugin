@@ -60,22 +60,31 @@ import org.kohsuke.stapler.Stapler;
  * 
  */
 public class GithubAuthorizationStrategy extends AuthorizationStrategy {
+    @Deprecated
+    public GithubAuthorizationStrategy(String adminUserNames,
+    			    boolean authenticatedUserReadPermission, boolean useRepositoryPermissions,
+                    String organizationNames,
+    			    boolean allowGithubWebHookPermission, boolean allowCcTrayPermission,
+    			    boolean allowAnonymousReadPermission) {
+    		this(adminUserNames, authenticatedUserReadPermission, useRepositoryPermissions, false, organizationNames, allowGithubWebHookPermission, allowCcTrayPermission, allowAnonymousReadPermission);
+    }
 
 	/**
 	 * @param allowAnonymousReadPermission
-	 * 
+	 * @since 0.19
 	 */
 	@DataBoundConstructor
 	public GithubAuthorizationStrategy(String adminUserNames,
 			boolean authenticatedUserReadPermission, boolean useRepositoryPermissions,
-                        String organizationNames,
+                        boolean authenticatedUserCreateJobPermission, String organizationNames,
 			boolean allowGithubWebHookPermission, boolean allowCcTrayPermission,
 			boolean allowAnonymousReadPermission) {
 		super();
 
 		rootACL = new GithubRequireOrganizationMembershipACL(adminUserNames,
 				organizationNames, authenticatedUserReadPermission,
-                                useRepositoryPermissions, allowGithubWebHookPermission,
+                                useRepositoryPermissions, authenticatedUserCreateJobPermission,
+                                allowGithubWebHookPermission,
                                 allowCcTrayPermission, allowAnonymousReadPermission);
 	}
 
@@ -139,6 +148,14 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 	 */
 	public boolean isUseRepositoryPermissions() {
 		return rootACL.isUseRepositoryPermissions();
+	}
+
+	/**
+	 * @return
+	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAuthenticatedUserCreateJobPermission()
+	 */
+	public boolean isAuthenticatedUserCreateJobPermission() {
+		return rootACL.isAuthenticatedUserCreateJobPermission();
 	}
 
 	/**
