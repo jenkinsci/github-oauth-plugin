@@ -394,10 +394,6 @@ public class GithubSecurityRealm extends SecurityRealm {
      * Returns the proxy to be used when connecting to the given URI.
      */
     private HttpHost getProxy(String uri) {
-        if (uri == null) {
-            return null;
-        }
-
         String prefix = uri.startsWith("https") ? "https" : "http";
         String proxyHost = System.getProperty(prefix + ".proxyHost");
         if (StringUtils.isBlank(proxyHost)) {
