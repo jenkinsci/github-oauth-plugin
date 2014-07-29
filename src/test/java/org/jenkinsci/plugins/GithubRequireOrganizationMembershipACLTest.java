@@ -34,14 +34,13 @@ import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.UserRemoteConfig;
 import hudson.scm.NullSCM;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import junit.framework.TestCase;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -52,6 +51,7 @@ import org.kohsuke.github.GHPersonSet;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.PagedIterable;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
@@ -86,8 +86,10 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     private void mockReposFor(GHPerson person, List<String> repositoryNames) throws IOException {
-        Map<String, GHRepository> repositories = repositoryMapOf(repositoryNames);
-        PowerMockito.when(person.getRepositories()).thenReturn(repositories);
+        List<GHRepository> repositories = repositoryListOf(repositoryNames);
+        PagedIterable<GHRepository> pagedRepositories = PowerMockito.mock(PagedIterable.class);
+        PowerMockito.when(person.listRepositories()).thenReturn(pagedRepositories);
+        PowerMockito.when(pagedRepositories.asList()).thenReturn(repositories);
     };
 
     private void mockOrgRepos(GHMyself me, Map<String, List<String>> orgsAndRepoNames) throws IOException {
@@ -101,14 +103,14 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         PowerMockito.when(me.getAllOrganizations()).thenReturn(organizationSet);
     }
 
-    private Map<String, GHRepository> repositoryMapOf(List<String> repositoryNames) throws IOException {
-        Map<String,GHRepository> repositoriesMap = new TreeMap<String, GHRepository>();
+    private List<GHRepository> repositoryListOf(List<String> repositoryNames) throws IOException {
+        List<GHRepository> repositoriesSet = new ArrayList<GHRepository>();
         for (String repositoryName : repositoryNames) {
             String[] parts = repositoryName.split("/");
             GHRepository repository = mockGHRepository(parts[0], parts[1]);
-            repositoriesMap.put(repositoryName, repository);
+            repositoriesSet.add(repository);
         }
-        return Collections.unmodifiableMap(repositoriesMap);
+        return repositoriesSet;
     }
 
     private GHRepository mockGHRepository(String ownerName, String name) throws IOException {
