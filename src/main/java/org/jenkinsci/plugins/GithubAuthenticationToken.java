@@ -84,6 +84,9 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 	private static final Cache<String, Set<String>> repositoriesByUserCache =
             CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
 
+	private static final Cache<String, Boolean> publicRepositoryCache =
+            CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
+
     private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
 
 	public GithubAuthenticationToken(String accessToken, String githubServer) throws IOException {
@@ -213,12 +216,27 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     }
 
     public boolean isPublicRepository(final String repositoryName) {
-        GHRepository repository = loadRepository(repositoryName);
-        if (repository == null) {
-            // If we don't have access its either not there or private & hidden from us
-            return false;
-        } else {
-            return !repository.isPrivate();
+        try {
+            Boolean isPublic = publicRepositoryCache.get(repositoryName,
+                new Callable<Boolean>() {
+                    @Override
+                    public Boolean call() throws Exception {
+                        GHRepository repository = loadRepository(repositoryName);
+                        if (repository == null) {
+                            // We don't have access so it must not be public (it could be non-existant)
+                            return Boolean.FALSE;
+                        } else {
+                            return new Boolean(!repository.isPrivate());
+                        }
+                    }
+                }
+            );
+
+            return isPublic.booleanValue();
+        } catch (ExecutionException e) {
+            LOGGER.log(Level.SEVERE, "an exception was thrown", e);
+            throw new RuntimeException("authorization failed for user = "
+                        + getName(), e);
         }
     }
 
