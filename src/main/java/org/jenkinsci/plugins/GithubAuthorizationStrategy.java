@@ -76,15 +76,15 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 	@DataBoundConstructor
 	public GithubAuthorizationStrategy(String adminUserNames,
 			boolean authenticatedUserReadPermission, boolean useRepositoryPermissions,
-                        boolean authenticatedUserCreateJobPermission, String organizationNames,
+            boolean authenticatedUserCreateJobPermission, String organizationNames,
 			boolean allowGithubWebHookPermission, boolean allowCcTrayPermission,
-			boolean allowAnonymousReadPermission) {
+            boolean allowAnonymousReadPermission, boolean authenticatedUserConfigureJobPermission) {
 		super();
 
 		rootACL = new GithubRequireOrganizationMembershipACL(adminUserNames,
 				organizationNames, authenticatedUserReadPermission,
                                 useRepositoryPermissions, authenticatedUserCreateJobPermission,
-                                allowGithubWebHookPermission,
+                                allowGithubWebHookPermission, authenticatedUserConfigureJobPermission,
                                 allowCcTrayPermission, allowAnonymousReadPermission);
 	}
 
@@ -156,7 +156,15 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 	 */
 	public boolean isAuthenticatedUserCreateJobPermission() {
 		return rootACL.isAuthenticatedUserCreateJobPermission();
-	}
+    }
+
+    /**
+     * @return
+     * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isRepositoryUserConfigureJobPermission()
+     */
+    public boolean isRepositoryUserConfigureJobPermission() {
+        return rootACL.isRepositoryUserConfigureJobPermission();
+    }
 
 	/**
 	 * @return
