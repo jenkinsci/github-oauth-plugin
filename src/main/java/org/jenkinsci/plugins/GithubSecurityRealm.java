@@ -408,6 +408,7 @@ public class GithubSecurityRealm extends SecurityRealm {
     /**
      * Calls {@code SecurityListener.fireAuthenticated()} but through reflection to avoid
      * hard dependency on non-LTS core version.
+     * TODO delete in 1.569+
      */
     private void fireAuthenticated(UserDetails details) {
         try {
