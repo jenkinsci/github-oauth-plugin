@@ -52,7 +52,10 @@ import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.http.HttpEntity;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.ProxySelectorRoutePlanner;
 import org.apache.http.impl.conn.SchemeRegistryFactory;
@@ -366,6 +369,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 
         DefaultHttpClient httpclient = new DefaultHttpClient();
         httpclient.setRoutePlanner(new JenkinsProxyHttpRoutePlanner());
+        httpclient.setCredentialsProvider(new JenkinsProxyCredentialsProvider());
 
 		org.apache.http.HttpResponse response = httpclient.execute(httpost);
 
@@ -609,4 +613,15 @@ public class GithubSecurityRealm extends SecurityRealm {
         }
     }
 
+    private static class JenkinsProxyCredentialsProvider extends BasicCredentialsProvider {
+        public JenkinsProxyCredentialsProvider(){
+            super();
+            ProxyConfiguration pc = Jenkins.getInstance().proxy;
+            if (null != pc && null != pc.name && null != pc.getUserName()) {
+                setCredentials(
+                        AuthScope.ANY, // `new AuthScope(pc.name, pc.port)` does not work?
+                        new UsernamePasswordCredentials(pc.getUserName(), pc.getPassword()));
+            }
+        }
+    }
 }
