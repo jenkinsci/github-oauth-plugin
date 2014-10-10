@@ -619,7 +619,7 @@ public class GithubSecurityRealm extends SecurityRealm {
             ProxyConfiguration pc = Jenkins.getInstance().proxy;
             if (null != pc && null != pc.name && null != pc.getUserName()) {
                 setCredentials(
-                        AuthScope.ANY, // `new AuthScope(pc.name, pc.port)` does not work?
+                        new AuthScope(pc.name, pc.port), // You may need to set pc.name to proxy server's IP address
                         new UsernamePasswordCredentials(pc.getUserName(), pc.getPassword()));
             }
         }
