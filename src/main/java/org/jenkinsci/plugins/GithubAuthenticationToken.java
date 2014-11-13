@@ -42,10 +42,13 @@ import java.util.logging.Level;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import hudson.security.SecurityRealm;
+import java.util.Collection;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.providers.AbstractAuthenticationToken;
+import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
+import org.kohsuke.github.GHPersonSet;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHTeam;
 import org.kohsuke.github.GHUser;
@@ -67,6 +70,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
 	private final String userName;
 	private final GitHub gh;
+        private final GHMyself me;
 	
 	/**
 	 * Cache for faster organization based security 
@@ -75,6 +79,12 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
             CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
 
 	private static final Cache<String, Set<String>> repositoryCollaboratorsCache =
+            CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
+
+	private static final Cache<String, Set<String>> repositoriesByUserCache =
+            CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
+
+	private static final Cache<String, Boolean> publicRepositoryCache =
             CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
 
     private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
@@ -86,16 +96,25 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 		this.accessToken = accessToken;
         this.gh = GitHub.connectUsingOAuth(githubServer, accessToken);
 
-        GHUser me = gh.getMyself();
-        assert me!=null;
+        this.me = gh.getMyself();
+        assert this.me!=null;
 
         setAuthenticated(true);
 
-        this.userName = me.getLogin();
+        this.userName = this.me.getLogin();
         authorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
         for (String name : gh.getMyOrganizations().keySet())
             authorities.add(new GrantedAuthorityImpl(name));
 	}
+
+        /**
+         * Necessary for testing
+         */
+        public static void clearCaches() {
+            userOrganizationCache.invalidateAll();
+            repositoryCollaboratorsCache.invalidateAll();
+            repositoriesByUserCache.invalidateAll();
+        }
 
     /**
      * Gets the OAuth access token, so that it can be persisted and used elsewhere.
@@ -156,23 +175,29 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     }
 
     public boolean hasRepositoryPermission(final String repositoryName) {
+        return myRepositories().contains(repositoryName);
+    }
 
+    public Set<String> myRepositories() {
         try {
-            Set<String> collaborators = repositoryCollaboratorsCache.get(repositoryName,
+            Set<String> myRepositories = repositoriesByUserCache.get(getName(),
                 new Callable<Set<String>>() {
                     @Override
                     public Set<String> call() throws Exception {
-                        GHRepository repository = loadRepository(repositoryName);
-                        if (repository == null) {
-                            return new HashSet<String>();
-                        } else {
-                            return repository.getCollaboratorNames();
+                        List<GHRepository> userRepositoryList = me.listRepositories().asList();
+                        Set<String> repositoryNames = listToNames(userRepositoryList);
+                        GHPersonSet<GHOrganization> organizations = me.getAllOrganizations();
+                        for (GHOrganization organization : organizations) {
+                            List<GHRepository> orgRepositoryList = organization.listRepositories().asList();
+                            Set<String> orgRepositoryNames = listToNames(orgRepositoryList);
+                            repositoryNames.addAll(orgRepositoryNames);
                         }
+                        return repositoryNames;
                     }
                 }
             );
 
-            return collaborators.contains(getName());
+            return myRepositories;
         } catch (ExecutionException e) {
             LOGGER.log(Level.SEVERE, "an exception was thrown", e);
             throw new RuntimeException("authorization failed for user = "
@@ -180,13 +205,38 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         }
     }
 
+    public Set<String> listToNames(Collection<GHRepository> respositories) throws IOException {
+        Set<String> names = new HashSet<String>();
+        for (GHRepository repository : respositories) {
+            String ownerName = repository.getOwner().getLogin();
+            String repoName = repository.getName();
+            names.add(ownerName + "/" + repoName);
+        }
+        return names;
+    }
+
     public boolean isPublicRepository(final String repositoryName) {
-        GHRepository repository = loadRepository(repositoryName);
-        if (repository == null) {
-            // If we don't have access its either not there or private & hidden from us
-            return false;
-        } else {
-            return !repository.isPrivate();
+        try {
+            Boolean isPublic = publicRepositoryCache.get(repositoryName,
+                new Callable<Boolean>() {
+                    @Override
+                    public Boolean call() throws Exception {
+                        GHRepository repository = loadRepository(repositoryName);
+                        if (repository == null) {
+                            // We don't have access so it must not be public (it could be non-existant)
+                            return Boolean.FALSE;
+                        } else {
+                            return new Boolean(!repository.isPrivate());
+                        }
+                    }
+                }
+            );
+
+            return isPublic.booleanValue();
+        } catch (ExecutionException e) {
+            LOGGER.log(Level.SEVERE, "an exception was thrown", e);
+            throw new RuntimeException("authorization failed for user = "
+                        + getName(), e);
         }
     }
 

@@ -26,6 +26,7 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
+import com.google.common.collect.ImmutableMap;
 import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Project;
@@ -33,18 +34,24 @@ import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.UserRemoteConfig;
 import hudson.scm.NullSCM;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import junit.framework.TestCase;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.kohsuke.github.GHMyself;
+import org.kohsuke.github.GHOrganization;
+import org.kohsuke.github.GHPerson;
+import org.kohsuke.github.GHPersonSet;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.PagedIterable;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
@@ -68,14 +75,57 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         return acl.cloneForProject(project);
     }
 
-    private GitHub mockGithubAs(String username) throws IOException {
+    private GHMyself mockGHMyselfAs(String username) throws IOException {
         GitHub gh = PowerMockito.mock(GitHub.class);
         PowerMockito.mockStatic(GitHub.class);
         PowerMockito.when(GitHub.connectUsingOAuth("https://api.github.com", "accessToken")).thenReturn(gh);
-        GHUser me = PowerMockito.mock(GHMyself.class);
+        GHMyself me = PowerMockito.mock(GHMyself.class);
         PowerMockito.when(gh.getMyself()).thenReturn((GHMyself) me);
         PowerMockito.when(me.getLogin()).thenReturn(username);
-        return gh;
+        return me;
+    }
+
+    private void mockReposFor(GHPerson person, List<String> repositoryNames) throws IOException {
+        List<GHRepository> repositories = repositoryListOf(repositoryNames);
+        PagedIterable<GHRepository> pagedRepositories = PowerMockito.mock(PagedIterable.class);
+        PowerMockito.when(person.listRepositories()).thenReturn(pagedRepositories);
+        PowerMockito.when(pagedRepositories.asList()).thenReturn(repositories);
+    };
+
+    private void mockOrgRepos(GHMyself me, Map<String, List<String>> orgsAndRepoNames) throws IOException {
+        Set<GHOrganization> organizations = new HashSet();
+        Set<String> organizationNames = orgsAndRepoNames.keySet();
+        for (String organizationName : organizationNames) {
+            List<String> repositories = orgsAndRepoNames.get(organizationName);
+            organizations.add(mockGHOrganization(organizationName, repositories));
+        }
+        GHPersonSet organizationSet = new GHPersonSet(organizations);
+        PowerMockito.when(me.getAllOrganizations()).thenReturn(organizationSet);
+    }
+
+    private List<GHRepository> repositoryListOf(List<String> repositoryNames) throws IOException {
+        List<GHRepository> repositoriesSet = new ArrayList<GHRepository>();
+        for (String repositoryName : repositoryNames) {
+            String[] parts = repositoryName.split("/");
+            GHRepository repository = mockGHRepository(parts[0], parts[1]);
+            repositoriesSet.add(repository);
+        }
+        return repositoriesSet;
+    }
+
+    private GHRepository mockGHRepository(String ownerName, String name) throws IOException {
+        GHRepository ghRepository = PowerMockito.mock(GHRepository.class);
+        GHUser ghUser = PowerMockito.mock(GHUser.class);
+        PowerMockito.when(ghUser.getLogin()).thenReturn(ownerName);
+        PowerMockito.when(ghRepository.getOwner()).thenReturn(ghUser);
+        PowerMockito.when(ghRepository.getName()).thenReturn(name);
+        return ghRepository;
+    }
+
+    private GHOrganization mockGHOrganization(String organizationName, List<String> repositories) throws IOException {
+        GHOrganization ghOrganization = PowerMockito.mock(GHOrganization.class);
+        mockReposFor(ghOrganization, repositories);
+        return ghOrganization;
     }
 
     private Project mockProject(String url) {
@@ -98,80 +148,55 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testCanReadPublicRepository() throws IOException {
-        GitHub mockGithub = mockGithubAs("Me");
-        Project mockProject = mockProject("https://github.com/some-org/a-public-repo.git");
+    public void testCanReadAndBuildOneOfMyRepositories() throws IOException {
+        GHMyself me = mockGHMyselfAs("Me");
+        mockReposFor(me, Arrays.asList("me/a-repo"));
+        mockOrgRepos(me, ImmutableMap.of("some-org", Arrays.asList("some-org/a-public-repo")));
+        Project mockProject = mockProject("https://github.com/me/a-repo.git");
         GithubRequireOrganizationMembershipACL acl = aclForProject(mockProject);
-        mockGithubRepositoryWithCollaborators(mockGithub, "some-org/a-public-repo", false, Arrays.asList("someone"));
+        GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
+
+        assertTrue(acl.hasPermission(authenticationToken, Item.READ));
+        assertTrue(acl.hasPermission(authenticationToken, Item.BUILD));
+    }
+
+    @Override
+    protected void tearDown() throws Exception {
+        super.tearDown();
+        GithubAuthenticationToken.clearCaches();
+    }
+
+    @Test
+    public void testCanReadAndBuildOrgRepositoryICollaborateOn() throws IOException {
+        GHMyself me = mockGHMyselfAs("Me");
+        mockReposFor(me, Arrays.asList("me/a-repo"));
+        mockOrgRepos(me, ImmutableMap.of("some-org", Arrays.asList("some-org/a-private-repo")));
+        Project mockProject = mockProject("https://github.com/some-org/a-private-repo.git");
+        GithubRequireOrganizationMembershipACL acl = aclForProject(mockProject);
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
         assertTrue(acl.hasPermission(authenticationToken, Item.READ));
-    }
-
-    @Test
-    public void testCanBuildPrivateRepositoryICollaborateOn() throws IOException {
-        GitHub mockGithub = mockGithubAs("Me");
-        Project mockProject = mockProject("https://github.com/some-org/a-private-repo.git");
-        GithubRequireOrganizationMembershipACL acl = aclForProject(mockProject);
-        mockGithubRepositoryWithCollaborators(mockGithub, "some-org/a-private-repo", true, Arrays.asList("Him", "Me", "Her", "You"));
-
-        GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
-
         assertTrue(acl.hasPermission(authenticationToken, Item.BUILD));
     }
 
     @Test
-    public void testCanNotBuildPrivateRepositoryIDoNotCollaborateOn() throws IOException {
-        GitHub mockGithub = mockGithubAs("Me");
+    public void testCanNotReadOrBuildRepositoryIDoNotCollaborateOn() throws IOException {
+        GHMyself me = mockGHMyselfAs("Me");
+        mockReposFor(me, Arrays.asList("me/a-repo"));
+        mockOrgRepos(me, ImmutableMap.of("some-org", Arrays.asList("some-org/a-private-repo")));
         Project mockProject = mockProject("https://github.com/some-org/another-private-repo.git");
         GithubRequireOrganizationMembershipACL acl = aclForProject(mockProject);
-        mockGithubRepositoryWithCollaborators(mockGithub, "some-org/another-private-repo", true, Arrays.asList("Him", "Her", "You"));
-
-        GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
-
-        assertFalse(acl.hasPermission(authenticationToken, Item.BUILD));
-    }
-
-    @Test
-    public void testCanNotBuildPublicRepositoryIDoNotCollaborateOn() throws IOException {
-        GitHub mockGithub = mockGithubAs("Me");
-        Project mockProject = mockProject("https://github.com/some-org/a-public-repo.git");
-        GithubRequireOrganizationMembershipACL acl = aclForProject(mockProject);
-        mockGithubRepositoryWithCollaborators(mockGithub, "some-org/a-public-repo", false, Arrays.asList("someone"));
-
-        GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
-
-        assertFalse(acl.hasPermission(authenticationToken, Item.BUILD));
-    }
-
-    @Test
-    public void testCanReadPrivateRepositoryICollaborateOn() throws IOException {
-        GitHub mockGithub = mockGithubAs("Me");
-        Project mockProject = mockProject("https://github.com/some-org/a-private-repo.git");
-        GithubRequireOrganizationMembershipACL acl = aclForProject(mockProject);
-        mockGithubRepositoryWithCollaborators(mockGithub, "some-org/a-private-repo", true, Arrays.asList("Him", "Me", "Her", "You"));
-
-        GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
-
-        assertTrue(acl.hasPermission(authenticationToken, Item.READ));
-    }
-
-    @Test
-    public void testCanNotReadPrivateRepositoryIDoNotCollaborateOn() throws IOException {
-        GitHub mockGithub = mockGithubAs("Me");
-        Project mockProject = mockProject("https://github.com/some-org/another-private-repo.git");
-        GithubRequireOrganizationMembershipACL acl = aclForProject(mockProject);
-        mockGithubRepositoryWithCollaborators(mockGithub, "some-org/another-private-repo", true, Arrays.asList("Him", "Her", "You"));
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
         assertFalse(acl.hasPermission(authenticationToken, Item.READ));
+        assertFalse(acl.hasPermission(authenticationToken, Item.BUILD));
     }
 
     @Test
     public void testNotGrantedBuildWhenNotUsingGitSCM() throws IOException {
-        GitHub mockGithub = mockGithubAs("Me");
+        mockGHMyselfAs("Me");
         Project mockProject = PowerMockito.mock(Project.class);
         PowerMockito.when(mockProject.getScm()).thenReturn(new NullSCM());
 
@@ -184,7 +209,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
     @Test
     public void testNotGrantedBuildWhenRepositoryIsEmpty() throws IOException {
-        GitHub mockGithub = mockGithubAs("Me");
+        mockGHMyselfAs("Me");
         Project mockProject = mockProject(null);
         GithubRequireOrganizationMembershipACL acl = aclForProject(mockProject);
 
@@ -195,7 +220,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
     @Test
     public void testNotGrantedReadWhenRepositoryUrlIsEmpty() throws IOException {
-        GitHub mockGithub = mockGithubAs("Me");
+        mockGHMyselfAs("Me");
         Project mockProject = PowerMockito.mock(Project.class);
         PowerMockito.when(mockProject.getScm()).thenReturn(new NullSCM());
         GitSCM gitSCM = PowerMockito.mock(GitSCM.class);
@@ -212,12 +237,15 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
     @Test
     public void testGlobalReadAvailableDueToAuthenticatedUserReadPermission() throws IOException {
-        GitHub mockGithub = mockGithubAs("Me");
+        boolean useRepositoryPermissions = false;
+        boolean authenticatedUserReadPermission = true;
+        mockGHMyselfAs("Me");
+        GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
+                authenticatedUserReadPermission, useRepositoryPermissions, true, true, true, true);
         Project mockProject = mockProject("https://github.com/some-org/another-private-repo.git");
-        GithubRequireOrganizationMembershipACL acl = aclForProject(mockProject);
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
-        assertFalse(acl.hasPermission(authenticationToken, Hudson.READ));
+        assertTrue(acl.hasPermission(authenticationToken, Hudson.READ));
 
     }
 
@@ -225,7 +253,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     public void testWithoutUseRepositoryPermissionsSetCanReadDueToAuthenticatedUserReadPermission() throws IOException {
         boolean useRepositoryPermissions = false;
         boolean authenticatedUserReadPermission = true;
-        mockGithubAs("Me");
+        mockGHMyselfAs("Me");
         GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
                 authenticatedUserReadPermission, useRepositoryPermissions, true, true, true, true);
 
@@ -238,7 +266,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     public void testWithoutUseRepositoryPermissionsSetCannotReadWithoutToAuthenticatedUserReadPermission() throws IOException {
         boolean useRepositoryPermissions = false;
         boolean authenticatedUserReadPermission = false;
-        mockGithubAs("Me");
+        mockGHMyselfAs("Me");
         GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
                 authenticatedUserReadPermission, useRepositoryPermissions, true, true, true, true);
 
@@ -250,7 +278,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     @Test
     public void testUsersCannotCreateWithoutConfigurationEnabledPermission() throws IOException {
         boolean authenticatedUserCreateJobPermission = false;
-        mockGithubAs("Me");
+        mockGHMyselfAs("Me");
         GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
                 true, true, authenticatedUserCreateJobPermission, true, true, true);
 
@@ -262,7 +290,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     @Test
     public void testUsersCanCreateWithConfigurationEnabledPermission() throws IOException {
         boolean authenticatedUserCreateJobPermission = true;
-        mockGithubAs("Me");
+        mockGHMyselfAs("Me");
         GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
                 true, true, authenticatedUserCreateJobPermission, true, true, true);
 
@@ -276,7 +304,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         String nullProjectName = null;
         Project mockProject = mockProject(nullProjectName);
         boolean authenticatedUserCreateJobPermission = true;
-        mockGithubAs("Me");
+        mockGHMyselfAs("Me");
         GithubRequireOrganizationMembershipACL globalAcl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
                 true, true, authenticatedUserCreateJobPermission, true, true, true);
         GithubRequireOrganizationMembershipACL acl = globalAcl.cloneForProject(mockProject);
@@ -293,7 +321,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         String nullProjectName = null;
         Project mockProject = mockProject(nullProjectName);
         boolean authenticatedUserCreateJobPermission = false;
-        mockGithubAs("Me");
+        mockGHMyselfAs("Me");
         GithubRequireOrganizationMembershipACL globalAcl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
                 true, true, authenticatedUserCreateJobPermission, true, true, true);
         GithubRequireOrganizationMembershipACL acl = globalAcl.cloneForProject(mockProject);
