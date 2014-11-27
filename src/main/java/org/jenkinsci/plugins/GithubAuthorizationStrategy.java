@@ -69,12 +69,12 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 	public GithubAuthorizationStrategy(String adminUserNames,
 			boolean authenticatedUserReadPermission, String organizationNames,
 			boolean allowGithubWebHookPermission, boolean allowCcTrayPermission,
-			boolean allowAnonymousReadPermission) {
+			boolean allowAnonymousReadPermission, boolean allowEBSPermission) {
 		super();
 
 		rootACL = new GithubRequireOrganizationMembershipACL(adminUserNames,
 				organizationNames, authenticatedUserReadPermission,
-				allowGithubWebHookPermission, allowCcTrayPermission, allowAnonymousReadPermission);
+				allowGithubWebHookPermission, allowCcTrayPermission, allowAnonymousReadPermission, allowEBSPermission);
 	}
 
 	private final GithubRequireOrganizationMembershipACL rootACL;
@@ -145,7 +145,14 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 		return rootACL.isAllowCcTrayPermission();
 	}
 
-	
+	/**
+	 * @return
+	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAllowCcTrayPermission()
+	 */
+	public boolean isAllowEBSPermission() {
+		return rootACL.isAllowEBSPermission();
+	}
+
 	/**
 	 * @return
 	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAllowAnonymousReadPermission()

@@ -52,6 +52,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 	private final boolean authenticatedUserReadPermission;
 	private final boolean allowGithubWebHookPermission;
     private final boolean allowCcTrayPermission;
+	private final boolean allowEBSPermission;
     private final boolean allowAnonymousReadPermission;
 
 	/*
@@ -163,6 +164,18 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 					// else fall through to false.
 				}
 
+				if (allowEBSPermission && currentUriPathEquals("buildStatus/icon")) {
+
+					// allow if the permission was configured.
+
+					if (checkReadPermission(permission)) {
+						log.info("Granting READ access for embeddable-build-status images: " + requestURI());
+						return true;
+					}
+
+					// else fall through to false.
+				}
+
 				log.finer("Denying anonymous READ permission to url: "
 						+ requestURI());
 				return false;
@@ -212,12 +225,13 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 			String organizationNames, boolean authenticatedUserReadPermission,
 			boolean allowGithubWebHookPermission,
             boolean allowCcTrayPermission,
-			boolean allowAnonymousReadPermission) {
+			boolean allowAnonymousReadPermission, boolean allowEBSPermission) {
 		super();
 		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
 		this.allowGithubWebHookPermission = allowGithubWebHookPermission;
         this.allowCcTrayPermission = allowCcTrayPermission;
         this.allowAnonymousReadPermission = allowAnonymousReadPermission;
+		this.allowEBSPermission = allowEBSPermission;
 
 		this.adminUserNameList = new LinkedList<String>();
 
@@ -256,6 +270,10 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
     public boolean isAllowCcTrayPermission() {
         return allowCcTrayPermission;
     }
+
+	public boolean isAllowEBSPermission() {
+		return allowEBSPermission;
+	}
 
     /**
 	 * @return the allowAnonymousReadPermission
