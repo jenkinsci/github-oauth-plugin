@@ -333,5 +333,19 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         assertFalse(acl.hasPermission(authenticationToken, Item.EXTENDED_READ));
     }
 
+    @Test
+    public void testCannotReadRepositoryWithInvalidRepoUrl() throws IOException {
+        GHMyself me = mockGHMyselfAs("Me");
+        mockReposFor(me, Arrays.asList("me/a-repo"));
+        mockOrgRepos(me, ImmutableMap.of("some-org", Arrays.asList("some-org/a-repo")));
+        String invalidRepoUrl = "git@github.com//some-org/a-repo.git";
+        Project mockProject = mockProject(invalidRepoUrl);
+        GithubRequireOrganizationMembershipACL acl = aclForProject(mockProject);
+
+        GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
+
+        assertFalse(acl.hasPermission(authenticationToken, Item.READ));
+    }
+
 
 }
