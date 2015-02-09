@@ -13,27 +13,31 @@
 		</f:entry>
 		
 		<f:entry title="Use Github repository permissions" field="useRepositoryPermissions" help="/plugin/github-oauth/help/auth/use-repository-permissions-help.html">
-                    <f:checkbox />
+			<f:checkbox />
 		</f:entry>
 
-		 <f:entry title="Grant READ permissions to all Authenticated Users" field="authenticatedUserReadPermission" help="/plugin/github-oauth/help/auth/grant-read-to-authenticated-help.html">
- 		<f:checkbox />
+		<f:entry title="Grant READ permissions to all Authenticated Users" field="authenticatedUserReadPermission" help="/plugin/github-oauth/help/auth/grant-read-to-authenticated-help.html">
+ 			<f:checkbox />
  		</f:entry>
  		
-		 <f:entry title="Grant CREATE Job permissions to all Authenticated Users" field="authenticatedUserCreateJobPermission" help="/plugin/github-oauth/help/auth/grant-create-job-to-authenticated-help.html">
-                <f:checkbox />
-                </f:entry>
+		<f:entry title="Grant CREATE Job permissions to all Authenticated Users" field="authenticatedUserCreateJobPermission" help="/plugin/github-oauth/help/auth/grant-create-job-to-authenticated-help.html">
+			<f:checkbox />
+		</f:entry>
 
- 		 <f:entry title="Grant READ permissions for /github-webhook" field="allowGithubWebHookPermission" help="/plugin/github-oauth/help/auth/grant-read-to-github-webhook-help.html">
- 		<f:checkbox />
+		<f:entry title="Grant ADMIN permissions to all Organization participants" field="organizationUsersAreAdmins" help="/plugin/github-oauth/help/auth/grant-admin-to-organization-users-help.html">
+			<f:checkbox />
+		</f:entry>
+
+ 		<f:entry title="Grant READ permissions for /github-webhook" field="allowGithubWebHookPermission" help="/plugin/github-oauth/help/auth/grant-read-to-github-webhook-help.html">
+ 			<f:checkbox />
  		</f:entry>
  		
- 		 <f:entry title="Grant READ permissions for /cc.xml" field="allowCcTrayPermission" help="/plugin/github-oauth/help/auth/grant-read-to-cctray-help.html">
- 		<f:checkbox />
+ 		<f:entry title="Grant READ permissions for /cc.xml" field="allowCcTrayPermission" help="/plugin/github-oauth/help/auth/grant-read-to-cctray-help.html">
+ 			<f:checkbox />
  		</f:entry>
 
- 		 <f:entry title="Grant READ permissions for Anonymous Users" field="allowAnonymousReadPermission" help="/plugin/github-oauth/help/auth/grant-read-to-anonymous-help.html">
- 		<f:checkbox />
+ 		<f:entry title="Grant READ permissions for Anonymous Users" field="allowAnonymousReadPermission" help="/plugin/github-oauth/help/auth/grant-read-to-anonymous-help.html">
+ 			<f:checkbox />
  		</f:entry>
 		
 	</f:section>
