@@ -56,12 +56,13 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 	private final List<String> organizationNameList;
 	private final List<String> adminUserNameList;
 	private final boolean authenticatedUserReadPermission;
-        private final boolean useRepositoryPermissions;
-        private final boolean authenticatedUserCreateJobPermission;
+	private final boolean useRepositoryPermissions;
+	private final boolean authenticatedUserCreateJobPermission;
 	private final boolean allowGithubWebHookPermission;
-    private final boolean allowCcTrayPermission;
-    private final boolean allowAnonymousReadPermission;
-    private final AbstractProject project;
+	private final boolean allowCcTrayPermission;
+	private final boolean allowAnonymousReadPermission;
+	private final boolean organizationUsersAreAdmins;
+	private final AbstractProject project;
 
 	/*
 	 * (non-Javadoc)
@@ -85,6 +86,17 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 				// if they are an admin then they have permission
 				log.finest("Granting Admin rights to user " + candidateName);
 				return true;
+			}
+
+			if (organizationUsersAreAdmins) {
+				for (String organizationName : this.organizationNameList) {
+					if (authenticationToken.hasOrganizationPermission(
+							candidateName, organizationName)) {
+						log.finest("User is part of organization, granting all rights to " + candidateName);
+						return true;
+					}
+
+				}
 			}
 
 			if (this.project != null) {
@@ -216,69 +228,70 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
 	private boolean checkReadPermission(Permission permission) {
 		if (permission.getId().equals("hudson.model.Hudson.Read")
-                || permission.getId().equals("hudson.model.Item.Workspace")
+				|| permission.getId().equals("hudson.model.Item.Workspace")
 				|| permission.getId().equals("hudson.model.Item.Read")) {
 			return true;
 		} else
 			return false;
 	}
 
-    public boolean hasRepositoryPermission(GithubAuthenticationToken authenticationToken, Permission permission) {
-        String repositoryName = getRepositoryName();
+	public boolean hasRepositoryPermission(GithubAuthenticationToken authenticationToken, Permission permission) {
+		String repositoryName = getRepositoryName();
 
-        if (repositoryName == null) {
-            if (authenticatedUserCreateJobPermission) {
-                if (permission.equals(Item.READ) ||
-                        permission.equals(Item.CONFIGURE) ||
-                        permission.equals(Item.DELETE) ||
-                        permission.equals(Item.EXTENDED_READ)) {
-                    return true;
-                } else {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        } else if (checkReadPermission(permission) &&
-                authenticationToken.isPublicRepository(repositoryName)) {
-            return true;
-        } else {
-            return authenticationToken.hasRepositoryPermission(repositoryName);
-        }
-    }
+		if (repositoryName == null) {
+			if (authenticatedUserCreateJobPermission) {
+				if (permission.equals(Item.READ) ||
+						permission.equals(Item.CONFIGURE) ||
+						permission.equals(Item.DELETE) ||
+						permission.equals(Item.EXTENDED_READ)) {
+					return true;
+				} else {
+					return false;
+				}
+			} else {
+				return false;
+			}
+		} else if (checkReadPermission(permission) &&
+				authenticationToken.isPublicRepository(repositoryName)) {
+			return true;
+		} else {
+			return authenticationToken.hasRepositoryPermission(repositoryName);
+		}
+	}
 
-    private String getRepositoryName() {
-        String repositoryName = null;
-        SCM scm = this.project.getScm();
-        if (scm instanceof GitSCM) {
-            GitSCM git = (GitSCM)scm;
-            List<UserRemoteConfig> userRemoteConfigs = git.getUserRemoteConfigs();
-            if (!userRemoteConfigs.isEmpty()) {
-                String repoUrl = userRemoteConfigs.get(0).getUrl();
-                if (repoUrl != null) {
-                    GitHubRepositoryName githubRepositoryName = GitHubRepositoryName.create(repoUrl);
-                    repositoryName = githubRepositoryName.userName + "/" + githubRepositoryName.repositoryName;
-                }
-            }
-        }
-        return repositoryName;
-    }
+	private String getRepositoryName() {
+		String repositoryName = null;
+		SCM scm = this.project.getScm();
+		if (scm instanceof GitSCM) {
+			GitSCM git = (GitSCM)scm;
+			List<UserRemoteConfig> userRemoteConfigs = git.getUserRemoteConfigs();
+			if (!userRemoteConfigs.isEmpty()) {
+				String repoUrl = userRemoteConfigs.get(0).getUrl();
+				if (repoUrl != null) {
+					GitHubRepositoryName githubRepositoryName = GitHubRepositoryName.create(repoUrl);
+					repositoryName = githubRepositoryName.userName + "/" + githubRepositoryName.repositoryName;
+				}
+			}
+		}
+		return repositoryName;
+	}
 
 	public GithubRequireOrganizationMembershipACL(String adminUserNames,
 			String organizationNames, boolean authenticatedUserReadPermission,
-                        boolean useRepositoryPermissions,
-                        boolean authenticatedUserCreateJobPermission,
+			boolean useRepositoryPermissions,
+			boolean authenticatedUserCreateJobPermission,
 			boolean allowGithubWebHookPermission,
-            boolean allowCcTrayPermission,
-			boolean allowAnonymousReadPermission) {
+			boolean allowCcTrayPermission,
+			boolean allowAnonymousReadPermission,
+			boolean organizationUsersAreAdmins) {
 		super();
 		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
-                this.useRepositoryPermissions = useRepositoryPermissions;
-                this.authenticatedUserCreateJobPermission = authenticatedUserCreateJobPermission;
+		this.useRepositoryPermissions = useRepositoryPermissions;
+		this.authenticatedUserCreateJobPermission = authenticatedUserCreateJobPermission;
 		this.allowGithubWebHookPermission = allowGithubWebHookPermission;
-        this.allowCcTrayPermission = allowCcTrayPermission;
-        this.allowAnonymousReadPermission = allowAnonymousReadPermission;
-
+		this.allowCcTrayPermission = allowCcTrayPermission;
+		this.allowAnonymousReadPermission = allowAnonymousReadPermission;
+		this.organizationUsersAreAdmins = organizationUsersAreAdmins;
 		this.adminUserNameList = new LinkedList<String>();
 
 		String[] parts = adminUserNames.split(",");
@@ -301,21 +314,23 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 	public GithubRequireOrganizationMembershipACL(List<String> adminUserNameList,
 			List<String> organizationNameList,
 			boolean authenticatedUserReadPermission,
-                        boolean useRepositoryPermissions,
-                        boolean authenticatedUserCreateJobPermission,
+			boolean useRepositoryPermissions,
+			boolean authenticatedUserCreateJobPermission,
 			boolean allowGithubWebHookPermission,
-            boolean allowCcTrayPermission,
+			boolean allowCcTrayPermission,
 			boolean allowAnonymousReadPermission,
+			boolean organizationUsersAreAdmins,
 			AbstractProject project) {
 		super();
 		this.adminUserNameList = adminUserNameList;
 		this.organizationNameList = organizationNameList;
 		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
-                this.useRepositoryPermissions = useRepositoryPermissions;
-                this.authenticatedUserCreateJobPermission = authenticatedUserCreateJobPermission;
+		this.useRepositoryPermissions = useRepositoryPermissions;
+		this.authenticatedUserCreateJobPermission = authenticatedUserCreateJobPermission;
 		this.allowGithubWebHookPermission = allowGithubWebHookPermission;
-        this.allowCcTrayPermission = allowCcTrayPermission;
-        this.allowAnonymousReadPermission = allowAnonymousReadPermission;
+		this.allowCcTrayPermission = allowCcTrayPermission;
+		this.allowAnonymousReadPermission = allowAnonymousReadPermission;
+		this.organizationUsersAreAdmins = organizationUsersAreAdmins;
 		this.project = project;
 	}
 
@@ -324,11 +339,12 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 			this.adminUserNameList,
 			this.organizationNameList,
 			this.authenticatedUserReadPermission,
-                        this.useRepositoryPermissions,
+			this.useRepositoryPermissions,
 			this.authenticatedUserCreateJobPermission,
 			this.allowGithubWebHookPermission,
-            this.allowCcTrayPermission,
+			this.allowCcTrayPermission,
 			this.allowAnonymousReadPermission,
+			this.organizationUsersAreAdmins,
 			project);
 	}
 
@@ -348,7 +364,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 		return authenticatedUserCreateJobPermission;
 	}
 
-        public boolean isAuthenticatedUserReadPermission() {
+	public boolean isAuthenticatedUserReadPermission() {
 		return authenticatedUserReadPermission;
 	}
 
@@ -356,11 +372,11 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 		return allowGithubWebHookPermission;
 	}
 
-    public boolean isAllowCcTrayPermission() {
-        return allowCcTrayPermission;
-    }
+	public boolean isAllowCcTrayPermission() {
+		return allowCcTrayPermission;
+	}
 
-    /**
+	/**
 	 * @return the allowAnonymousReadPermission
 	 */
 	public boolean isAllowAnonymousReadPermission() {

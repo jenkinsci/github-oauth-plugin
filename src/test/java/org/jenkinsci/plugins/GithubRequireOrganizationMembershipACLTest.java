@@ -27,6 +27,7 @@ THE SOFTWARE.
 package org.jenkinsci.plugins;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Project;
@@ -71,16 +72,24 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
                 authenticatedUserReadPermission, useRepositoryPermissions, authenticatedUserCreateJobPermission,
-                true, true, true);
+                true, true, true, false);
         return acl.cloneForProject(project);
     }
 
-    private GHMyself mockGHMyselfAs(String username) throws IOException {
+    private GHMyself mockGHMyselfAs(String username, String... organizations) throws IOException {
         GitHub gh = PowerMockito.mock(GitHub.class);
         PowerMockito.mockStatic(GitHub.class);
         PowerMockito.when(GitHub.connectUsingOAuth("https://api.github.com", "accessToken")).thenReturn(gh);
         GHMyself me = PowerMockito.mock(GHMyself.class);
-        PowerMockito.when(gh.getMyself()).thenReturn((GHMyself) me);
+        PowerMockito.when(gh.getMyself()).thenReturn(me);
+
+        // This wires the user up to the specified organizations in the GitHub object
+        Map<String, GHOrganization> orgMap = Maps.newHashMap();
+        for (String organization : organizations) {
+            orgMap.put(organization, PowerMockito.mock(GHOrganization.class));
+        }
+        PowerMockito.when(gh.getMyOrganizations()).thenReturn(orgMap);
+
         PowerMockito.when(me.getLogin()).thenReturn(username);
         return me;
     }
@@ -124,6 +133,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
     private GHOrganization mockGHOrganization(String organizationName, List<String> repositories) throws IOException {
         GHOrganization ghOrganization = PowerMockito.mock(GHOrganization.class);
+        PowerMockito.when(ghOrganization.getName()).thenReturn(organizationName);
         mockReposFor(ghOrganization, repositories);
         return ghOrganization;
     }
@@ -241,7 +251,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         boolean authenticatedUserReadPermission = true;
         mockGHMyselfAs("Me");
         GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
-                authenticatedUserReadPermission, useRepositoryPermissions, true, true, true, true);
+                authenticatedUserReadPermission, useRepositoryPermissions, true, true, true, true, false);
         Project mockProject = mockProject("https://github.com/some-org/another-private-repo.git");
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
@@ -255,7 +265,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         boolean authenticatedUserReadPermission = true;
         mockGHMyselfAs("Me");
         GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
-                authenticatedUserReadPermission, useRepositoryPermissions, true, true, true, true);
+                authenticatedUserReadPermission, useRepositoryPermissions, true, true, true, true, false);
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
@@ -268,7 +278,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         boolean authenticatedUserReadPermission = false;
         mockGHMyselfAs("Me");
         GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
-                authenticatedUserReadPermission, useRepositoryPermissions, true, true, true, true);
+                authenticatedUserReadPermission, useRepositoryPermissions, true, true, true, true, false);
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
@@ -280,7 +290,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         boolean authenticatedUserCreateJobPermission = false;
         mockGHMyselfAs("Me");
         GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
-                true, true, authenticatedUserCreateJobPermission, true, true, true);
+                true, true, authenticatedUserCreateJobPermission, true, true, true, false);
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
@@ -292,7 +302,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         boolean authenticatedUserCreateJobPermission = true;
         mockGHMyselfAs("Me");
         GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
-                true, true, authenticatedUserCreateJobPermission, true, true, true);
+                true, true, authenticatedUserCreateJobPermission, true, true, true, false);
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
@@ -306,7 +316,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         boolean authenticatedUserCreateJobPermission = true;
         mockGHMyselfAs("Me");
         GithubRequireOrganizationMembershipACL globalAcl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
-                true, true, authenticatedUserCreateJobPermission, true, true, true);
+                true, true, authenticatedUserCreateJobPermission, true, true, true, false);
         GithubRequireOrganizationMembershipACL acl = globalAcl.cloneForProject(mockProject);
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
@@ -323,7 +333,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         boolean authenticatedUserCreateJobPermission = false;
         mockGHMyselfAs("Me");
         GithubRequireOrganizationMembershipACL globalAcl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
-                true, true, authenticatedUserCreateJobPermission, true, true, true);
+                true, true, authenticatedUserCreateJobPermission, true, true, true, false);
         GithubRequireOrganizationMembershipACL acl = globalAcl.cloneForProject(mockProject);
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
@@ -333,5 +343,19 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         assertFalse(acl.hasPermission(authenticationToken, Item.EXTENDED_READ));
     }
 
+    @Test
+    public void testHasAllPermissionsWhenOrganizationUsersAsAdminsIsSet() throws IOException {
+        GHMyself me = mockGHMyselfAs("Me", "some-org");
+        mockOrgRepos(me, ImmutableMap.of("some-org", Arrays.asList("some-org/a-private-repo")));
+        mockProject("https://github.com/some-org/a-private-repo");
+        GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
+        GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL("admin", "some-org",
+                false, false, false, false, false, false, true);
+
+        assertTrue(acl.hasPermission(authenticationToken, Item.READ));
+        assertTrue(acl.hasPermission(authenticationToken, Item.CONFIGURE));
+        assertTrue(acl.hasPermission(authenticationToken, Item.DELETE));
+        assertTrue(acl.hasPermission(authenticationToken, Item.EXTENDED_READ));
+    }
 }

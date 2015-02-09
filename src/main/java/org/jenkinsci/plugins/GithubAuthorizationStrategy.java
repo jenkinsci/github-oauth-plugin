@@ -65,8 +65,9 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
     			    boolean authenticatedUserReadPermission, boolean useRepositoryPermissions,
                     String organizationNames,
     			    boolean allowGithubWebHookPermission, boolean allowCcTrayPermission,
-    			    boolean allowAnonymousReadPermission) {
-    		this(adminUserNames, authenticatedUserReadPermission, useRepositoryPermissions, false, organizationNames, allowGithubWebHookPermission, allowCcTrayPermission, allowAnonymousReadPermission);
+    			    boolean allowAnonymousReadPermission,
+    			    boolean organizationUsersAreAdmins) {
+    		this(adminUserNames, authenticatedUserReadPermission, useRepositoryPermissions, false, organizationNames, allowGithubWebHookPermission, allowCcTrayPermission, allowAnonymousReadPermission, organizationUsersAreAdmins);
     }
 
 	/**
@@ -78,14 +79,16 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 			boolean authenticatedUserReadPermission, boolean useRepositoryPermissions,
                         boolean authenticatedUserCreateJobPermission, String organizationNames,
 			boolean allowGithubWebHookPermission, boolean allowCcTrayPermission,
-			boolean allowAnonymousReadPermission) {
+			boolean allowAnonymousReadPermission,
+			boolean organizationUsersAreAdmins) {
 		super();
 
 		rootACL = new GithubRequireOrganizationMembershipACL(adminUserNames,
 				organizationNames, authenticatedUserReadPermission,
-                                useRepositoryPermissions, authenticatedUserCreateJobPermission,
-                                allowGithubWebHookPermission,
-                                allowCcTrayPermission, allowAnonymousReadPermission);
+				useRepositoryPermissions, authenticatedUserCreateJobPermission,
+				allowGithubWebHookPermission,
+				allowCcTrayPermission, allowAnonymousReadPermission,
+				organizationUsersAreAdmins);
 	}
 
 	private final GithubRequireOrganizationMembershipACL rootACL;
