@@ -102,6 +102,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 	private String githubApiUri;
 	private String clientID;
 	private String clientSecret;
+	private String oauthScopes;
 
 	/**
 	 * @param githubWebUri The URI to the root of the web UI for GitHub or GitHub Enterprise,
@@ -110,8 +111,32 @@ public class GithubSecurityRealm extends SecurityRealm {
 	 *                     including the protocol (e.g. https).
 	 * @param clientID The client ID for the created OAuth Application.
 	 * @param clientSecret The client secret for the created GitHub OAuth Application.
+	 * @param oauthScopes A comma separated list of OAuth Scopes to request access to.
 	 */
 	@DataBoundConstructor
+	public GithubSecurityRealm(String githubWebUri, String githubApiUri, String clientID,
+			String clientSecret, String oauthScopes) {
+		super();
+
+		this.githubWebUri = Util.fixEmptyAndTrim(githubWebUri);
+		this.githubApiUri = Util.fixEmptyAndTrim(githubApiUri);
+		this.clientID     = Util.fixEmptyAndTrim(clientID);
+		this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
+		this.oauthScopes  = Util.fixEmptyAndTrim(oauthScopes);
+	}
+
+	/**
+	 * @deprecated Use {@link GithubSecurityRealm#GithubSecurityRealm(String, String, String, String, String)}
+	 *             instead.
+	 *
+	 * @param githubWebUri The URI to the root of the web UI for GitHub or GitHub Enterprise,
+	 *                     including the protocol (e.g. https).
+	 * @param githubApiUri The URI to the root of the API for GitHub or GitHub Enterprise,
+	 *                     including the protocol (e.g. https).
+	 * @param clientID The client ID for the created OAuth Application.
+	 * @param clientSecret The client secret for the created GitHub OAuth Application.
+	 */
+	@Deprecated
 	public GithubSecurityRealm(String githubWebUri, String githubApiUri, String clientID,
 			String clientSecret) {
 		super();
@@ -120,6 +145,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 		this.githubApiUri = Util.fixEmptyAndTrim(githubApiUri);
 		this.clientID     = Util.fixEmptyAndTrim(clientID);
 		this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
+		this.oauthScopes  = defaultOauthScope();
 	}
 
 	/**
@@ -138,6 +164,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 		this.githubApiUri = determineApiUri(this.githubWebUri);
 		this.clientID     = Util.fixEmptyAndTrim(clientID);
 		this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
+		this.oauthScopes  = defaultOauthScope();
 	}
 
 	private GithubSecurityRealm() {	}
@@ -155,6 +182,13 @@ public class GithubSecurityRealm extends SecurityRealm {
 		} else {
 			return githubWebUri + DEFAULT_ENTERPRISE_API_SUFFIX;
 		}
+	}
+
+	/**
+	 * @return The default oauthScope string
+	 */
+	private String defaultOauthScope() {
+		return "repo,read:org";
 	}
 
 	/**
@@ -189,6 +223,13 @@ public class GithubSecurityRealm extends SecurityRealm {
 	 */
 	private void setClientSecret(String clientSecret) {
 		this.clientSecret = clientSecret;
+	}
+
+	/**
+	 * @param oauthScopes the oauthScopes to set
+	 */
+	private void setOauthScopes(String oauthScopes) {
+		this.oauthScopes = oauthScopes;
 	}
 
 	/**
@@ -231,6 +272,10 @@ public class GithubSecurityRealm extends SecurityRealm {
 
 			writer.startNode("clientSecret");
 			writer.setValue(realm.getClientSecret());
+			writer.endNode();
+
+			writer.startNode("oauthScopes");
+			writer.setValue(realm.getOauthScopes());
 			writer.endNode();
 
 		}
@@ -277,6 +322,8 @@ public class GithubSecurityRealm extends SecurityRealm {
 				realm.setGithubApiUri(apiUrl);
 			} else if (node.toLowerCase().equals("githubapiuri")) {
 				realm.setGithubApiUri(value);
+			} else if (node.toLowerCase().equals("oauthscopes")) {
+				realm.setOauthScopes(value);
 			} else
 				throw new ConversionException("Invalid node value = " + node);
 
@@ -314,6 +361,13 @@ public class GithubSecurityRealm extends SecurityRealm {
 		return clientSecret;
 	}
 
+	/**
+	 * @return the oauthScopes
+	 */
+	public String getOauthScopes() {
+		return oauthScopes;
+	}
+
 	// @Override
 	// public Filter createFilter(FilterConfig filterConfig) {
 	//
@@ -335,7 +389,7 @@ public class GithubSecurityRealm extends SecurityRealm {
         } else {
             // We need repo scope in order to access private repos
             // See https://developer.github.com/v3/oauth/#scopes
-            suffix = "&scope=repo,read:org";
+            suffix = "&scope=" + oauthScopes;
         }
 
 		return new HttpRedirect(githubWebUri + "/login/oauth/authorize?client_id="
