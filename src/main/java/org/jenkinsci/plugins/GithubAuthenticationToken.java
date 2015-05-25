@@ -41,8 +41,11 @@ import java.util.logging.Level;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+
 import hudson.security.SecurityRealm;
+
 import java.util.Collection;
+
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.providers.AbstractAuthenticationToken;
@@ -56,48 +59,47 @@ import org.kohsuke.github.GitHub;
 
 /**
  * @author mocleiri
- * 
+ *
  *         to hold the authentication token from the github oauth process.
- * 
+ *
  */
 public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	private final String accessToken;
+    /**
+    *
+    */
+    private static final long serialVersionUID = 1L;
+    private final String accessToken;
 
-	private final String userName;
-	private final GitHub gh;
+    private final String userName;
+    private final GitHub gh;
         private final GHMyself me;
-	
-	/**
-	 * Cache for faster organization based security 
-	 */
-	private static final Cache<String, Set<String>> userOrganizationCache =
+
+    /**
+    * Cache for faster organization based security
+    */
+    private static final Cache<String, Set<String>> userOrganizationCache =
             CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
 
-	private static final Cache<String, Set<String>> repositoryCollaboratorsCache =
+    private static final Cache<String, Set<String>> repositoryCollaboratorsCache =
             CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
 
-	private static final Cache<String, Set<String>> repositoriesByUserCache =
+    private static final Cache<String, Set<String>> repositoriesByUserCache =
             CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
 
-	private static final Cache<String, Boolean> publicRepositoryCache =
+    private static final Cache<String, Boolean> publicRepositoryCache =
             CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
 
     private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
 
-	public GithubAuthenticationToken(String accessToken, String githubServer) throws IOException {
+    public GithubAuthenticationToken(String accessToken, String githubServer) throws IOException {
+        super(new GrantedAuthority[] {});
 
-		super(new GrantedAuthority[] {});
-
-		this.accessToken = accessToken;
+        this.accessToken = accessToken;
         this.gh = GitHub.connectUsingOAuth(githubServer, accessToken);
 
         this.me = gh.getMyself();
-        assert this.me!=null;
+        assert this.me != null;
 
         setAuthenticated(true);
 
@@ -132,34 +134,35 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         return authorities.toArray(new GrantedAuthority[authorities.size()]);
     }
 
-	public Object getCredentials() {
-		return ""; // do not expose the credential
-	}
+    @Override
+    public Object getCredentials() {
+        return ""; // do not expose the credential
+    }
 
     /**
      * Returns the login name in GitHub.
      */
-	public String getPrincipal() {
-		return this.userName;
-	}
+    @Override
+    public String getPrincipal() {
+        return this.userName;
+    }
 
-	/**
-	 * For some reason I can't get the github api to tell me for the current
-	 * user the groups to which he belongs.
-	 * 
-	 * So this is a slightly larger consideration. If the authenticated user is
-	 * part of any team within the organization then they have permission.
-	 * 
-	 * It caches user organizations for 24 hours for faster web navigation.
-	 * 
-	 * @param candidateName
-	 * @param organization
-	 * @return
-	 */
-	public boolean hasOrganizationPermission(String candidateName,
-			String organization) {
+    /**
+    * For some reason I can't get the github api to tell me for the current
+    * user the groups to which he belongs.
+    *
+    * So this is a slightly larger consideration. If the authenticated user is
+    * part of any team within the organization then they have permission.
+    *
+    * It caches user organizations for 24 hours for faster web navigation.
+    *
+    * @param candidateName
+    * @param organization
+    */
+    public boolean hasOrganizationPermission(String candidateName,
+            String organization) {
 
-		try {
+        try {
             Set<String> v = userOrganizationCache.get(candidateName,new Callable<Set<String>>() {
                 @Override
                 public Set<String> call() throws Exception {
@@ -168,9 +171,9 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
             });
 
             return v.contains(organization);
-		} catch (ExecutionException e) {
+        } catch (ExecutionException e) {
             throw new RuntimeException("authorization failed for user = "
-         					+ candidateName, e);
+                            + candidateName, e);
         }
     }
 
@@ -260,7 +263,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
 	}
 
-	public GHRepository loadRepository(String repositoryName) {
+    public GHRepository loadRepository(String repositoryName) {
             try {
                 if (gh != null && isAuthenticated()) {
                     return gh.getRepository(repositoryName);
@@ -268,10 +271,10 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
                     return null;
                 }
             } catch(FileNotFoundException e) {
-                LOGGER.log(Level.WARNING, "Looks like a bad github URL OR the Jenkins user does not have access to the repository{0}", repositoryName);
+                LOGGER.log(Level.WARNING, "Looks like a bad GitHub URL OR the Jenkins user does not have access to the repository{0}", repositoryName);
                 return null;
             } catch(IOException e) {
-                LOGGER.log(Level.WARNING, "Looks like a bad github URL OR the Jenkins user does not have access to the repository{0}", repositoryName);
+                LOGGER.log(Level.WARNING, "Looks like a bad GitHub URL OR the Jenkins user does not have access to the repository{0}", repositoryName);
                 return null;
             }
 	}

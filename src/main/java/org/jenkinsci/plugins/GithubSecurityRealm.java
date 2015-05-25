@@ -32,6 +32,7 @@ import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
+
 import hudson.Extension;
 import hudson.ProxyConfiguration;
 import hudson.Util;
@@ -42,6 +43,7 @@ import hudson.security.SecurityRealm;
 import hudson.security.UserMayOrMayNotExistException;
 import hudson.tasks.Mailer;
 import jenkins.model.Jenkins;
+
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.AuthenticationManager;
@@ -90,239 +92,229 @@ import static java.util.logging.Level.*;
  * Alex Ackerman.
  */
 public class GithubSecurityRealm extends SecurityRealm {
-	private static final String DEFAULT_WEB_URI = "https://github.com";
-	private static final String DEFAULT_API_URI = "https://api.github.com";
-	private static final String DEFAULT_ENTERPRISE_API_SUFFIX = "/api/v3";
+    private static final String DEFAULT_WEB_URI = "https://github.com";
+    private static final String DEFAULT_API_URI = "https://api.github.com";
+    private static final String DEFAULT_ENTERPRISE_API_SUFFIX = "/api/v3";
 
-	@Deprecated
-	private static final String DEFAULT_URI = DEFAULT_WEB_URI;
+    @Deprecated
+    private static final String DEFAULT_URI = DEFAULT_WEB_URI;
 
 
-	private String githubWebUri;
-	private String githubApiUri;
-	private String clientID;
-	private String clientSecret;
+    private String githubWebUri;
+    private String githubApiUri;
+    private String clientID;
+    private String clientSecret;
 
-	/**
-	 * @param githubWebUri The URI to the root of the web UI for GitHub or GitHub Enterprise,
-	 *                     including the protocol (e.g. https).
-	 * @param githubApiUri The URI to the root of the API for GitHub or GitHub Enterprise,
-	 *                     including the protocol (e.g. https).
-	 * @param clientID The client ID for the created OAuth Application.
-	 * @param clientSecret The client secret for the created GitHub OAuth Application.
-	 */
-	@DataBoundConstructor
-	public GithubSecurityRealm(String githubWebUri, String githubApiUri, String clientID,
-			String clientSecret) {
-		super();
+    /**
+    * @param githubWebUri The URI to the root of the web UI for GitHub or GitHub Enterprise,
+    *                     including the protocol (e.g. https).
+    * @param githubApiUri The URI to the root of the API for GitHub or GitHub Enterprise,
+    *                     including the protocol (e.g. https).
+    * @param clientID The client ID for the created OAuth Application.
+    * @param clientSecret The client secret for the created GitHub OAuth Application.
+    */
+    @DataBoundConstructor
+    public GithubSecurityRealm(String githubWebUri, String githubApiUri, String clientID,
+            String clientSecret) {
+        super();
 
-		this.githubWebUri = Util.fixEmptyAndTrim(githubWebUri);
-		this.githubApiUri = Util.fixEmptyAndTrim(githubApiUri);
-		this.clientID     = Util.fixEmptyAndTrim(clientID);
-		this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
-	}
+        this.githubWebUri = Util.fixEmptyAndTrim(githubWebUri);
+        this.githubApiUri = Util.fixEmptyAndTrim(githubApiUri);
+        this.clientID     = Util.fixEmptyAndTrim(clientID);
+        this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
+    }
 
-	/**
-	 * @deprecated Use {@link GithubSecurityRealm#GithubSecurityRealm(String, String, String, String)}
-	 *             instead.
-	 *
-	 * @param githubWebUri The URI to the root of the web UI for GitHub or GitHub Enterprise.
-	 * @param clientID The client ID for the created OAuth Application.
-	 * @param clientSecret The client secret for the created GitHub OAuth Application.
-	 */
-	@Deprecated
-	public GithubSecurityRealm(String githubWebUri, String clientID, String clientSecret) {
-		super();
+    /**
+    * @deprecated Use {@link GithubSecurityRealm#GithubSecurityRealm(String, String, String, String)}
+    *             instead.
+    *
+    * @param githubWebUri The URI to the root of the web UI for GitHub or GitHub Enterprise.
+    * @param clientID The client ID for the created OAuth Application.
+    * @param clientSecret The client secret for the created GitHub OAuth Application.
+    */
+    @Deprecated
+    public GithubSecurityRealm(String githubWebUri, String clientID, String clientSecret) {
+        super();
 
-		this.githubWebUri = Util.fixEmptyAndTrim(githubWebUri);
-		this.githubApiUri = determineApiUri(this.githubWebUri);
-		this.clientID     = Util.fixEmptyAndTrim(clientID);
-		this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
-	}
+        this.githubWebUri = Util.fixEmptyAndTrim(githubWebUri);
+        this.githubApiUri = determineApiUri(this.githubWebUri);
+        this.clientID     = Util.fixEmptyAndTrim(clientID);
+        this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
+    }
 
-	private GithubSecurityRealm() {	}
+    private GithubSecurityRealm() {	}
 
-	/**
-	 * Tries to automatically determine the GitHub API URI based on
-	 * a GitHub Web URI.
-	 *
-	 * @param githubWebUri The URI to the root of the Web UI for GitHub or GitHub Enterprise.
-	 * @return The expected API URI for the given Web UI
-	 */
-	private String determineApiUri(String githubWebUri) {
-		if(githubWebUri.equals(DEFAULT_WEB_URI)) {
-			return DEFAULT_API_URI;
-		} else {
-			return githubWebUri + DEFAULT_ENTERPRISE_API_SUFFIX;
-		}
-	}
+    /**
+    * Tries to automatically determine the GitHub API URI based on
+    * a GitHub Web URI.
+    *
+    * @param githubWebUri The URI to the root of the Web UI for GitHub or GitHub Enterprise.
+    * @return The expected API URI for the given Web UI
+    */
+    private String determineApiUri(@SuppressWarnings("hiding") String githubWebUri) {
+        if(githubWebUri.equals(DEFAULT_WEB_URI)) {
+            return DEFAULT_API_URI;
+        } else {
+            return githubWebUri + DEFAULT_ENTERPRISE_API_SUFFIX;
+        }
+    }
 
-	/**
-	 * @param githubWebUri
-	 *            the string representation of the URI to the root of the Web UI for
-	 *            GitHub or GitHub Enterprise.
-	 */
-	private void setGithubWebUri(String githubWebUri) {
-		this.githubWebUri = githubWebUri;
-	}
+    /**
+    * @param githubWebUri
+    *            the string representation of the URI to the root of the Web UI for
+    *            GitHub or GitHub Enterprise.
+    */
+    private void setGithubWebUri(String githubWebUri) {
+        this.githubWebUri = githubWebUri;
+    }
 
-	/**
-	 * @param githubWebUri
-	 *            the string representation of the URI to the root of the Web UI for
-	 *            GitHub or GitHub Enterprise.
-	 * @deprecated Use {@link GithubSecurityRealm#setGithubWebUri(String)} instead.
-	 */
-	@Deprecated
-	private void setGithubUri(String githubWebUri) {
-		setGithubWebUri(githubWebUri);
-	}
+    /**
+    * @param githubWebUri
+    *            the string representation of the URI to the root of the Web UI for
+    *            GitHub or GitHub Enterprise.
+    * @deprecated Use {@link GithubSecurityRealm#setGithubWebUri(String)} instead.
+    */
+    @Deprecated
+    private void setGithubUri(String githubWebUri) {
+        setGithubWebUri(githubWebUri);
+    }
 
-	/**
-	 * @param clientID the clientID to set
-	 */
-	private void setClientID(String clientID) {
-		this.clientID = clientID;
-	}
+    /**
+    * @param clientID the clientID to set
+    */
+    private void setClientID(String clientID) {
+        this.clientID = clientID;
+    }
 
-	/**
-	 * @param clientSecret the clientSecret to set
-	 */
-	private void setClientSecret(String clientSecret) {
-		this.clientSecret = clientSecret;
-	}
+    /**
+    * @param clientSecret the clientSecret to set
+    */
+    private void setClientSecret(String clientSecret) {
+        this.clientSecret = clientSecret;
+    }
 
-	/**
-	 *
-	 * @return the URI to the API root of GitHub or GitHub Enterprise.
-	 */
-	public String getGithubApiUri() {
-		return githubApiUri;
-	}
+    /**
+    *
+    * @return the URI to the API root of GitHub or GitHub Enterprise.
+    */
+    public String getGithubApiUri() {
+        return githubApiUri;
+    }
 
-	/**
-	 * @param githubApiUri the URI to the API root of GitHub or GitHub Enterprise.
-	 */
-	private void setGithubApiUri(String githubApiUri) {
-		this.githubApiUri = githubApiUri;
-	}
+    /**
+    * @param githubApiUri the URI to the API root of GitHub or GitHub Enterprise.
+    */
+    private void setGithubApiUri(String githubApiUri) {
+        this.githubApiUri = githubApiUri;
+    }
 
-	public static final class ConverterImpl implements Converter {
+    public static final class ConverterImpl implements Converter {
+        @Override
+        public boolean canConvert(Class type) {
+            return type == GithubSecurityRealm.class;
+        }
 
-		public boolean canConvert(Class type) {
-			return type == GithubSecurityRealm.class;
-		}
+        @Override
+        public void marshal(Object source, HierarchicalStreamWriter writer,
+                MarshallingContext context) {
 
-		public void marshal(Object source, HierarchicalStreamWriter writer,
-				MarshallingContext context) {
+            GithubSecurityRealm realm = (GithubSecurityRealm) source;
 
-			GithubSecurityRealm realm = (GithubSecurityRealm) source;
+            writer.startNode("githubWebUri");
+            writer.setValue(realm.getGithubWebUri());
+            writer.endNode();
 
-			writer.startNode("githubWebUri");
-			writer.setValue(realm.getGithubWebUri());
-			writer.endNode();
+            writer.startNode("githubApiUri");
+            writer.setValue(realm.getGithubApiUri());
+            writer.endNode();
 
-			writer.startNode("githubApiUri");
-			writer.setValue(realm.getGithubApiUri());
-			writer.endNode();
+            writer.startNode("clientID");
+            writer.setValue(realm.getClientID());
+            writer.endNode();
 
-			writer.startNode("clientID");
-			writer.setValue(realm.getClientID());
-			writer.endNode();
+            writer.startNode("clientSecret");
+            writer.setValue(realm.getClientSecret());
+            writer.endNode();
 
-			writer.startNode("clientSecret");
-			writer.setValue(realm.getClientSecret());
-			writer.endNode();
+        }
 
-		}
+        @Override
+        public Object unmarshal(HierarchicalStreamReader reader,
+                UnmarshallingContext context) {
+            GithubSecurityRealm realm = new GithubSecurityRealm();
 
-		public Object unmarshal(HierarchicalStreamReader reader,
-				UnmarshallingContext context) {
+            String node;
+            String value;
+            while (reader.hasMoreChildren()) {
+                reader.moveDown();
+                node = reader.getNodeName();
+                value = reader.getValue();
+                setValue(realm, node, value);
+                reader.moveUp();
+            }
 
-			GithubSecurityRealm realm = new GithubSecurityRealm();
+            if (realm.getGithubWebUri() == null) {
+                realm.setGithubWebUri(DEFAULT_WEB_URI);
+            }
 
-			String node;
-			String value;
+            if (realm.getGithubApiUri() == null) {
+                realm.setGithubApiUri(DEFAULT_API_URI);
+            }
 
-			while (reader.hasMoreChildren()) {
-				reader.moveDown();
-				node = reader.getNodeName();
-				value = reader.getValue();
-				setValue(realm, node, value);
-				reader.moveUp();
-			}
+            return realm;
+        }
 
-			if (realm.getGithubWebUri() == null) {
-				realm.setGithubWebUri(DEFAULT_WEB_URI);
-			}
+        private void setValue(GithubSecurityRealm realm, String node,
+                String value) {
+            if (node.toLowerCase().equals("clientid")) {
+                realm.setClientID(value);
+            } else if (node.toLowerCase().equals("clientsecret")) {
+                realm.setClientSecret(value);
+            } else if (node.toLowerCase().equals("githubweburi")) {
+                realm.setGithubWebUri(value);
+            } else if (node.toLowerCase().equals("githuburi")) { // backwards compatibility for old field
+                realm.setGithubWebUri(value);
+                String apiUrl = realm.determineApiUri(value);
+                realm.setGithubApiUri(apiUrl);
+            } else if (node.toLowerCase().equals("githubapiuri")) {
+                realm.setGithubApiUri(value);
+            } else
+                throw new ConversionException("Invalid node value = " + node);
+        }
 
-			if (realm.getGithubApiUri() == null) {
-				realm.setGithubApiUri(DEFAULT_API_URI);
-			}
+    }
 
-			return realm;
-		}
+    /**
+    * @return the uri to the web root of Github (varies for Github Enterprise Edition)
+    */
+    public String getGithubWebUri() {
+        return githubWebUri;
+    }
 
-		private void setValue(GithubSecurityRealm realm, String node,
-				String value) {
+    /**
+    * @deprecated use {@link org.jenkinsci.plugins.GithubSecurityRealm#getGithubWebUri()} instead.
+    * @return the uri to the web root of Github (varies for Github Enterprise Edition)
+    */
+    @Deprecated
+    public String getGithubUri() {
+        return getGithubWebUri();
+    }
 
-			if (node.toLowerCase().equals("clientid")) {
-				realm.setClientID(value);
-			} else if (node.toLowerCase().equals("clientsecret")) {
-				realm.setClientSecret(value);
-			} else if (node.toLowerCase().equals("githubweburi")) {
-				realm.setGithubWebUri(value);
-			} else if (node.toLowerCase().equals("githuburi")) { // backwards compatibility for old field
-				realm.setGithubWebUri(value);
-				String apiUrl = realm.determineApiUri(value);
-				realm.setGithubApiUri(apiUrl);
-			} else if (node.toLowerCase().equals("githubapiuri")) {
-				realm.setGithubApiUri(value);
-			} else
-				throw new ConversionException("Invalid node value = " + node);
+    /**
+    * @return the clientID
+    */
+    public String getClientID() {
+        return clientID;
+    }
 
-		}
+    /**
+    * @return the clientSecret
+    */
+    public String getClientSecret() {
+        return clientSecret;
+    }
 
-	}
-
-	/**
-	 * @return the uri to the web root of Github (varies for Github Enterprise Edition)
-	 */
-	public String getGithubWebUri() {
-		return githubWebUri;
-	}
-
-	/**
-	 * @deprecated use {@link org.jenkinsci.plugins.GithubSecurityRealm#getGithubWebUri()} instead.
-	 * @return the uri to the web root of Github (varies for Github Enterprise Edition)
-	 */
-	@Deprecated
-	public String getGithubUri() {
-		return getGithubWebUri();
-	}
-
-	/**
-	 * @return the clientID
-	 */
-	public String getClientID() {
-		return clientID;
-	}
-
-	/**
-	 * @return the clientSecret
-	 */
-	public String getClientSecret() {
-		return clientSecret;
-	}
-
-	// @Override
-	// public Filter createFilter(FilterConfig filterConfig) {
-	//
-	// return new GithubOAuthAuthenticationFilter();
-	// }
-
-	public HttpResponse doCommenceLogin(StaplerRequest request, @Header("Referer") final String referer)
-			throws IOException {
-
+    public HttpResponse doCommenceLogin(StaplerRequest request, @Header("Referer") final String referer) {
         request.getSession().setAttribute(REFERER_ATTRIBUTE,referer);
 
         Set<String> scopes = new HashSet<String>();
@@ -338,29 +330,29 @@ public class GithubSecurityRealm extends SecurityRealm {
             suffix = "&scope=repo,read:org";
         }
 
-		return new HttpRedirect(githubWebUri + "/login/oauth/authorize?client_id="
-				+ clientID + suffix);
-	}
+        return new HttpRedirect(githubWebUri + "/login/oauth/authorize?client_id="
+                + clientID + suffix);
+    }
 
-	/**
-	 * This is where the user comes back to at the end of the OpenID redirect
-	 * ping-pong.
-	 */
-	public HttpResponse doFinishLogin(StaplerRequest request)
-			throws IOException {
+    /**
+    * This is where the user comes back to at the end of the OpenID redirect
+    * ping-pong.
+    */
+    public HttpResponse doFinishLogin(StaplerRequest request)
+            throws IOException {
 
-		String code = request.getParameter("code");
+        String code = request.getParameter("code");
 
-		if (code == null || code.trim().length() == 0) {
-			Log.info("doFinishLogin: missing code.");
-			return HttpResponses.redirectToContextRoot();
-		}
+        if (code == null || code.trim().length() == 0) {
+            Log.info("doFinishLogin: missing code.");
+            return HttpResponses.redirectToContextRoot();
+        }
 
-		Log.info("test");
+        Log.info("test");
 
-		HttpPost httpost = new HttpPost(githubWebUri
-				+ "/login/oauth/access_token?" + "client_id=" + clientID + "&"
-				+ "client_secret=" + clientSecret + "&" + "code=" + code);
+        HttpPost httpost = new HttpPost(githubWebUri
+                + "/login/oauth/access_token?" + "client_id=" + clientID + "&"
+                + "client_secret=" + clientSecret + "&" + "code=" + code);
 
         DefaultHttpClient httpclient = new DefaultHttpClient();
         HttpHost proxy = getProxy(httpost);
@@ -368,42 +360,42 @@ public class GithubSecurityRealm extends SecurityRealm {
             httpclient.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, proxy);
         }
 
-		org.apache.http.HttpResponse response = httpclient.execute(httpost);
+        org.apache.http.HttpResponse response = httpclient.execute(httpost);
 
-		HttpEntity entity = response.getEntity();
+        HttpEntity entity = response.getEntity();
 
-		String content = EntityUtils.toString(entity);
+        String content = EntityUtils.toString(entity);
 
-		// When HttpClient instance is no longer needed,
-		// shut down the connection manager to ensure
-		// immediate deallocation of all system resources
-		httpclient.getConnectionManager().shutdown();
+        // When HttpClient instance is no longer needed,
+        // shut down the connection manager to ensure
+        // immediate deallocation of all system resources
+        httpclient.getConnectionManager().shutdown();
 
-		String accessToken = extractToken(content);
+        String accessToken = extractToken(content);
 
-		if (accessToken != null && accessToken.trim().length() > 0) {
-			// only set the access token if it exists.
-			GithubAuthenticationToken auth = new GithubAuthenticationToken(accessToken, getGithubApiUri());
-			SecurityContextHolder.getContext().setAuthentication(auth);
+        if (accessToken != null && accessToken.trim().length() > 0) {
+            // only set the access token if it exists.
+            GithubAuthenticationToken auth = new GithubAuthenticationToken(accessToken, getGithubApiUri());
+            SecurityContextHolder.getContext().setAuthentication(auth);
 
-			GHUser self = auth.getGitHub().getMyself();
-			User u = User.current();
-			u.setFullName(self.getName());
-			// Set email from github only if empty
-		    if (!u.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
-			    u.addProperty(new Mailer.UserProperty(self.getEmail()));
-		    }
+            GHUser self = auth.getGitHub().getMyself();
+            User u = User.current();
+            u.setFullName(self.getName());
+            // Set email from github only if empty
+            if (!u.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
+                u.addProperty(new Mailer.UserProperty(self.getEmail()));
+            }
 
             fireAuthenticated(new GithubOAuthUserDetails(self));
-		}
-		else {
-			Log.info("Github did not return an access token.");
-		}
+        }
+        else {
+            Log.info("Github did not return an access token.");
+        }
 
         String referer = (String)request.getSession().getAttribute(REFERER_ATTRIBUTE);
         if (referer!=null)  return HttpResponses.redirectTo(referer);
-		return HttpResponses.redirectToContextRoot();   // referer should be always there, but be defensive
-	}
+        return HttpResponses.redirectToContextRoot();   // referer should be always there, but be defensive
+    }
 
     /**
      * Calls {@code SecurityListener.fireAuthenticated()} but through reflection to avoid
@@ -447,163 +439,151 @@ public class GithubSecurityRealm extends SecurityRealm {
         }
     }
 
-	private String extractToken(String content) {
+    private String extractToken(String content) {
+        String parts[] = content.split("&");
 
-		String parts[] = content.split("&");
+        for (String part : parts) {
+            if (content.contains("access_token")) {
+                String tokenParts[] = part.split("=");
+                return tokenParts[1];
+            }
+            // fall through
+        }
 
-		for (String part : parts) {
+        return null;
+    }
 
-			if (content.contains("access_token")) {
+    @Override
+    public boolean allowsSignup() {
+        return false;
+    }
 
-				String tokenParts[] = part.split("=");
+    @Override
+    public SecurityComponents createSecurityComponents() {
+        return new SecurityComponents(new AuthenticationManager() {
+            @Override
+            public Authentication authenticate(Authentication authentication)
+                    throws AuthenticationException {
+                if (authentication instanceof GithubAuthenticationToken)
+                    return authentication;
+                throw new BadCredentialsException(
+                        "Unexpected authentication type: " + authentication);
+            }
+        }, new UserDetailsService() {
+            @Override
+            public UserDetails loadUserByUsername(String username)
+                    throws UsernameNotFoundException, DataAccessException {
+                return GithubSecurityRealm.this.loadUserByUsername(username);
+            }
+        });
+    }
 
-				return tokenParts[1];
-			}
+    @Override
+    public String getLoginUrl() {
+        return "securityRealm/commenceLogin";
+    }
 
-			// fall through
-		}
+    @Extension
+    public static final class DescriptorImpl extends Descriptor<SecurityRealm> {
+        @Override
+        public String getHelpFile() {
+            return "/plugin/github-oauth/help/help-security-realm.html";
+        }
 
-		return null;
-	}
+        @Override
+        public String getDisplayName() {
+            return "Github Authentication Plugin";
+        }
 
-	/*
-	 * (non-Javadoc)
-	 *
-	 * @see hudson.security.SecurityRealm#allowsSignup()
-	 */
-	@Override
-	public boolean allowsSignup() {
-		return false;
-	}
+        public DescriptorImpl() {
+            super();
+            // TODO Auto-generated constructor stub
+        }
 
-	@Override
-	public SecurityComponents createSecurityComponents() {
+        public DescriptorImpl(Class<? extends SecurityRealm> clazz) {
+            super(clazz);
+            // TODO Auto-generated constructor stub
+        }
 
-		return new SecurityComponents(new AuthenticationManager() {
+    }
 
-			public Authentication authenticate(Authentication authentication)
-					throws AuthenticationException {
-				if (authentication instanceof GithubAuthenticationToken)
-					return authentication;
-				throw new BadCredentialsException(
-						"Unexpected authentication type: " + authentication);
-			}
-		}, new UserDetailsService() {
-			public UserDetails loadUserByUsername(String username)
-					throws UsernameNotFoundException, DataAccessException {
-			    return GithubSecurityRealm.this.loadUserByUsername(username);
-			}
-		});
-	}
+    /**
+    *
+    * @param username
+    * @return
+    * @throws UsernameNotFoundException
+    * @throws DataAccessException
+    */
+    @Override
+    public UserDetails loadUserByUsername(String username)
+            throws UsernameNotFoundException, DataAccessException {
+        GHUser user = null;
 
-	@Override
-	public String getLoginUrl() {
+        GithubAuthenticationToken authToken =  (GithubAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
 
-		return "securityRealm/commenceLogin";
-	}
+        if (authToken == null) {
+            throw new UserMayOrMayNotExistException("Could not get auth token.");
+        }
 
-	@Extension
-	public static final class DescriptorImpl extends Descriptor<SecurityRealm> {
+        try {
 
-		@Override
-		public String getHelpFile() {
-			return "/plugin/github-oauth/help/help-security-realm.html";
-		}
+            GroupDetails group = null;
+            try {
+                group = loadGroupByGroupname(username);
+            } catch (DataRetrievalFailureException e) {
+                LOGGER.config("No group found with name: " + username);
+            } catch (UsernameNotFoundException e) {
+                LOGGER.config("No group found with name: " + username);
+            }
 
-		@Override
-		public String getDisplayName() {
-			return "Github Authentication Plugin";
-		}
+            if (group != null) {
+                throw new UsernameNotFoundException ("user("+username+") is also an organization");
+            }
 
-		public DescriptorImpl() {
-			super();
-			// TODO Auto-generated constructor stub
-		}
+            user = authToken.loadUser(username);
 
-		public DescriptorImpl(Class<? extends SecurityRealm> clazz) {
-			super(clazz);
-			// TODO Auto-generated constructor stub
-		}
+            if (user != null)
+                return new GithubOAuthUserDetails(user);
+            else
+                throw new UsernameNotFoundException("No known user: " + username);
+        } catch (IOException e) {
+            throw new DataRetrievalFailureException("loadUserByUsername (username=" + username +")", e);
+        }
+    }
 
-	}
+    /**
+    *
+    * @param groupName
+    * @return
+    * @throws UsernameNotFoundException
+    * @throws DataAccessException
+    */
+    @Override
+    public GroupDetails loadGroupByGroupname(String groupName)
+            throws UsernameNotFoundException, DataAccessException {
 
-	/**
-	 *
-	 * @param username
-	 * @return
-	 * @throws UsernameNotFoundException
-	 * @throws DataAccessException
-	 */
-	@Override
-	public UserDetails loadUserByUsername(String username)
-			throws UsernameNotFoundException, DataAccessException {
-		GHUser user = null;
+        GithubAuthenticationToken authToken =  (GithubAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
 
-		GithubAuthenticationToken authToken =  (GithubAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+        if(authToken == null)
+            throw new UsernameNotFoundException("No known group: " + groupName);
 
-		if (authToken == null) {
-			throw new UserMayOrMayNotExistException("Could not get auth token.");
-		}
+        try {
+            GHOrganization org = authToken.loadOrganization(groupName);
 
-		try {
-
-			GroupDetails group = null;
-			try {
-				group = loadGroupByGroupname(username);
-			} catch (DataRetrievalFailureException e) {
-				LOGGER.config("No group found with name: " + username);
-			} catch (UsernameNotFoundException e) {
-				LOGGER.config("No group found with name: " + username);
-			}
-
-			if (group != null) {
-				throw new UsernameNotFoundException ("user("+username+") is also an organization");
-			}
-
-			user = authToken.loadUser(username);
-
-			if (user != null)
-				return new GithubOAuthUserDetails(user);
-			else
-				throw new UsernameNotFoundException("No known user: " + username);
-		} catch (IOException e) {
-			throw new DataRetrievalFailureException("loadUserByUsername (username=" + username +")", e);
-		}
-	}
-
-	/**
-	 *
-	 * @param groupName
-	 * @return
-	 * @throws UsernameNotFoundException
-	 * @throws DataAccessException
-	 */
-	@Override
-	public GroupDetails loadGroupByGroupname(String groupName)
-			throws UsernameNotFoundException, DataAccessException {
-
-		GithubAuthenticationToken authToken =  (GithubAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
-
-		if(authToken == null)
-			throw new UsernameNotFoundException("No known group: " + groupName);
-
-		try {
-			GHOrganization org = authToken.loadOrganization(groupName);
-
-			if (org != null)
-				return new GithubOAuthGroupDetails(org);
-			else
-				throw new UsernameNotFoundException("No known group: " + groupName);
-		} catch (IOException e) {
-			throw new DataRetrievalFailureException("loadGroupByGroupname (groupname=" + groupName +")", e);
-		}
-	}
+            if (org != null)
+                return new GithubOAuthGroupDetails(org);
+            else
+                throw new UsernameNotFoundException("No known group: " + groupName);
+        } catch (IOException e) {
+            throw new DataRetrievalFailureException("loadGroupByGroupname (groupname=" + groupName +")", e);
+        }
+    }
 
 
-	/**
-	 * Logger for debugging purposes.
-	 */
-	private static final Logger LOGGER = Logger.getLogger(GithubSecurityRealm.class.getName());
+    /**
+    * Logger for debugging purposes.
+    */
+    private static final Logger LOGGER = Logger.getLogger(GithubSecurityRealm.class.getName());
 
     private static final String REFERER_ATTRIBUTE = GithubSecurityRealm.class.getName()+".referer";
 }
