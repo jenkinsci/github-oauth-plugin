@@ -52,7 +52,6 @@ import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
-import org.apache.commons.httpclient.URIException;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.client.methods.HttpPost;
@@ -62,6 +61,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.jfree.util.Log;
 import org.kohsuke.github.GHOrganization;
+import org.kohsuke.github.GHTeam;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Header;
@@ -91,14 +91,10 @@ import static java.util.logging.Level.*;
  * This is based on the MySQLSecurityRealm from the mysql-auth-plugin written by
  * Alex Ackerman.
  */
-public class GithubSecurityRealm extends SecurityRealm {
+public class GithubSecurityRealm extends SecurityRealm implements UserDetailsService {
     private static final String DEFAULT_WEB_URI = "https://github.com";
     private static final String DEFAULT_API_URI = "https://api.github.com";
     private static final String DEFAULT_ENTERPRISE_API_SUFFIX = "/api/v3";
-
-    @Deprecated
-    private static final String DEFAULT_URI = DEFAULT_WEB_URI;
-
 
     private String githubWebUri;
     private String githubApiUri;
@@ -166,17 +162,6 @@ public class GithubSecurityRealm extends SecurityRealm {
     */
     private void setGithubWebUri(String githubWebUri) {
         this.githubWebUri = githubWebUri;
-    }
-
-    /**
-    * @param githubWebUri
-    *            the string representation of the URI to the root of the Web UI for
-    *            GitHub or GitHub Enterprise.
-    * @deprecated Use {@link GithubSecurityRealm#setGithubWebUri(String)} instead.
-    */
-    @Deprecated
-    private void setGithubUri(String githubWebUri) {
-        setGithubWebUri(githubWebUri);
     }
 
     /**
@@ -386,7 +371,7 @@ public class GithubSecurityRealm extends SecurityRealm {
                 u.addProperty(new Mailer.UserProperty(self.getEmail()));
             }
 
-            fireAuthenticated(new GithubOAuthUserDetails(self));
+            fireAuthenticated(new GithubOAuthUserDetails(self, auth.getAuthorities()));
         }
         else {
             Log.info("Github did not return an access token.");
@@ -421,8 +406,7 @@ public class GithubSecurityRealm extends SecurityRealm {
     /**
      * Returns the proxy to be used when connecting to the given URI.
      */
-    private HttpHost getProxy(HttpUriRequest method) throws URIException {
-
+    private HttpHost getProxy(HttpUriRequest method) {
         ProxyConfiguration proxy = Jenkins.getInstance().proxy;
         if (proxy==null)    return null;    // defensive check
 
@@ -507,78 +491,62 @@ public class GithubSecurityRealm extends SecurityRealm {
 
     }
 
-    /**
-    *
-    * @param username
-    * @return
-    * @throws UsernameNotFoundException
-    * @throws DataAccessException
-    */
     @Override
-    public UserDetails loadUserByUsername(String username)
-            throws UsernameNotFoundException, DataAccessException {
-        GHUser user = null;
-
-        GithubAuthenticationToken authToken =  (GithubAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
-
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
+        GithubAuthenticationToken authToken = (GithubAuthenticationToken) SecurityContextHolder.getContext()
+                                                                                               .getAuthentication();
         if (authToken == null) {
             throw new UserMayOrMayNotExistException("Could not get auth token.");
         }
 
         try {
+            GithubOAuthUserDetails userDetails = authToken.getUserDetails(username);
+            if (userDetails == null)
+                throw new UsernameNotFoundException("Unknown user: " + username);
 
-            GroupDetails group = null;
-            try {
-                group = loadGroupByGroupname(username);
-            } catch (DataRetrievalFailureException e) {
-                LOGGER.config("No group found with name: " + username);
-            } catch (UsernameNotFoundException e) {
-                LOGGER.config("No group found with name: " + username);
+            // Check the username is not an homonym of an organization
+            GHOrganization ghOrg = authToken.loadOrganization(username);
+            if (ghOrg != null) {
+                throw new UsernameNotFoundException("user(" + username + ") is also an organization");
             }
 
-            if (group != null) {
-                throw new UsernameNotFoundException ("user("+username+") is also an organization");
-            }
-
-            user = authToken.loadUser(username);
-
-            if (user != null)
-                return new GithubOAuthUserDetails(user);
-            else
-                throw new UsernameNotFoundException("No known user: " + username);
-        } catch (IOException e) {
-            throw new DataRetrievalFailureException("loadUserByUsername (username=" + username +")", e);
+            return userDetails;
+        } catch (Error e) {
+            throw new DataRetrievalFailureException("loadUserByUsername (username=" + username + ")", e);
         }
     }
 
-    /**
-    *
-    * @param groupName
-    * @return
-    * @throws UsernameNotFoundException
-    * @throws DataAccessException
-    */
     @Override
-    public GroupDetails loadGroupByGroupname(String groupName)
-            throws UsernameNotFoundException, DataAccessException {
-
-        GithubAuthenticationToken authToken =  (GithubAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
-
-        if(authToken == null)
-            throw new UsernameNotFoundException("No known group: " + groupName);
+    public GroupDetails loadGroupByGroupname(String groupName) throws UsernameNotFoundException, DataAccessException {
+        GithubAuthenticationToken authToken = (GithubAuthenticationToken) SecurityContextHolder.getContext()
+                                                                                               .getAuthentication();
+        if (authToken == null) {
+            throw new UsernameNotFoundException("Unknown group: " + groupName);
+        }
 
         try {
-            GHOrganization org = authToken.loadOrganization(groupName);
-
-            if (org != null)
-                return new GithubOAuthGroupDetails(org);
-            else
-                throw new UsernameNotFoundException("No known group: " + groupName);
-        } catch (IOException e) {
-            throw new DataRetrievalFailureException("loadGroupByGroupname (groupname=" + groupName +")", e);
+            int idx = groupName.indexOf(GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR);
+            if (idx > -1 && groupName.length() > idx + 1) { // groupName = "GHOrganization*GHTeam"
+                String orgName = groupName.substring(0, idx);
+                String teamName = groupName.substring(idx + 1);
+                LOGGER.config(String.format("Lookup for team %s in organization %s", teamName, orgName));
+                GHTeam ghTeam = authToken.loadTeam(orgName, teamName);
+                if (ghTeam == null) {
+                    throw new UsernameNotFoundException("Unknown GitHub team: " + teamName + " in organization "
+                            + orgName);
+                }
+                return new GithubOAuthGroupDetails(ghTeam);
+            } else { // groupName = "GHOrganization"
+                GHOrganization ghOrg = authToken.loadOrganization(groupName);
+                if (ghOrg == null) {
+                    throw new UsernameNotFoundException("Unknown GitHub organization: " + groupName);
+                }
+                return new GithubOAuthGroupDetails(ghOrg);
+            }
+        } catch (Error e) {
+            throw new DataRetrievalFailureException("loadGroupByGroupname (groupname=" + groupName + ")", e);
         }
     }
-
 
     /**
     * Logger for debugging purposes.

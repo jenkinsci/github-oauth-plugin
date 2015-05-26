@@ -27,7 +27,6 @@ THE SOFTWARE.
 package org.jenkinsci.plugins;
 
 import java.io.IOException;
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +45,7 @@ import hudson.security.SecurityRealm;
 
 import java.util.Collection;
 
+import org.jenkinsci.plugins.GithubOAuthUserDetails;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.providers.AbstractAuthenticationToken;
@@ -105,9 +105,17 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
         this.userName = this.me.getLogin();
         authorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
-        for (String name : gh.getMyOrganizations().keySet())
-            authorities.add(new GrantedAuthorityImpl(name));
-	}
+        Map<String, Set<GHTeam>> myTeams = gh.getMyTeams();
+        for (String orgLogin : myTeams.keySet()) {
+            LOGGER.log(Level.FINE, "Fetch teams for user " + userName + " in organization " + orgLogin);
+            authorities.add(new GrantedAuthorityImpl(orgLogin));
+            for (GHTeam team : myTeams.get(orgLogin)) {
+                authorities.add(new GrantedAuthorityImpl(orgLogin + GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR
+                        + team.getName()));
+            }
+        }
+
+    }
 
         /**
          * Necessary for testing
@@ -243,55 +251,90 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         }
     }
 
-	private static final Logger LOGGER = Logger
-			.getLogger(GithubAuthenticationToken.class.getName());
+    private static final Logger LOGGER = Logger
+            .getLogger(GithubAuthenticationToken.class.getName());
 
-	public GHUser loadUser(String username) throws IOException {
-		if (gh != null && isAuthenticated())
-			return gh.getUser(username);
-		else
-			return null;
-	}
+    public GHUser loadUser(String username) {
+        try {
+            if (gh != null && isAuthenticated())
+                return gh.getUser(username);
+        } catch (IOException e) {
+            LOGGER.log(Level.FINEST, e.getMessage(), e);
+        }
+        return null;
+    }
 
-	public GHOrganization loadOrganization(String organization)
-			throws IOException {
-
-		if (gh != null && isAuthenticated())
-			return gh.getOrganization(organization);
-		else
-			return null;
-
-	}
+    public GHOrganization loadOrganization(String organization) {
+        try {
+            if (gh != null && isAuthenticated())
+                return gh.getOrganization(organization);
+        } catch (IOException e) {
+            LOGGER.log(Level.FINEST, e.getMessage(), e);
+        }
+        return null;
+    }
 
     public GHRepository loadRepository(String repositoryName) {
-            try {
-                if (gh != null && isAuthenticated()) {
-                    return gh.getRepository(repositoryName);
-                } else {
-                    return null;
-                }
-            } catch(FileNotFoundException e) {
-                LOGGER.log(Level.WARNING, "Looks like a bad GitHub URL OR the Jenkins user does not have access to the repository{0}", repositoryName);
-                return null;
-            } catch(IOException e) {
-                LOGGER.log(Level.WARNING, "Looks like a bad GitHub URL OR the Jenkins user does not have access to the repository{0}", repositoryName);
-                return null;
+        try {
+            if (gh != null && isAuthenticated()) {
+                return gh.getRepository(repositoryName);
             }
-	}
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING,
+                    "Looks like a bad GitHub URL OR the Jenkins user does not have access to the repository{0}",
+                    repositoryName);
+        }
+        return null;
+    }
 
-	public GHTeam loadTeam(String organization, String team) throws IOException {
-		if (gh != null && isAuthenticated()) {
+    public GHTeam loadTeam(String organization, String team) {
+        try {
+            GHOrganization org = loadOrganization(organization);
+            if (org != null) {
+                return org.getTeamByName(team);
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.FINEST, e.getMessage(), e);
+        }
+        return null;
+    }
 
-			GHOrganization org = gh.getOrganization(organization);
-
-			if (org != null) {
-				Map<String, GHTeam> teamMap = org.getTeams();
-
-				return teamMap.get(team);
-			} else
-				return null;
-
-		} else
-			return null;
-	}
+    /**
+     * @since 0.21
+     */
+    public GithubOAuthUserDetails getUserDetails(String username) {
+        GHUser user = loadUser(username);
+        if (user != null) {
+            List<GrantedAuthority> groups = new ArrayList<GrantedAuthority>();
+            try {
+                for (GHOrganization ghOrganization : user.getOrganizations()) {
+                    String orgLogin = ghOrganization.getLogin();
+                    LOGGER.log(Level.FINE, "Fetch teams for user " + username + " in organization " + orgLogin);
+                    groups.add(new GrantedAuthorityImpl(orgLogin));
+                    try {
+                        if (!me.isMemberOf(ghOrganization)) {
+                            continue;
+                        }
+                        Map<String, GHTeam> teams = ghOrganization.getTeams();
+                        for (String team : teams.keySet()) {
+                            if (teams.get(team).hasMember(user)) {
+                                groups.add(new GrantedAuthorityImpl(orgLogin + GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR
+                                        + team));
+                            }
+                        }
+                    } catch (IOException ignore) {
+                        LOGGER.log(Level.FINEST, "not enough rights to list teams from " + orgLogin, ignore);
+                        continue;
+                    } catch (Error ignore) {
+                        LOGGER.log(Level.FINEST, "not enough rights to list teams from " + orgLogin, ignore);
+                        continue;
+                    }
+                }
+            } catch (IOException e) {
+                LOGGER.log(Level.FINE, e.getMessage(), e);
+            }
+            return new GithubOAuthUserDetails(user, groups.toArray(new GrantedAuthority[groups.size()]));
+        }
+        return null;
+    }
 }
