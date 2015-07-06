@@ -24,16 +24,22 @@
         </license>
     </licenses>
 
+    <!--
+      The developers show up as current maintainers in the Jenkins wiki.
+      https://wiki.jenkins-ci.org/display/JENKINS/Github+OAuth+Plugin
+
+      The id should be the jenkinsci.org username and not your GitHub username.
+    -->
     <developers>
         <developer>
-            <id>mocleiri</id>
-            <name>Michael O'Cleirigh</name>
-            <timezone>-5</timezone>
-        </developer>
-        <developer>
-            <id>skottler</id>
-            <name>Sam Kottler</name>
-            <timezone>-5</timezone>
+            <id>sag47</id>
+            <name>Sam Gleske</name>
+            <email>sam.mxracer@gmail.com</email>
+            <url>https://github.com/samrocketman</url>
+            <roles>
+                <role>maintainer</role>
+            </roles>
+            <timezone>America/New_York</timezone>
         </developer>
     </developers>
 
