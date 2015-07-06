@@ -16,5 +16,8 @@
 		<f:entry title="Client Secret" field="clientSecret" help="/plugin/github-oauth/help/realm/client-secret-help.html">
 			<f:textbox />
 		</f:entry>
+		<f:entry title="OAuth Scope(s)" field="oauthScopes" help="/plugin/github-oauth/help/realm/oauth-scopes-help.html">
+			<f:textbox default="repo,read:org" />
+		</f:entry>
 	</f:section>
 </j:jelly>
