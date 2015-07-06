@@ -188,7 +188,9 @@ public class GithubSecurityRealm extends SecurityRealm {
 	 * @return The default oauthScope string
 	 */
 	private String defaultOauthScope() {
-		return "repo,read:org";
+        // restrict default scope to just read:org, as it is the most
+        // restricted scope which will allow authentication
+		return "read:org";
 	}
 
 	/**
