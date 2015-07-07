@@ -26,6 +26,7 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
+import com.google.common.collect.Lists;
 import com.thoughtworks.xstream.converters.ConversionException;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
@@ -50,13 +51,14 @@ import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
-import org.apache.commons.httpclient.URIException;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.conn.params.ConnRoutePNames;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.ProxySelectorRoutePlanner;
+import org.apache.http.impl.conn.SchemeRegistryFactory;
 import org.apache.http.util.EntityUtils;
 import org.jfree.util.Log;
 import org.kohsuke.github.GHOrganization;
@@ -73,9 +75,12 @@ import org.springframework.dao.DataRetrievalFailureException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.InetSocketAddress;
 import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.SocketAddress;
+import java.net.URI;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -417,10 +422,8 @@ public class GithubSecurityRealm extends SecurityRealm {
 				+ "client_secret=" + clientSecret + "&" + "code=" + code);
 
         DefaultHttpClient httpclient = new DefaultHttpClient();
-        HttpHost proxy = getProxy(httpost);
-        if (proxy != null) {
-            httpclient.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, proxy);
-        }
+        httpclient.setRoutePlanner(new JenkinsProxyHttpRoutePlanner());
+        httpclient.setCredentialsProvider(new JenkinsProxyCredentialsProvider());
 
 		org.apache.http.HttpResponse response = httpclient.execute(httpost);
 
@@ -477,27 +480,6 @@ public class GithubSecurityRealm extends SecurityRealm {
             throw (Error)new IllegalAccessError(e.getMessage()).initCause(e);
         } catch (InvocationTargetException e) {
             LOGGER.log(WARNING, "Failed to invoke fireAuthenticated", e);
-        }
-    }
-
-    /**
-     * Returns the proxy to be used when connecting to the given URI.
-     */
-    private HttpHost getProxy(HttpUriRequest method) throws URIException {
-
-        ProxyConfiguration proxy = Jenkins.getInstance().proxy;
-        if (proxy==null)    return null;    // defensive check
-
-        Proxy p = proxy.createProxy(method.getURI().getHost());
-        switch (p.type()) {
-        case DIRECT:
-            return null;        // no proxy
-        case HTTP:
-            InetSocketAddress sa = (InetSocketAddress) p.address();
-            return new HttpHost(sa.getHostName(),sa.getPort());
-        case SOCKS:
-        default:
-            return null;        // not supported yet
         }
     }
 
@@ -660,4 +642,40 @@ public class GithubSecurityRealm extends SecurityRealm {
 	private static final Logger LOGGER = Logger.getLogger(GithubSecurityRealm.class.getName());
 
     private static final String REFERER_ATTRIBUTE = GithubSecurityRealm.class.getName()+".referer";
+
+    private static class JenkinsProxySelector extends ProxySelector {
+        @Override
+        public List<Proxy> select(URI uri) {
+            ProxyConfiguration pc = Jenkins.getInstance().proxy;
+            if (null == pc) {
+                return Lists.newArrayList(Proxy.NO_PROXY); // defensive check
+            }
+
+            Proxy p = pc.createProxy(uri.getHost());
+            return Lists.newArrayList(p);
+        }
+
+        @Override
+        public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {
+            // nop
+        }
+    }
+
+    private static class JenkinsProxyHttpRoutePlanner extends ProxySelectorRoutePlanner {
+        public JenkinsProxyHttpRoutePlanner() {
+            super(SchemeRegistryFactory.createDefault(), new JenkinsProxySelector());
+        }
+    }
+
+    private static class JenkinsProxyCredentialsProvider extends BasicCredentialsProvider {
+        public JenkinsProxyCredentialsProvider(){
+            super();
+            ProxyConfiguration pc = Jenkins.getInstance().proxy;
+            if (null != pc && null != pc.name && null != pc.getUserName()) {
+                setCredentials(
+                        new AuthScope(pc.name, pc.port), // You may need to set pc.name to proxy server's IP address
+                        new UsernamePasswordCredentials(pc.getUserName(), pc.getPassword()));
+            }
+        }
+    }
 }

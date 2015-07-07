@@ -53,6 +53,7 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHTeam;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.GitHubBuilder;
 
 /**
  * @author mocleiri
@@ -94,7 +95,11 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 		super(new GrantedAuthority[] {});
 
 		this.accessToken = accessToken;
-        this.gh = GitHub.connectUsingOAuth(githubServer, accessToken);
+        this.gh = new GitHubBuilder()
+                .withEndpoint(githubServer)
+                .withOAuthToken(accessToken)
+                .withConnector(new HttpConnectorWithJenkinsProxy())
+                .build();
 
         this.me = gh.getMyself();
         assert this.me!=null;
