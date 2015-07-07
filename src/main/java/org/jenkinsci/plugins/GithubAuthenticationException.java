@@ -4,9 +4,9 @@ The MIT License
 Copyright (c) 2011 Michael O'Cleirigh
 
  Copied from mysql-auth-plugin on July 18, 2011
-  
+
  Signals a failed authentication attempt to the external database.
-  
+
  Original Copyright (c)  Alex Ackerman
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -35,18 +35,17 @@ package org.jenkinsci.plugins;
 import org.acegisecurity.AuthenticationException;
 
 /**
- * 
+ *
  *
  */
-public class GithubAuthenticationException extends AuthenticationException
-{
+public class GithubAuthenticationException extends AuthenticationException {
+
     /**
      * Standard constructor
      * @param msg   The error message for the Exception
      * @param t     The Throwable to send along
      */
-    public GithubAuthenticationException(String msg, Throwable t)
-    {
+    public GithubAuthenticationException(String msg, Throwable t) {
         super(msg, t);
     }
 
@@ -55,8 +54,8 @@ public class GithubAuthenticationException extends AuthenticationException
      *
      * @param msg   The error message for the exception
      */
-    public GithubAuthenticationException(String msg)
-    {
+    public GithubAuthenticationException(String msg) {
         super(msg);
     }
+
 }

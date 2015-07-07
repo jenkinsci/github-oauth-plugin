@@ -1,44 +1,43 @@
 <!--
- 
+
 -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-	<f:section title="Github Authorization Settings">
-		<f:entry title="Admin User Names"  field="adminUserNames" help="/plugin/github-oauth/help/auth/admin-user-names-help.html" >
-			<f:textbox />
-		</f:entry>
-		
-		<f:entry title="Participant in Organization"  field="organizationNames" help="/plugin/github-oauth/help/auth/organization-names-help.html">
-			<f:textbox />
-		</f:entry>
-		
-		<f:entry title="Use Github repository permissions" field="useRepositoryPermissions" help="/plugin/github-oauth/help/auth/use-repository-permissions-help.html">
-                    <f:checkbox />
-		</f:entry>
+    <f:section title="Github Authorization Settings">
+        <f:entry title="Admin User Names"  field="adminUserNames" help="/plugin/github-oauth/help/auth/admin-user-names-help.html" >
+            <f:textbox />
+        </f:entry>
 
-		 <f:entry title="Grant READ permissions to all Authenticated Users" field="authenticatedUserReadPermission" help="/plugin/github-oauth/help/auth/grant-read-to-authenticated-help.html">
- 		<f:checkbox />
- 		</f:entry>
- 		
-		 <f:entry title="Grant CREATE Job permissions to all Authenticated Users" field="authenticatedUserCreateJobPermission" help="/plugin/github-oauth/help/auth/grant-create-job-to-authenticated-help.html">
-                <f:checkbox />
-                </f:entry>
+        <f:entry title="Participant in Organization"  field="organizationNames" help="/plugin/github-oauth/help/auth/organization-names-help.html">
+            <f:textbox />
+        </f:entry>
 
- 		 <f:entry title="Grant READ permissions for /github-webhook" field="allowGithubWebHookPermission" help="/plugin/github-oauth/help/auth/grant-read-to-github-webhook-help.html">
- 		<f:checkbox />
- 		</f:entry>
- 		
- 		 <f:entry title="Grant READ permissions for /cc.xml" field="allowCcTrayPermission" help="/plugin/github-oauth/help/auth/grant-read-to-cctray-help.html">
- 		<f:checkbox />
- 		</f:entry>
+        <f:entry title="Use Github repository permissions" field="useRepositoryPermissions" help="/plugin/github-oauth/help/auth/use-repository-permissions-help.html">
+            <f:checkbox />
+        </f:entry>
 
- 		 <f:entry title="Grant READ permissions for Anonymous Users" field="allowAnonymousReadPermission" help="/plugin/github-oauth/help/auth/grant-read-to-anonymous-help.html">
- 		<f:checkbox />
- 		</f:entry>
+        <f:entry title="Grant READ permissions to all Authenticated Users" field="authenticatedUserReadPermission" help="/plugin/github-oauth/help/auth/grant-read-to-authenticated-help.html">
+             <f:checkbox />
+        </f:entry>
 
-		  <f:entry title="Grant ViewStatus permissions for Anonymous Users" field="allowAnonymousJobStatusPermission" help="/plugin/github-oauth/help/auth/grant-viewstatus-to-anonymous-help.html">
-		 <f:checkbox />
-		 </f:entry>
-		
-	</f:section>
+        <f:entry title="Grant CREATE Job permissions to all Authenticated Users" field="authenticatedUserCreateJobPermission" help="/plugin/github-oauth/help/auth/grant-create-job-to-authenticated-help.html">
+            <f:checkbox />
+        </f:entry>
+
+        <f:entry title="Grant READ permissions for /github-webhook" field="allowGithubWebHookPermission" help="/plugin/github-oauth/help/auth/grant-read-to-github-webhook-help.html">
+            <f:checkbox />
+        </f:entry>
+
+        <f:entry title="Grant READ permissions for /cc.xml" field="allowCcTrayPermission" help="/plugin/github-oauth/help/auth/grant-read-to-cctray-help.html">
+            <f:checkbox />
+        </f:entry>
+
+        <f:entry title="Grant READ permissions for Anonymous Users" field="allowAnonymousReadPermission" help="/plugin/github-oauth/help/auth/grant-read-to-anonymous-help.html">
+            <f:checkbox />
+        </f:entry>
+
+        <f:entry title="Grant ViewStatus permissions for Anonymous Users" field="allowAnonymousJobStatusPermission" help="/plugin/github-oauth/help/auth/grant-viewstatus-to-anonymous-help.html">
+            <f:checkbox />
+        </f:entry>
+    </f:section>
 </j:jelly>

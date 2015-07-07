@@ -40,159 +40,130 @@ import org.kohsuke.github.GitHub;
 
 /**
  * @author mocleiri
- * 
+ *
  * we ignore this test when running the automated tests.
  */
-@Ignore 
+@Ignore
 public class GihubAPITest extends TestCase {
 
-	/**
-	 * 
-	 */
-	public GihubAPITest() {
-		// TODO Auto-generated constructor stub
-	}
+    /**
+     *
+     */
+    public GihubAPITest() {
+        // TODO Auto-generated constructor stub
+    }
 
-	private static final String LOGIN = System.getProperty("github.login");
-	private static final String API_TOKEN = System.getProperty("github.api");
-	
-	// I would sugest with the repo level of permission.
-	private static final String OAUTH_TOKEN = System.getProperty("github.oauth");
-	
-	// the name of the organization to which the login is a participant.
-	private static final String PARTICPATING_ORG = System.getProperty("github.org");
-	
-	/**
-	 * @param name
-	 */
-	public GihubAPITest(String name) {
-		super(name);
-		// TODO Auto-generated constructor stub
-	}
+    private static final String LOGIN = System.getProperty("github.login");
+    private static final String API_TOKEN = System.getProperty("github.api");
 
-	public void testWithUserAPIToken() throws IOException {
+    // I would sugest with the repo level of permission.
+    private static final String OAUTH_TOKEN = System.getProperty("github.oauth");
 
-		GitHub gh = GitHub.connect(LOGIN,
-			API_TOKEN);
+    // the name of the organization to which the login is a participant.
+    private static final String PARTICPATING_ORG = System.getProperty("github.org");
 
-		GHOrganization org = gh.getOrganization(PARTICPATING_ORG);
+    /**
+     * @param name
+     */
+    public GihubAPITest(String name) {
+        super(name);
+        // TODO Auto-generated constructor stub
+    }
 
-		Map<String, GHTeam> teams = org.getTeams();
-		
-		boolean found = false;
+    public void testWithUserAPIToken() throws IOException {
+        GitHub gh = GitHub.connect(LOGIN, API_TOKEN);
 
-		for (GHTeam team : teams.values()) {
+        GHOrganization org = gh.getOrganization(PARTICPATING_ORG);
 
-			System.out.println("team = " + team.getName() + ", permission = "
-					+ team.getPermission());
+        Map<String, GHTeam> teams = org.getTeams();
 
-			
-			
-				// check for membership
-				for (GHUser member : team.getMembers()) {
+        boolean found = false;
 
-					System.out.println("member = " + member.getLogin());
-					
-					if (member.getLogin().equals(LOGIN)) {
+        for (GHTeam team : teams.values()) {
+            System.out.println("team = " + team.getName() + ", permission = "
+                    + team.getPermission());
 
-						found = true;
-					}
-					
-			}
-		}
+            // check for membership
+            for (GHUser member : team.getMembers()) {
+                System.out.println("member = " + member.getLogin());
 
-		assertTrue(found);
-	}
+                if (member.getLogin().equals(LOGIN)) {
+                    found = true;
+                }
+            }
+        }
 
-	public void testOrganizationMembership () throws IOException {
-	
-		GitHub gh = GitHub
-		.connectUsingOAuth(OAUTH_TOKEN);
+        assertTrue(found);
+    }
 
-		Map<String, GHOrganization> orgs = gh.getMyOrganizations();
-		
-		for (String orgName : orgs.keySet()) {
-			
-			GHOrganization org = orgs.get(orgName);
-			
-			Map<String, GHTeam> teams = org.getTeams();
-			
-			
-			System.out.println("org = " + orgName);
-			
-			for (String name : teams.keySet()) {
-				
-				GHTeam team = teams.get(name);
-				
-				Set<GHUser> members = team.getMembers();
-				
-				System.out.println("team = " + team.getName());
-				
-				for (GHUser ghUser : members) {
-					System.out.println("member = " + ghUser.getLogin());
-				}
-			}
-			
-			
-		}
+    public void testOrganizationMembership () throws IOException {
+        GitHub gh = GitHub.connectUsingOAuth(OAUTH_TOKEN);
 
-		assertTrue(true);
+        Map<String, GHOrganization> orgs = gh.getMyOrganizations();
 
-	}
-	
-	public void testOrganizationMembershipAPI () throws IOException {
-		
-		GitHub gh = GitHub.connect(LOGIN,
-		API_TOKEN);
+        for (String orgName : orgs.keySet()) {
+            GHOrganization org = orgs.get(orgName);
 
+            Map<String, GHTeam> teams = org.getTeams();
 
-		Map<String, GHOrganization> orgs = gh.getMyOrganizations();
-		
-		for (String orgName : orgs.keySet()) {
-			
-			GHOrganization org = orgs.get(orgName);
-			
-			System.out.println("org = " + orgName);
-			
-			
-		}
+            System.out.println("org = " + orgName);
 
-		assertTrue(true);
+            for (String name : teams.keySet()) {
+                GHTeam team = teams.get(name);
 
-	}
-	
-//	/organizations
-	public void testWithOAuthToken() throws IOException {
+                Set<GHUser> members = team.getMembers();
 
-		GitHub gh = GitHub
-				.connectUsingOAuth(OAUTH_TOKEN);
+                System.out.println("team = " + team.getName());
 
-		GHUser me = gh.getMyself();
+                for (GHUser ghUser : members) {
+                    System.out.println("member = " + ghUser.getLogin());
+                }
+            }
+        }
 
-		GHOrganization org = gh.getOrganization(PARTICPATING_ORG);
+        assertTrue(true);
+    }
 
-		Map<String, GHTeam> teams = org.getTeams();
+    public void testOrganizationMembershipAPI () throws IOException {
+        GitHub gh = GitHub.connect(LOGIN, API_TOKEN);
 
-		boolean found = false;
+        Map<String, GHOrganization> orgs = gh.getMyOrganizations();
 
-		for (GHTeam team : teams.values()) {
+        for (String orgName : orgs.keySet()) {
+            GHOrganization org = orgs.get(orgName);
 
-			System.out.println("team = " + team.getName() + ", permission = "
-					+ team.getPermission());
+            System.out.println("org = " + orgName);
+        }
 
-			// check for membership
-			for (GHUser member : team.getMembers()) {
+        assertTrue(true);
+    }
 
-				System.out.println("member = " + member.getLogin());
+    // /organizations
+    public void testWithOAuthToken() throws IOException {
+        GitHub gh = GitHub.connectUsingOAuth(OAUTH_TOKEN);
 
-				
-					if (member.getLogin().equals(LOGIN)) {
+        GHUser me = gh.getMyself();
 
-						found = true;
-				}
-			}
-		}
+        GHOrganization org = gh.getOrganization(PARTICPATING_ORG);
 
-		assertTrue(found);
-	}
+        Map<String, GHTeam> teams = org.getTeams();
+
+        boolean found = false;
+
+        for (GHTeam team : teams.values()) {
+            System.out.println("team = " + team.getName() + ", permission = "
+                    + team.getPermission());
+
+            // check for membership
+            for (GHUser member : team.getMembers()) {
+                System.out.println("member = " + member.getLogin());
+
+                if (member.getLogin().equals(LOGIN)) {
+                    found = true;
+                }
+            }
+        }
+
+        assertTrue(found);
+    }
 }

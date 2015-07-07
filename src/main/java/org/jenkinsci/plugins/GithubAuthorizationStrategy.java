@@ -55,161 +55,177 @@ import org.kohsuke.stapler.Stapler;
 
 /**
  * @author mocleiri
- * 
- * 
- * 
+ *
+ *
+ *
  */
 public class GithubAuthorizationStrategy extends AuthorizationStrategy {
     @Deprecated
     public GithubAuthorizationStrategy(String adminUserNames,
-    			    boolean authenticatedUserReadPermission, boolean useRepositoryPermissions,
-                    String organizationNames,
-    			    boolean allowGithubWebHookPermission, boolean allowCcTrayPermission,
-    			    boolean allowAnonymousReadPermission, boolean allowAnonymousJobStatusPermission) {
-    		this(adminUserNames, authenticatedUserReadPermission, useRepositoryPermissions, false, organizationNames, allowGithubWebHookPermission, allowCcTrayPermission, allowAnonymousReadPermission, allowAnonymousJobStatusPermission);
+            boolean authenticatedUserReadPermission,
+            boolean useRepositoryPermissions,
+            String organizationNames,
+            boolean allowGithubWebHookPermission,
+            boolean allowCcTrayPermission,
+            boolean allowAnonymousReadPermission,
+            boolean allowAnonymousJobStatusPermission) {
+        this(adminUserNames,
+                authenticatedUserReadPermission,
+                useRepositoryPermissions,
+                false,
+                organizationNames,
+                allowGithubWebHookPermission,
+                allowCcTrayPermission,
+                allowAnonymousReadPermission,
+                allowAnonymousJobStatusPermission);
     }
 
-	/**
-	 * @param allowAnonymousReadPermission
-	 * @since 0.19
-	 */
-	@DataBoundConstructor
-	public GithubAuthorizationStrategy(String adminUserNames,
-			boolean authenticatedUserReadPermission, boolean useRepositoryPermissions,
-                        boolean authenticatedUserCreateJobPermission, String organizationNames,
-			boolean allowGithubWebHookPermission, boolean allowCcTrayPermission,
-			boolean allowAnonymousReadPermission, boolean allowAnonymousJobStatusPermission) {
-		super();
+    /**
+     * @param allowAnonymousReadPermission
+     * @since 0.19
+     */
+    @DataBoundConstructor
+    public GithubAuthorizationStrategy(String adminUserNames,
+            boolean authenticatedUserReadPermission,
+            boolean useRepositoryPermissions,
+            boolean authenticatedUserCreateJobPermission,
+            String organizationNames,
+            boolean allowGithubWebHookPermission,
+            boolean allowCcTrayPermission,
+            boolean allowAnonymousReadPermission,
+            boolean allowAnonymousJobStatusPermission) {
+        super();
 
-		rootACL = new GithubRequireOrganizationMembershipACL(adminUserNames,
-				organizationNames, authenticatedUserReadPermission,
-                                useRepositoryPermissions, authenticatedUserCreateJobPermission,
-                                allowGithubWebHookPermission,
-                                allowCcTrayPermission, allowAnonymousReadPermission,
-                                allowAnonymousJobStatusPermission);
-	}
+        rootACL = new GithubRequireOrganizationMembershipACL(adminUserNames,
+                organizationNames,
+                authenticatedUserReadPermission,
+                useRepositoryPermissions,
+                authenticatedUserCreateJobPermission,
+                allowGithubWebHookPermission,
+                allowCcTrayPermission,
+                allowAnonymousReadPermission,
+                allowAnonymousJobStatusPermission);
+    }
 
-	private final GithubRequireOrganizationMembershipACL rootACL;
+    private final GithubRequireOrganizationMembershipACL rootACL;
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see hudson.security.AuthorizationStrategy#getRootACL()
-	 */
-	@Override
-	public ACL getRootACL() {
+    /*
+     * (non-Javadoc)
+     *
+     * @see hudson.security.AuthorizationStrategy#getRootACL()
+     */
+    @Override
+    public ACL getRootACL() {
+        return rootACL;
+    }
 
-		return rootACL;
+    public ACL getACL(Job<?,?> job) {
+        if(job instanceof AbstractProject) {
+            AbstractProject project = (AbstractProject)job;
+                    GithubRequireOrganizationMembershipACL githubACL = (GithubRequireOrganizationMembershipACL) getRootACL();
+            return githubACL.cloneForProject(project);
+          } else {
+            return getRootACL();
+          }
+    }
 
-	}
+    /*
+     * (non-Javadoc)
+     *
+     * @see hudson.security.AuthorizationStrategy#getGroups()
+     */
+    @Override
+    public Collection<String> getGroups() {
+        return new ArrayList<String>(0);
+    }
 
-	public ACL getACL(Job<?,?> job) {
-		if(job instanceof AbstractProject) {
-			AbstractProject project = (AbstractProject)job;
-	                GithubRequireOrganizationMembershipACL githubACL = (GithubRequireOrganizationMembershipACL) getRootACL();
-			return githubACL.cloneForProject(project);
-		  } else {
-			return getRootACL();
-		  }
-	}
+    private Object readResolve() {
+        return this;
+    }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see hudson.security.AuthorizationStrategy#getGroups()
-	 */
-	@Override
-	public Collection<String> getGroups() {
-		return new ArrayList<String>(0);
-	}
+    /**
+     * @return
+     * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#getOrganizationNameList()
+     */
+    public String getOrganizationNames() {
+        return StringUtils.join(rootACL.getOrganizationNameList().iterator(), ", ");
+    }
 
-	private Object readResolve() {
-		return this;
-	}
+    /**
+     * @return
+     * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#getAdminUserNameList()
+     */
+    public String getAdminUserNames() {
+        return StringUtils.join(rootACL.getAdminUserNameList().iterator(), ", ");
+    }
 
-	/**
-	 * @return
-	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#getOrganizationNameList()
-	 */
-	public String getOrganizationNames() {
-		return StringUtils.join(rootACL.getOrganizationNameList().iterator(), ", ");
-	}
+    /**
+     * @return
+     * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isUseRepositoryPermissions()
+     */
+    public boolean isUseRepositoryPermissions() {
+        return rootACL.isUseRepositoryPermissions();
+    }
 
-	/**
-	 * @return
-	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#getAdminUserNameList()
-	 */
-	public String getAdminUserNames() {
-		return StringUtils.join(rootACL.getAdminUserNameList().iterator(), ", ");
-	}
+    /**
+     * @return
+     * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAuthenticatedUserCreateJobPermission()
+     */
+    public boolean isAuthenticatedUserCreateJobPermission() {
+        return rootACL.isAuthenticatedUserCreateJobPermission();
+    }
 
-	/**
-	 * @return
-	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isUseRepositoryPermissions()
-	 */
-	public boolean isUseRepositoryPermissions() {
-		return rootACL.isUseRepositoryPermissions();
-	}
+    /**
+     * @return
+     * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAuthenticatedUserReadPermission()
+     */
+    public boolean isAuthenticatedUserReadPermission() {
+        return rootACL.isAuthenticatedUserReadPermission();
+    }
 
-	/**
-	 * @return
-	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAuthenticatedUserCreateJobPermission()
-	 */
-	public boolean isAuthenticatedUserCreateJobPermission() {
-		return rootACL.isAuthenticatedUserCreateJobPermission();
-	}
+    /**
+     * @return
+     * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAllowGithubWebHookPermission()
+     */
+    public boolean isAllowGithubWebHookPermission() {
+        return rootACL.isAllowGithubWebHookPermission();
+    }
 
-	/**
-	 * @return
-	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAuthenticatedUserReadPermission()
-	 */
-	public boolean isAuthenticatedUserReadPermission() {
-		return rootACL.isAuthenticatedUserReadPermission();
-	}
+    /**
+     * @return
+     * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAllowCcTrayPermission()
+     */
+    public boolean isAllowCcTrayPermission() {
+        return rootACL.isAllowCcTrayPermission();
+    }
 
-	/**
-	 * @return
-	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAllowGithubWebHookPermission()
-	 */
-	public boolean isAllowGithubWebHookPermission() {
-		return rootACL.isAllowGithubWebHookPermission();
-	}
 
-	/**
-	 * @return
-	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAllowCcTrayPermission()
-	 */
-	public boolean isAllowCcTrayPermission() {
-		return rootACL.isAllowCcTrayPermission();
-	}
+    /**
+     * @return
+     * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAllowAnonymousReadPermission()
+     */
+    public boolean isAllowAnonymousReadPermission() {
+        return rootACL.isAllowAnonymousReadPermission();
+    }
 
-	
-	/**
-	 * @return
-	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAllowAnonymousReadPermission()
-	 */
-	public boolean isAllowAnonymousReadPermission() {
-		return rootACL.isAllowAnonymousReadPermission();
-	}
+    /**
+     * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAllowAnonymousJobStatusPermission()
+     * @return
+     */
+    public boolean isAllowAnonymousJobStatusPermission() {
+        return rootACL.isAllowAnonymousJobStatusPermission();
+    }
 
-	/**
-	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAllowAnonymousJobStatusPermission()
-	 * @return
-	 */
-	public boolean isAllowAnonymousJobStatusPermission() {
-		return rootACL.isAllowAnonymousJobStatusPermission();
-	}
+    @Extension
+    public static final class DescriptorImpl extends
+            Descriptor<AuthorizationStrategy> {
 
-	@Extension
-	public static final class DescriptorImpl extends
-			Descriptor<AuthorizationStrategy> {
+        public String getDisplayName() {
+            return "Github Commiter Authorization Strategy";
+        }
 
-		public String getDisplayName() {
-			return "Github Commiter Authorization Strategy";
-		}
-
-		public String getHelpFile() {
-			return "/plugin/github-oauth/help/help-authorization-strategy.html";
-		}
-	}
+        public String getHelpFile() {
+            return "/plugin/github-oauth/help/help-authorization-strategy.html";
+        }
+    }
 }

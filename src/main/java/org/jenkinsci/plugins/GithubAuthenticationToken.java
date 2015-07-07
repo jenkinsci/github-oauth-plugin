@@ -63,38 +63,37 @@ import org.kohsuke.github.GitHub;
  */
 public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
-	/**
-	 *
-	 */
-	private static final long serialVersionUID = 1L;
-	private final String accessToken;
+    /**
+     *
+     */
+    private static final long serialVersionUID = 1L;
+    private final String accessToken;
 
-	private final String userName;
-	private final GitHub gh;
-        private final GHMyself me;
+    private final String userName;
+    private final GitHub gh;
+    private final GHMyself me;
 
-	/**
-	 * Cache for faster organization based security
-	 */
-	private static final Cache<String, Set<String>> userOrganizationCache =
+    /**
+     * Cache for faster organization based security
+     */
+    private static final Cache<String, Set<String>> userOrganizationCache =
             CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
 
-	private static final Cache<String, Set<String>> repositoryCollaboratorsCache =
+    private static final Cache<String, Set<String>> repositoryCollaboratorsCache =
             CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
 
-	private static final Cache<String, Set<String>> repositoriesByUserCache =
+    private static final Cache<String, Set<String>> repositoriesByUserCache =
             CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
 
-	private static final Cache<String, Boolean> publicRepositoryCache =
+    private static final Cache<String, Boolean> publicRepositoryCache =
             CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
 
     private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
 
-	public GithubAuthenticationToken(String accessToken, String githubServer) throws IOException {
+    public GithubAuthenticationToken(String accessToken, String githubServer) throws IOException {
+        super(new GrantedAuthority[] {});
 
-		super(new GrantedAuthority[] {});
-
-		this.accessToken = accessToken;
+        this.accessToken = accessToken;
         this.gh = GitHub.connectUsingOAuth(githubServer, accessToken);
 
         this.me = gh.getMyself();
@@ -113,17 +112,16 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
                         + team.getName()));
             }
         }
-
     }
 
-        /**
-         * Necessary for testing
-         */
-        public static void clearCaches() {
-            userOrganizationCache.invalidateAll();
-            repositoryCollaboratorsCache.invalidateAll();
-            repositoriesByUserCache.invalidateAll();
-        }
+    /**
+     * Necessary for testing
+     */
+    public static void clearCaches() {
+        userOrganizationCache.invalidateAll();
+        repositoryCollaboratorsCache.invalidateAll();
+        repositoriesByUserCache.invalidateAll();
+    }
 
     /**
      * Gets the OAuth access token, so that it can be persisted and used elsewhere.
@@ -141,34 +139,33 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         return authorities.toArray(new GrantedAuthority[authorities.size()]);
     }
 
-	public Object getCredentials() {
-		return ""; // do not expose the credential
-	}
+    public Object getCredentials() {
+        return ""; // do not expose the credential
+    }
 
     /**
      * Returns the login name in GitHub.
      */
-	public String getPrincipal() {
-		return this.userName;
-	}
+    public String getPrincipal() {
+        return this.userName;
+    }
 
-	/**
-	 * For some reason I can't get the github api to tell me for the current
-	 * user the groups to which he belongs.
-	 *
-	 * So this is a slightly larger consideration. If the authenticated user is
-	 * part of any team within the organization then they have permission.
-	 *
-	 * It caches user organizations for 24 hours for faster web navigation.
-	 *
-	 * @param candidateName
-	 * @param organization
-	 * @return
-	 */
-	public boolean hasOrganizationPermission(String candidateName,
-			String organization) {
-
-		try {
+    /**
+     * For some reason I can't get the github api to tell me for the current
+     * user the groups to which he belongs.
+     *
+     * So this is a slightly larger consideration. If the authenticated user is
+     * part of any team within the organization then they have permission.
+     *
+     * It caches user organizations for 24 hours for faster web navigation.
+     *
+     * @param candidateName
+     * @param organization
+     * @return
+     */
+    public boolean hasOrganizationPermission(String candidateName,
+            String organization) {
+        try {
             Set<String> v = userOrganizationCache.get(candidateName,new Callable<Set<String>>() {
                 @Override
                 public Set<String> call() throws Exception {
@@ -177,9 +174,9 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
             });
 
             return v.contains(organization);
-		} catch (ExecutionException e) {
+        } catch (ExecutionException e) {
             throw new RuntimeException("authorization failed for user = "
-         					+ candidateName, e);
+                    + candidateName, e);
         }
     }
 
@@ -210,7 +207,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         } catch (ExecutionException e) {
             LOGGER.log(Level.SEVERE, "an exception was thrown", e);
             throw new RuntimeException("authorization failed for user = "
-                        + getName(), e);
+                    + getName(), e);
         }
     }
 
@@ -245,7 +242,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         } catch (ExecutionException e) {
             LOGGER.log(Level.SEVERE, "an exception was thrown", e);
             throw new RuntimeException("authorization failed for user = "
-                        + getName(), e);
+                    + getName(), e);
         }
     }
 
@@ -335,4 +332,5 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         }
         return null;
     }
+
 }
