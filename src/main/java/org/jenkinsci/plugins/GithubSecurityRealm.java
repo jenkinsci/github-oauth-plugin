@@ -60,6 +60,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.jfree.util.Log;
 import org.kohsuke.github.GHOrganization;
+import org.kohsuke.github.GHTeam;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Header;
@@ -89,7 +90,7 @@ import static java.util.logging.Level.*;
  * This is based on the MySQLSecurityRealm from the mysql-auth-plugin written by
  * Alex Ackerman.
  */
-public class GithubSecurityRealm extends SecurityRealm {
+public class GithubSecurityRealm extends SecurityRealm implements UserDetailsService {
 	private static final String DEFAULT_WEB_URI = "https://github.com";
 	private static final String DEFAULT_API_URI = "https://api.github.com";
 	private static final String DEFAULT_ENTERPRISE_API_SUFFIX = "/api/v3";
@@ -448,7 +449,7 @@ public class GithubSecurityRealm extends SecurityRealm {
 			    u.addProperty(new Mailer.UserProperty(self.getEmail()));
 		    }
 
-            fireAuthenticated(new GithubOAuthUserDetails(self));
+            fireAuthenticated(new GithubOAuthUserDetails(self, auth.getAuthorities()));
 		}
 		else {
 			Log.info("Github did not return an access token.");
@@ -600,27 +601,18 @@ public class GithubSecurityRealm extends SecurityRealm {
 		}
 
 		try {
+            GithubOAuthUserDetails userDetails = authToken.getUserDetails(username);
+            if (userDetails == null)
+                throw new UsernameNotFoundException("Unknown user: " + username);
 
-			GroupDetails group = null;
-			try {
-				group = loadGroupByGroupname(username);
-			} catch (DataRetrievalFailureException e) {
-				LOGGER.config("No group found with name: " + username);
-			} catch (UsernameNotFoundException e) {
-				LOGGER.config("No group found with name: " + username);
+            // Check the username is not an homonym of an organization
+            GHOrganization ghOrg = authToken.loadOrganization(username);
+            if (ghOrg != null) {
+                throw new UsernameNotFoundException("user(" + username + ") is also an organization");
 			}
 
-			if (group != null) {
-				throw new UsernameNotFoundException ("user("+username+") is also an organization");
-			}
-
-			user = authToken.loadUser(username);
-
-			if (user != null)
-				return new GithubOAuthUserDetails(user);
-			else
-				throw new UsernameNotFoundException("No known user: " + username);
-		} catch (IOException e) {
+            return userDetails;
+		} catch (Error e) {
 			throw new DataRetrievalFailureException("loadUserByUsername (username=" + username +")", e);
 		}
 	}
@@ -642,14 +634,26 @@ public class GithubSecurityRealm extends SecurityRealm {
 			throw new UsernameNotFoundException("No known group: " + groupName);
 
 		try {
-			GHOrganization org = authToken.loadOrganization(groupName);
-
-			if (org != null)
-				return new GithubOAuthGroupDetails(org);
-			else
-				throw new UsernameNotFoundException("No known group: " + groupName);
-		} catch (IOException e) {
-			throw new DataRetrievalFailureException("loadGroupByGroupname (groupname=" + groupName +")", e);
+            int idx = groupName.indexOf(GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR);
+            if (idx > -1 && groupName.length() > idx + 1) { // groupName = "GHOrganization*GHTeam"
+                String orgName = groupName.substring(0, idx);
+                String teamName = groupName.substring(idx + 1);
+                LOGGER.config(String.format("Lookup for team %s in organization %s", teamName, orgName));
+                GHTeam ghTeam = authToken.loadTeam(orgName, teamName);
+                if (ghTeam == null) {
+                    throw new UsernameNotFoundException("Unknown GitHub team: " + teamName + " in organization "
+                            + orgName);
+                }
+                return new GithubOAuthGroupDetails(ghTeam);
+            } else { // groupName = "GHOrganization"
+                GHOrganization ghOrg = authToken.loadOrganization(groupName);
+                if (ghOrg == null) {
+                    throw new UsernameNotFoundException("Unknown GitHub organization: " + groupName);
+                }
+                return new GithubOAuthGroupDetails(ghOrg);
+            }
+        } catch (Error e) {
+            throw new DataRetrievalFailureException("loadGroupByGroupname (groupname=" + groupName + ")", e);
 		}
 	}
 
