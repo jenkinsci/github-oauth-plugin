@@ -50,6 +50,7 @@ import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
+import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
 import org.apache.commons.httpclient.URIException;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -542,6 +543,15 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
 					throws AuthenticationException {
 				if (authentication instanceof GithubAuthenticationToken)
 					return authentication;
+				if (authentication instanceof UsernamePasswordAuthenticationToken)
+					try {
+						UsernamePasswordAuthenticationToken token = (UsernamePasswordAuthenticationToken) authentication;
+						GithubAuthenticationToken github = new GithubAuthenticationToken(token.getCredentials().toString(), getGithubApiUri());
+						SecurityContextHolder.getContext().setAuthentication(github);
+						return github;
+					} catch (IOException e) {
+							throw new RuntimeException(e);
+					}
 				throw new BadCredentialsException(
 						"Unexpected authentication type: " + authentication);
 			}
