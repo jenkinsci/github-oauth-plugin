@@ -65,8 +65,8 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
     			    boolean authenticatedUserReadPermission, boolean useRepositoryPermissions,
                     String organizationNames,
     			    boolean allowGithubWebHookPermission, boolean allowCcTrayPermission,
-    			    boolean allowAnonymousReadPermission) {
-    		this(adminUserNames, authenticatedUserReadPermission, useRepositoryPermissions, false, organizationNames, allowGithubWebHookPermission, allowCcTrayPermission, allowAnonymousReadPermission);
+    			    boolean allowAnonymousReadPermission, boolean allowAnonymousJobStatusPermission) {
+    		this(adminUserNames, authenticatedUserReadPermission, useRepositoryPermissions, false, organizationNames, allowGithubWebHookPermission, allowCcTrayPermission, allowAnonymousReadPermission, allowAnonymousJobStatusPermission);
     }
 
 	/**
@@ -78,14 +78,15 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 			boolean authenticatedUserReadPermission, boolean useRepositoryPermissions,
                         boolean authenticatedUserCreateJobPermission, String organizationNames,
 			boolean allowGithubWebHookPermission, boolean allowCcTrayPermission,
-			boolean allowAnonymousReadPermission) {
+			boolean allowAnonymousReadPermission, boolean allowAnonymousJobStatusPermission) {
 		super();
 
 		rootACL = new GithubRequireOrganizationMembershipACL(adminUserNames,
 				organizationNames, authenticatedUserReadPermission,
                                 useRepositoryPermissions, authenticatedUserCreateJobPermission,
                                 allowGithubWebHookPermission,
-                                allowCcTrayPermission, allowAnonymousReadPermission);
+                                allowCcTrayPermission, allowAnonymousReadPermission,
+                                allowAnonymousJobStatusPermission);
 	}
 
 	private final GithubRequireOrganizationMembershipACL rootACL;
@@ -191,6 +192,13 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 		return rootACL.isAllowAnonymousReadPermission();
 	}
 
+	/**
+	 * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isAllowAnonymousJobStatusPermission()
+	 * @return
+	 */
+	public boolean isAllowAnonymousJobStatusPermission() {
+		return rootACL.isAllowAnonymousJobStatusPermission();
+	}
 
 	@Extension
 	public static final class DescriptorImpl extends
