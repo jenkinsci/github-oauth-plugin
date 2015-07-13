@@ -72,9 +72,14 @@ import org.powermock.modules.junit4.PowerMockRunner;
 @PrepareForTest( GitHub.class )
 public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
-    private final Permission VIEW_JOBSTATUS_PERMISSION = new Permission(Item.PERMISSIONS, "ViewStatus", Messages._Item_READ_description(), Permission.READ, PermissionScope.ITEM);
-    private final Authentication ANONYMOUS_USER        = new AnonymousAuthenticationToken("anonymous","anonymous",
-        new GrantedAuthority[]{new GrantedAuthorityImpl("anonymous")});
+    private final Permission VIEW_JOBSTATUS_PERMISSION = new Permission(Item.PERMISSIONS,
+            "ViewStatus",
+            Messages._Item_READ_description(),
+            Permission.READ,
+            PermissionScope.ITEM);
+    private final Authentication ANONYMOUS_USER        = new AnonymousAuthenticationToken("anonymous",
+            "anonymous",
+            new GrantedAuthority[]{new GrantedAuthorityImpl("anonymous")});
 
     boolean allowAnonymousJobStatusPermission = false;
 
@@ -83,9 +88,16 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         boolean authenticatedUserReadPermission = true;
         boolean authenticatedUserCreateJobPermission = false;
 
-        GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL("admin", "myOrg",
-                authenticatedUserReadPermission, useRepositoryPermissions, authenticatedUserCreateJobPermission,
-                true, true, true, allowAnonymousJobStatusPermission);
+        GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL(
+                "admin",
+                "myOrg",
+                authenticatedUserReadPermission,
+                useRepositoryPermissions,
+                authenticatedUserCreateJobPermission,
+                true,
+                true,
+                true,
+                allowAnonymousJobStatusPermission);
         return acl.cloneForProject(project);
     }
 
@@ -380,6 +392,5 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         assertFalse(acl.hasPermission(ANONYMOUS_USER, VIEW_JOBSTATUS_PERMISSION));
     }
-
 
 }

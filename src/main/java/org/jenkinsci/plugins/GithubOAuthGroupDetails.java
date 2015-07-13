@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package org.jenkinsci.plugins;
 
@@ -49,7 +49,5 @@ public class GithubOAuthGroupDetails extends GroupDetails {
             return org.getLogin();
         return null;
     }
-
-
 
 }

@@ -46,187 +46,179 @@ import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * @author Mike
- * 
+ *
  */
 public class GithubRequireOrganizationMembershipACL extends ACL {
 
-	private static final Logger log = Logger
-			.getLogger(GithubRequireOrganizationMembershipACL.class.getName());
+    private static final Logger log = Logger
+            .getLogger(GithubRequireOrganizationMembershipACL.class.getName());
 
-	private final List<String> organizationNameList;
-	private final List<String> adminUserNameList;
-	private final boolean authenticatedUserReadPermission;
-        private final boolean useRepositoryPermissions;
-        private final boolean authenticatedUserCreateJobPermission;
-	private final boolean allowGithubWebHookPermission;
+    private final List<String> organizationNameList;
+    private final List<String> adminUserNameList;
+    private final boolean authenticatedUserReadPermission;
+    private final boolean useRepositoryPermissions;
+    private final boolean authenticatedUserCreateJobPermission;
+    private final boolean allowGithubWebHookPermission;
     private final boolean allowCcTrayPermission;
     private final boolean allowAnonymousReadPermission;
     private final boolean allowAnonymousJobStatusPermission;
     private final AbstractProject project;
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see hudson.security.ACL#hasPermission(org.acegisecurity.Authentication,
-	 * hudson.security.Permission)
-	 */
-	@Override
-	public boolean hasPermission(Authentication a, Permission permission) {
+    /*
+     * (non-Javadoc)
+     *
+     * @see hudson.security.ACL#hasPermission(org.acegisecurity.Authentication,
+     * hudson.security.Permission)
+     */
+    @Override
+    public boolean hasPermission(Authentication a, Permission permission) {
+        if (a != null && a instanceof GithubAuthenticationToken) {
+            if (!a.isAuthenticated())
+                return false;
 
-		if (a != null && a instanceof GithubAuthenticationToken) {
+            GithubAuthenticationToken authenticationToken = (GithubAuthenticationToken) a;
 
-			if (!a.isAuthenticated())
-				return false;
+            String candidateName = a.getName();
 
-			GithubAuthenticationToken authenticationToken = (GithubAuthenticationToken) a;
+            if (adminUserNameList.contains(candidateName)) {
+                // if they are an admin then they have permission
+                log.finest("Granting Admin rights to user " + candidateName);
+                return true;
+            }
 
-			String candidateName = a.getName();
+            if (this.project != null) {
+                if (useRepositoryPermissions) {
+                    if(hasRepositoryPermission(authenticationToken, permission)) {
+                        log.finest("Granting Authenticated User " + permission.getId() +
+                            " permission on project " + project.getName() +
+                            "to user " + candidateName);
+                        return true;
+                    }
+                } else {
+                    if (authenticatedUserReadPermission) {
+                        if (checkReadPermission(permission)) {
+                            log.finest("Granting Authenticated User read permission " +
+                                "on project " + project.getName() +
+                                "to user " + candidateName);
+                            return true;
+                        }
+                    }
+                }
+            } else if (authenticatedUserReadPermission) {
+                if (checkReadPermission(permission)) {
+                    // if we support authenticated read and this is a read
+                    // request we allow it
+                    log.finest("Granting Authenticated User read permission to user "
+                            + candidateName);
+                return true;
+                }
+            }
 
-			if (adminUserNameList.contains(candidateName)) {
-				// if they are an admin then they have permission
-				log.finest("Granting Admin rights to user " + candidateName);
-				return true;
-			}
+            if (authenticatedUserCreateJobPermission && permission.equals(Item.CREATE)) {
+                return true;
+            }
 
-			if (this.project != null) {
-				if (useRepositoryPermissions) {
-					if(hasRepositoryPermission(authenticationToken, permission)) {
-						log.finest("Granting Authenticated User " + permission.getId() +
-							" permission on project " + project.getName() +
-							"to user " + candidateName);
-						return true;
-					}
-				} else {
-					if (authenticatedUserReadPermission) {
-						if (checkReadPermission(permission)) {
-							log.finest("Granting Authenticated User read permission " +
-								"on project " + project.getName() +
-								"to user " + candidateName);
-							return true;
-						}
-					}
-				}
-			} else if (authenticatedUserReadPermission) {
+            for (String organizationName : this.organizationNameList) {
+                if (authenticationToken.hasOrganizationPermission(
+                        candidateName, organizationName)) {
 
-				if (checkReadPermission(permission)) {
+                    String[] parts = permission.getId().split("\\.");
 
-					// if we support authenticated read and this is a read
-					// request we allow it
-					log.finest("Granting Authenticated User read permission to user "
-							+ candidateName);
-				return true;
-				}
-			}
+                    String test = parts[parts.length - 1].toLowerCase();
 
-			if (authenticatedUserCreateJobPermission && permission.equals(Item.CREATE)) {
-				return true;
-			}
+                    if (checkReadPermission(permission)
+                            || testBuildPermission(permission)) {
+                        // check the permission
 
-			for (String organizationName : this.organizationNameList) {
+                        log.finest("Granting READ and BUILD rights to user "
+                                + candidateName + " a member of "
+                                + organizationName);
+                        return true;
+                    }
+                }
+            }
 
-				if (authenticationToken.hasOrganizationPermission(
-						candidateName, organizationName)) {
+            // no match.
+            return false;
+        } else {
+            String authenticatedUserName = a.getName();
 
-					String[] parts = permission.getId().split("\\.");
+            if (authenticatedUserName.equals(SYSTEM.getPrincipal())) {
+                // give system user full access
+                log.finest("Granting Full rights to SYSTEM user.");
+                return true;
+            }
 
-					String test = parts[parts.length - 1].toLowerCase();
+            if (authenticatedUserName.equals("anonymous")) {
+                if(checkJobStatusPermission(permission) && allowAnonymousJobStatusPermission) {
+                    return true;
+                }
 
-					if (checkReadPermission(permission)
-							|| testBuildPermission(permission)) {
-						// check the permission
+                if (checkReadPermission(permission)) {
+                    if (allowAnonymousReadPermission) {
+                        return true;
+                    }
+                    if (allowGithubWebHookPermission &&
+                            (currentUriPathEquals("github-webhook") ||
+                             currentUriPathEquals("github-webhook/"))) {
+                        log.info("Granting READ access for github-webhook url: " + requestURI());
+                        return true;
+                    }
+                    if (allowCcTrayPermission && currentUriPathEquals("cc.xml")) {
+                        log.info("Granting READ access for cctray url: " + requestURI());
+                        return true;
+                    }
+                    log.finer("Denying anonymous READ permission to url: " + requestURI());
+                }
+                return false;
+            }
 
-						log.finest("Granting READ and BUILD rights to user "
-								+ candidateName + " a member of "
-								+ organizationName);
-						return true;
-					}
-				}
+            if (adminUserNameList.contains(authenticatedUserName)) {
+                // if they are an admin then they have all permissions
+                log.finest("Granting Admin rights to user " + a.getName());
+                return true;
+            }
 
-			}
+            // else:
+            // deny request
+            //
+            return false;
+        }
+    }
 
-			// no match.
-			return false;
+    private boolean currentUriPathEquals( String specificPath ) {
+        String requestUri = requestURI();
+        if (requestUri != null) {
+            String basePath = URI.create(Jenkins.getInstance().getRootUrl()).getPath();
+            return URI.create(requestUri).getPath().equals(basePath + specificPath);
+        } else {
+            return false;
+        }
+    }
 
-		} else {
+    private String requestURI() {
+        StaplerRequest currentRequest = Stapler.getCurrentRequest();
+        return (currentRequest == null) ? null : currentRequest.getOriginalRequestURI();
+    }
 
-			String authenticatedUserName = a.getName();
+    private boolean testBuildPermission(Permission permission) {
+        if (permission.getId().equals("hudson.model.Hudson.Build")
+                || permission.getId().equals("hudson.model.Item.Build")) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 
-			if (authenticatedUserName.equals(SYSTEM.getPrincipal())) {
-				// give system user full access
-				log.finest("Granting Full rights to SYSTEM user.");
-				return true;
-			}
-
-			if (authenticatedUserName.equals("anonymous")) {
-				if(checkJobStatusPermission(permission) && allowAnonymousJobStatusPermission) {
-					return true;
-				}
-
-				if (checkReadPermission(permission)) {
-					if (allowAnonymousReadPermission) {
-						return true;
-					}
-					if (allowGithubWebHookPermission &&
-							(currentUriPathEquals("github-webhook") ||
-							 currentUriPathEquals("github-webhook/"))) {
-						log.info("Granting READ access for github-webhook url: " + requestURI());
-						return true;
-					}
-					if (allowCcTrayPermission && currentUriPathEquals("cc.xml")) {
-						log.info("Granting READ access for cctray url: " + requestURI());
-						return true;
-					}
-					log.finer("Denying anonymous READ permission to url: " + requestURI());
-				}
-				return false;
-			}
-
-			if (adminUserNameList.contains(authenticatedUserName)) {
-				// if they are an admin then they have all permissions
-				log.finest("Granting Admin rights to user " + a.getName());
-				return true;
-			}
-
-			// else:
-			// deny request
-			//
-			return false;
-
-		}
-
-	}
-
-	private boolean currentUriPathEquals( String specificPath ) {
-		String requestUri = requestURI();
-		if (requestUri != null) {
-			String basePath = URI.create(Jenkins.getInstance().getRootUrl()).getPath();
-			return URI.create(requestUri).getPath().equals(basePath + specificPath);
-		} else {
-			return false;
-		}
-	}
-
-	private String requestURI() {
-		StaplerRequest currentRequest = Stapler.getCurrentRequest();
-		return (currentRequest == null) ? null : currentRequest.getOriginalRequestURI();
-	}
-
-	private boolean testBuildPermission(Permission permission) {
-		if (permission.getId().equals("hudson.model.Hudson.Build")
-				|| permission.getId().equals("hudson.model.Item.Build")) {
-			return true;
-		} else
-			return false;
-	}
-
-	private boolean checkReadPermission(Permission permission) {
-		if (permission.getId().equals("hudson.model.Hudson.Read")
+    private boolean checkReadPermission(Permission permission) {
+        if (permission.getId().equals("hudson.model.Hudson.Read")
                 || permission.getId().equals("hudson.model.Item.Workspace")
-				|| permission.getId().equals("hudson.model.Item.Read")) {
-			return true;
-		} else
-			return false;
-	}
+                || permission.getId().equals("hudson.model.Item.Read")) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 
     private boolean checkJobStatusPermission(Permission permission) {
         return permission.getId().equals("hudson.model.Item.ViewStatus");
@@ -275,115 +267,117 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
         return repositoryName;
     }
 
-	public GithubRequireOrganizationMembershipACL(String adminUserNames,
-			String organizationNames, boolean authenticatedUserReadPermission,
-                        boolean useRepositoryPermissions,
-                        boolean authenticatedUserCreateJobPermission,
-			boolean allowGithubWebHookPermission,
+    public GithubRequireOrganizationMembershipACL(String adminUserNames,
+            String organizationNames,
+            boolean authenticatedUserReadPermission,
+            boolean useRepositoryPermissions,
+            boolean authenticatedUserCreateJobPermission,
+            boolean allowGithubWebHookPermission,
             boolean allowCcTrayPermission,
-			boolean allowAnonymousReadPermission,
-			boolean allowAnonymousJobStatusPermission) {
-		super();
-		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
-                this.useRepositoryPermissions = useRepositoryPermissions;
-                this.authenticatedUserCreateJobPermission = authenticatedUserCreateJobPermission;
-		this.allowGithubWebHookPermission = allowGithubWebHookPermission;
-        this.allowCcTrayPermission = allowCcTrayPermission;
-        this.allowAnonymousReadPermission = allowAnonymousReadPermission;
-        this.allowAnonymousJobStatusPermission = allowAnonymousJobStatusPermission;
+            boolean allowAnonymousReadPermission,
+            boolean allowAnonymousJobStatusPermission) {
+        super();
 
-		this.adminUserNameList = new LinkedList<String>();
+        this.authenticatedUserReadPermission      = authenticatedUserReadPermission;
+        this.useRepositoryPermissions             = useRepositoryPermissions;
+        this.authenticatedUserCreateJobPermission = authenticatedUserCreateJobPermission;
+        this.allowGithubWebHookPermission         = allowGithubWebHookPermission;
+        this.allowCcTrayPermission                = allowCcTrayPermission;
+        this.allowAnonymousReadPermission         = allowAnonymousReadPermission;
+        this.allowAnonymousJobStatusPermission    = allowAnonymousJobStatusPermission;
+        this.adminUserNameList                    = new LinkedList<String>();
 
-		String[] parts = adminUserNames.split(",");
+        String[] parts = adminUserNames.split(",");
 
-		for (String part : parts) {
-			adminUserNameList.add(part.trim());
-		}
+        for (String part : parts) {
+            adminUserNameList.add(part.trim());
+        }
 
-		this.organizationNameList = new LinkedList<String>();
+        this.organizationNameList = new LinkedList<String>();
 
-		parts = organizationNames.split(",");
+        parts = organizationNames.split(",");
 
-		for (String part : parts) {
-			organizationNameList.add(part.trim());
-		}
+        for (String part : parts) {
+            organizationNameList.add(part.trim());
+        }
 
-		this.project = null;
-	}
+        this.project = null;
+    }
 
-	public GithubRequireOrganizationMembershipACL(List<String> adminUserNameList,
-			List<String> organizationNameList,
-			boolean authenticatedUserReadPermission,
-                        boolean useRepositoryPermissions,
-                        boolean authenticatedUserCreateJobPermission,
-			boolean allowGithubWebHookPermission,
+    public GithubRequireOrganizationMembershipACL(List<String> adminUserNameList,
+            List<String> organizationNameList,
+            boolean authenticatedUserReadPermission,
+            boolean useRepositoryPermissions,
+            boolean authenticatedUserCreateJobPermission,
+            boolean allowGithubWebHookPermission,
             boolean allowCcTrayPermission,
-			boolean allowAnonymousReadPermission,
-			boolean allowAnonymousJobStatusPermission,
-			AbstractProject project) {
-		super();
-		this.adminUserNameList = adminUserNameList;
-		this.organizationNameList = organizationNameList;
-		this.authenticatedUserReadPermission = authenticatedUserReadPermission;
-                this.useRepositoryPermissions = useRepositoryPermissions;
-                this.authenticatedUserCreateJobPermission = authenticatedUserCreateJobPermission;
-		this.allowGithubWebHookPermission = allowGithubWebHookPermission;
-        this.allowCcTrayPermission = allowCcTrayPermission;
-        this.allowAnonymousReadPermission = allowAnonymousReadPermission;
-        this.allowAnonymousJobStatusPermission = allowAnonymousJobStatusPermission;
-		this.project = project;
-	}
+            boolean allowAnonymousReadPermission,
+            boolean allowAnonymousJobStatusPermission,
+            AbstractProject project) {
+        super();
 
-	public GithubRequireOrganizationMembershipACL cloneForProject(AbstractProject project) {
-		return new GithubRequireOrganizationMembershipACL(
-			this.adminUserNameList,
-			this.organizationNameList,
-			this.authenticatedUserReadPermission,
-                        this.useRepositoryPermissions,
-			this.authenticatedUserCreateJobPermission,
-			this.allowGithubWebHookPermission,
+        this.adminUserNameList                    = adminUserNameList;
+        this.organizationNameList                 = organizationNameList;
+        this.authenticatedUserReadPermission      = authenticatedUserReadPermission;
+        this.useRepositoryPermissions             = useRepositoryPermissions;
+        this.authenticatedUserCreateJobPermission = authenticatedUserCreateJobPermission;
+        this.allowGithubWebHookPermission         = allowGithubWebHookPermission;
+        this.allowCcTrayPermission                = allowCcTrayPermission;
+        this.allowAnonymousReadPermission         = allowAnonymousReadPermission;
+        this.allowAnonymousJobStatusPermission    = allowAnonymousJobStatusPermission;
+        this.project                              = project;
+    }
+
+    public GithubRequireOrganizationMembershipACL cloneForProject(AbstractProject project) {
+        return new GithubRequireOrganizationMembershipACL(
+            this.adminUserNameList,
+            this.organizationNameList,
+            this.authenticatedUserReadPermission,
+            this.useRepositoryPermissions,
+            this.authenticatedUserCreateJobPermission,
+            this.allowGithubWebHookPermission,
             this.allowCcTrayPermission,
-			this.allowAnonymousReadPermission,
-			this.allowAnonymousJobStatusPermission,
-			project);
-	}
+            this.allowAnonymousReadPermission,
+            this.allowAnonymousJobStatusPermission,
+            project);
+    }
 
-	public List<String> getOrganizationNameList() {
-		return organizationNameList;
-	}
+    public List<String> getOrganizationNameList() {
+        return organizationNameList;
+    }
 
-	public List<String> getAdminUserNameList() {
-		return adminUserNameList;
-	}
+    public List<String> getAdminUserNameList() {
+        return adminUserNameList;
+    }
 
-	public boolean isUseRepositoryPermissions() {
-		return useRepositoryPermissions;
-	}
+    public boolean isUseRepositoryPermissions() {
+        return useRepositoryPermissions;
+    }
 
-	public boolean isAuthenticatedUserCreateJobPermission() {
-		return authenticatedUserCreateJobPermission;
-	}
+    public boolean isAuthenticatedUserCreateJobPermission() {
+        return authenticatedUserCreateJobPermission;
+    }
 
-        public boolean isAuthenticatedUserReadPermission() {
-		return authenticatedUserReadPermission;
-	}
+    public boolean isAuthenticatedUserReadPermission() {
+        return authenticatedUserReadPermission;
+    }
 
-	public boolean isAllowGithubWebHookPermission() {
-		return allowGithubWebHookPermission;
-	}
+    public boolean isAllowGithubWebHookPermission() {
+        return allowGithubWebHookPermission;
+    }
 
     public boolean isAllowCcTrayPermission() {
         return allowCcTrayPermission;
     }
 
     /**
-	 * @return the allowAnonymousReadPermission
-	 */
-	public boolean isAllowAnonymousReadPermission() {
-		return allowAnonymousReadPermission;
-	}
+     * @return the allowAnonymousReadPermission
+     */
+    public boolean isAllowAnonymousReadPermission() {
+        return allowAnonymousReadPermission;
+    }
 
-	public boolean isAllowAnonymousJobStatusPermission() {
-		return allowAnonymousJobStatusPermission;
-	}
+    public boolean isAllowAnonymousJobStatusPermission() {
+        return allowAnonymousJobStatusPermission;
+    }
 }
