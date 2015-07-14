@@ -624,6 +624,25 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
     }
 
     /**
+     * Compare an object against this instance for equivalence.
+     * @param object An object to campare this instance to.
+     * @return true if the objects are the same instance and configuration.
+     */
+    @Override
+    public boolean equals(Object object){
+        if(object instanceof GithubSecurityRealm) {
+            GithubSecurityRealm obj = (GithubSecurityRealm) object;
+            return this.getGithubWebUri().equals(obj.getGithubWebUri()) &&
+                this.getGithubApiUri().equals(obj.getGithubApiUri()) &&
+                this.getClientID().equals(obj.getClientID()) &&
+                this.getClientSecret().equals(obj.getClientSecret()) &&
+                this.getOauthScopes().equals(obj.getOauthScopes());
+        } else {
+            return false;
+        }
+    }
+
+    /**
      *
      * @param groupName
      * @return
