@@ -19,4 +19,4 @@ More comprehensive documentation is listed on the [wiki page][wiki].
 [build-image]: https://jenkins.ci.cloudbees.com/buildStatus/icon?job=plugins/github-oauth-plugin
 [build-link]: https://jenkins.ci.cloudbees.com/job/plugins/job/github-oauth-plugin/
 [github-wiki-oauth]: https://developer.github.com/v3/oauth/
-[wiki]: https://wiki.jenkins-ci.org/display/JENKINS/Jenkins+Script+Console
+[wiki]: https://wiki.jenkins-ci.org/display/JENKINS/Github+OAuth+Plugin
