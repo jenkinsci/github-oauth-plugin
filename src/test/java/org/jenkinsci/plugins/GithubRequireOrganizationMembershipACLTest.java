@@ -34,6 +34,8 @@ import hudson.model.Project;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.UserRemoteConfig;
 import hudson.scm.NullSCM;
+import hudson.security.Permission;
+import hudson.security.PermissionScope;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,16 +44,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import hudson.security.Permission;
-import hudson.security.PermissionScope;
+import jenkins.model.Jenkins;
 import junit.framework.TestCase;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.providers.anonymous.AnonymousAuthenticationToken;
-import org.junit.Test;
+import org.junit.Before;
 import org.junit.runner.RunWith;
+import org.junit.Test;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHPerson;
@@ -60,17 +61,34 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.PagedIterable;
+import org.mockito.Mock;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
+import static org.mockito.Matchers.anyObject;
 
 /**
  *
  * @author alex
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest( GitHub.class )
+@PrepareForTest({GitHub.class, Jenkins.class, GithubSecurityRealm.class})
 public class GithubRequireOrganizationMembershipACLTest extends TestCase {
+
+    @Mock
+    private Jenkins jenkins;
+
+    @Mock
+    private GithubSecurityRealm securityRealm;
+
+    @Before
+    public void setUp() throws Exception {
+        //GithubSecurityRealm myRealm = PowerMockito.mock(GithubSecurityRealm.class);
+        PowerMockito.mockStatic(Jenkins.class);
+        PowerMockito.when(Jenkins.getInstance()).thenReturn(jenkins);
+        PowerMockito.when(jenkins.getSecurityRealm()).thenReturn(securityRealm);
+        PowerMockito.when(securityRealm.getOauthScopes()).thenReturn("read:org");
+    }
 
     private final Permission VIEW_JOBSTATUS_PERMISSION = new Permission(Item.PERMISSIONS,
             "ViewStatus",

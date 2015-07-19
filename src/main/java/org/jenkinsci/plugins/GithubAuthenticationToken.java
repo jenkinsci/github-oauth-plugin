@@ -26,27 +26,27 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import hudson.security.SecurityRealm;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.HashSet;
-import java.util.logging.Logger;
+import java.util.List;
 import java.util.logging.Level;
-
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import hudson.security.SecurityRealm;
-import java.util.Collection;
-
-import org.jenkinsci.plugins.GithubOAuthUserDetails;
+import java.util.logging.Logger;
+import java.util.Map;
+import java.util.Set;
+import jenkins.model.Jenkins;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.providers.AbstractAuthenticationToken;
+import org.jenkinsci.plugins.GithubOAuthUserDetails;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHPersonSet;
@@ -72,6 +72,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     private final String userName;
     private final GitHub gh;
     private final GHMyself me;
+    private GithubSecurityRealm myRealm = null;
 
     /**
      * Cache for faster organization based security
@@ -103,13 +104,23 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
         this.userName = this.me.getLogin();
         authorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
-        Map<String, Set<GHTeam>> myTeams = gh.getMyTeams();
-        for (String orgLogin : myTeams.keySet()) {
-            LOGGER.log(Level.FINE, "Fetch teams for user " + userName + " in organization " + orgLogin);
-            authorities.add(new GrantedAuthorityImpl(orgLogin));
-            for (GHTeam team : myTeams.get(orgLogin)) {
-                authorities.add(new GrantedAuthorityImpl(orgLogin + GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR
-                        + team.getName()));
+        if(Jenkins.getInstance().getSecurityRealm() instanceof GithubSecurityRealm) {
+            if(myRealm == null) {
+                myRealm = (GithubSecurityRealm) Jenkins.getInstance().getSecurityRealm();
+            }
+            //Search for scopes that allow fetching team membership.  This is documented online.
+            //https://developer.github.com/v3/orgs/#list-your-organizations
+            //https://developer.github.com/v3/orgs/teams/#list-user-teams
+            if(myRealm.hasScope("read:org") || myRealm.hasScope("admin:org") || myRealm.hasScope("user") || myRealm.hasScope("repo")) {
+                Map<String, Set<GHTeam>> myTeams = gh.getMyTeams();
+                for (String orgLogin : myTeams.keySet()) {
+                    LOGGER.log(Level.FINE, "Fetch teams for user " + userName + " in organization " + orgLogin);
+                    authorities.add(new GrantedAuthorityImpl(orgLogin));
+                    for (GHTeam team : myTeams.get(orgLogin)) {
+                        authorities.add(new GrantedAuthorityImpl(orgLogin + GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR
+                                + team.getName()));
+                    }
+                }
             }
         }
     }
