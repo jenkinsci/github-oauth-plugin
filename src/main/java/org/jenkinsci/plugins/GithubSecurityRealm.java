@@ -33,30 +33,40 @@ import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Extension;
-import hudson.ProxyConfiguration;
-import hudson.Util;
 import hudson.model.Descriptor;
+import hudson.model.listeners.ItemListener;
 import hudson.model.User;
+import hudson.ProxyConfiguration;
 import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
 import hudson.security.UserMayOrMayNotExistException;
 import hudson.tasks.Mailer;
+import hudson.Util;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.util.HashSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.Set;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.AuthenticationManager;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.context.SecurityContextHolder;
+import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
-import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
 import org.apache.commons.httpclient.URIException;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.conn.params.ConnRoutePNames;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.jfree.util.Log;
@@ -71,17 +81,6 @@ import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.StaplerRequest;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataRetrievalFailureException;
-
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Logger;
-
-import static java.util.logging.Level.*;
 
 /**
  *
@@ -479,7 +478,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
         } catch (IllegalAccessException e) {
             throw (Error)new IllegalAccessError(e.getMessage()).initCause(e);
         } catch (InvocationTargetException e) {
-            LOGGER.log(WARNING, "Failed to invoke fireAuthenticated", e);
+            LOGGER.log(Level.WARNING, "Failed to invoke fireAuthenticated", e);
         }
     }
 
@@ -660,6 +659,31 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
             }
         } catch (Error e) {
             throw new DataRetrievalFailureException("loadGroupByGroupname (groupname=" + groupName + ")", e);
+        }
+    }
+
+    /*
+       Migrate settings from 0.20 to 0.21+
+     */
+    @Extension
+    public static final class Migrator extends ItemListener {
+        @SuppressWarnings("deprecation")
+        @Override
+        public void onLoaded() {
+            try {
+                Jenkins instance = Jenkins.getInstance();
+                if(instance.getSecurityRealm() instanceof GithubSecurityRealm) {
+                    GithubSecurityRealm myRealm = (GithubSecurityRealm) instance.getSecurityRealm();
+                    if(myRealm.getOauthScopes() == null) {
+                        GithubSecurityRealm newRealm = new GithubSecurityRealm(myRealm.getGithubWebUri(), myRealm.getGithubApiUri(), myRealm.getClientID(), myRealm.getClientSecret());
+                        instance.setSecurityRealm(newRealm);
+                        instance.save();
+                    }
+                }
+            }
+            catch(IOException e) {
+                LOGGER.log(Level.WARNING, "could not migrate GithubSecurityRealm", e);
+            }
         }
     }
 
