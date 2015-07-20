@@ -5,11 +5,11 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
     <f:section title="Global Github OAuth Settings" >
         <f:entry title="GitHub Web URI"  field="githubWebUri" help="/plugin/github-oauth/help/realm/github-web-uri-help.html">
-            <f:textbox default="https://github.com" />
+            <f:textbox default="${descriptor.getDefaultGithubWebUri()}" />
         </f:entry>
 
         <f:entry title="GitHub API URI"  field="githubApiUri" help="/plugin/github-oauth/help/realm/github-api-uri-help.html">
-            <f:textbox default="https://api.github.com" />
+            <f:textbox default="${descriptor.getDefaultGithubApiUri()}" />
         </f:entry>
 
         <f:entry title="Client ID"  field="clientID" help="/plugin/github-oauth/help/realm/client-id-help.html">
@@ -21,7 +21,7 @@
         </f:entry>
 
         <f:entry title="OAuth Scope(s)" field="oauthScopes" help="/plugin/github-oauth/help/realm/oauth-scopes-help.html">
-            <f:textbox default="read:org" />
+            <f:textbox default="${descriptor.getDefaultOauthScopes()}" />
         </f:entry>
     </f:section>
 </j:jelly>

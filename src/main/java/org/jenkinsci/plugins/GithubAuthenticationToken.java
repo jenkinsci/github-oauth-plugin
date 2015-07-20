@@ -151,6 +151,13 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     }
 
     /**
+     * Returns the GHMyself object from this instance.
+     */
+    public GHMyself getMyself() {
+        return me;
+    }
+
+    /**
      * For some reason I can't get the github api to tell me for the current
      * user the groups to which he belongs.
      *
@@ -332,5 +339,4 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         }
         return null;
     }
-
 }

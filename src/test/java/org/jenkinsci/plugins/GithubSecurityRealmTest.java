@@ -26,21 +26,56 @@ package org.jenkinsci.plugins;
 
 import java.io.IOException;
 import junit.framework.TestCase;
+import org.jenkinsci.plugins.GithubSecurityRealm.DescriptorImpl;
 import org.junit.runner.RunWith;
 import org.junit.Test;
 
 public class GithubSecurityRealmTest extends TestCase {
+
     @Test
     public void testEquals_true() {
         GithubSecurityRealm a = new GithubSecurityRealm(new String("http://jenkins.acme.com"), new String("http://jenkins.acme.com/api/v3"), new String("someid"), new String("somesecret"), new String("read:org"));
         GithubSecurityRealm b = new GithubSecurityRealm(new String("http://jenkins.acme.com"), new String("http://jenkins.acme.com/api/v3"), new String("someid"), new String("somesecret"), new String("read:org"));
         assertTrue(a.equals(b));
     }
+
     @Test
     public void testEquals_false() {
         GithubSecurityRealm a = new GithubSecurityRealm(new String("http://jenkins.acme.com"), new String("http://jenkins.acme.com/api/v3"), new String("someid"), new String("somesecret"), new String("read:org"));
         GithubSecurityRealm b = new GithubSecurityRealm(new String("http://jenkins.acme.com"), new String("http://jenkins.acme.com/api/v3"), new String("someid"), new String("somesecret"), new String("read:org,repo"));
         assertFalse(a.equals(b));
         assertFalse(a.equals(""));
+    }
+
+    @Test
+    public void testHasScope_true() {
+        GithubSecurityRealm a = new GithubSecurityRealm(new String("http://jenkins.acme.com"), new String("http://jenkins.acme.com/api/v3"), new String("someid"), new String("somesecret"), new String("read:org,user,user:email"));
+        assertTrue(a.hasScope(new String("user")));
+        assertTrue(a.hasScope(new String("read:org")));
+        assertTrue(a.hasScope(new String("user:email")));
+    }
+
+    @Test
+    public void testHasScope_false() {
+        GithubSecurityRealm a = new GithubSecurityRealm(new String("http://jenkins.acme.com"), new String("http://jenkins.acme.com/api/v3"), new String("someid"), new String("somesecret"), new String("read:org,user,user:email"));
+        assertFalse(a.hasScope(new String("somescope")));
+    }
+
+    @Test
+    public void testDescriptorImplGetDefaultGithubWebUri() {
+        DescriptorImpl descriptor = new DescriptorImpl();
+        assertTrue("https://github.com".equals(descriptor.getDefaultGithubWebUri()));
+    }
+
+    @Test
+    public void testDescriptorImplGetDefaultGithubApiUri() {
+        DescriptorImpl descriptor = new DescriptorImpl();
+        assertTrue("https://api.github.com".equals(descriptor.getDefaultGithubApiUri()));
+    }
+
+    @Test
+    public void testDescriptorImplGetDefaultOauthScopes() {
+        DescriptorImpl descriptor = new DescriptorImpl();
+        assertTrue("read:org,user:email".equals(descriptor.getDefaultOauthScopes()));
     }
 }

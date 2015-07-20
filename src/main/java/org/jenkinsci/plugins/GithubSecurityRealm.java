@@ -47,6 +47,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -70,6 +71,8 @@ import org.apache.http.HttpHost;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.jfree.util.Log;
+import org.kohsuke.github.GHEmail;
+import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHTeam;
 import org.kohsuke.github.GHUser;
@@ -94,6 +97,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
     private static final String DEFAULT_WEB_URI = "https://github.com";
     private static final String DEFAULT_API_URI = "https://api.github.com";
     private static final String DEFAULT_ENTERPRISE_API_SUFFIX = "/api/v3";
+    private static final String DEFAULT_OAUTH_SCOPES = "read:org,user:email";
 
     @Deprecated
     private static final String DEFAULT_URI = DEFAULT_WEB_URI;
@@ -103,6 +107,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
     private String clientID;
     private String clientSecret;
     private String oauthScopes;
+    private String[] myScopes;
 
     /**
      * @param githubWebUri The URI to the root of the web UI for GitHub or GitHub Enterprise,
@@ -150,7 +155,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
         this.githubApiUri = Util.fixEmptyAndTrim(githubApiUri);
         this.clientID     = Util.fixEmptyAndTrim(clientID);
         this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
-        this.oauthScopes  = defaultOauthScope();
+        this.oauthScopes  = DEFAULT_OAUTH_SCOPES;
     }
 
     /**
@@ -169,7 +174,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
         this.githubApiUri = determineApiUri(this.githubWebUri);
         this.clientID     = Util.fixEmptyAndTrim(clientID);
         this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
-        this.oauthScopes  = defaultOauthScope();
+        this.oauthScopes  = DEFAULT_OAUTH_SCOPES;
     }
 
     private GithubSecurityRealm() {    }
@@ -187,15 +192,6 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
         } else {
             return githubWebUri + DEFAULT_ENTERPRISE_API_SUFFIX;
         }
-    }
-
-    /**
-     * @return The default oauthScope string
-     */
-    private String defaultOauthScope() {
-        // restrict default scope to just read:org, as it is the most
-        // restricted scope which will allow authentication
-        return "read:org";
     }
 
     /**
@@ -237,6 +233,19 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
      */
     private void setOauthScopes(String oauthScopes) {
         this.oauthScopes = oauthScopes;
+    }
+
+    /**
+     * Checks the security realm for a GitHub OAuth scope.
+     * @param scope A scope to check for in the security realm.
+     * @return true if security realm has the scope or false if it does not.
+     */
+    public boolean hasScope(String scope) {
+        if(this.myScopes == null) {
+            this.myScopes = this.oauthScopes.split(",");
+            Arrays.sort(this.myScopes);
+        }
+        return Arrays.binarySearch(this.myScopes, scope) >= 0;
     }
 
     /**
@@ -443,12 +452,24 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
             GithubAuthenticationToken auth = new GithubAuthenticationToken(accessToken, getGithubApiUri());
             SecurityContextHolder.getContext().setAuthentication(auth);
 
-            GHUser self = auth.getGitHub().getMyself();
+            GHMyself self = auth.getMyself();
             User u = User.current();
             u.setFullName(self.getName());
             // Set email from github only if empty
             if (!u.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
-                u.addProperty(new Mailer.UserProperty(self.getEmail()));
+                if(hasScope("user") || hasScope("user:email")) {
+                    String primary_email = null;
+                    for(GHEmail e : self.getEmails2()) {
+                        if(e.isPrimary()) {
+                            primary_email = e.getEmail();
+                        }
+                    }
+                    if(primary_email != null) {
+                        u.addProperty(new Mailer.UserProperty(primary_email));
+                    }
+                } else {
+                    u.addProperty(new Mailer.UserProperty(auth.getGitHub().getMyself().getEmail()));
+                }
             }
 
             fireAuthenticated(new GithubOAuthUserDetails(self, auth.getAuthorities()));
@@ -576,6 +597,18 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
             return "Github Authentication Plugin";
         }
 
+        public String getDefaultGithubWebUri() {
+            return DEFAULT_WEB_URI;
+        }
+
+        public String getDefaultGithubApiUri() {
+            return DEFAULT_API_URI;
+        }
+
+        public String getDefaultOauthScopes() {
+            return DEFAULT_OAUTH_SCOPES;
+        }
+
         public DescriptorImpl() {
             super();
             // TODO Auto-generated constructor stub
@@ -586,6 +619,14 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
             // TODO Auto-generated constructor stub
         }
 
+    }
+
+    // Overridden for better type safety.
+    // If your plugin doesn't really define any property on Descriptor,
+    // you don't have to do this.
+    @Override
+    public DescriptorImpl getDescriptor() {
+        return (DescriptorImpl) super.getDescriptor();
     }
 
     /**
