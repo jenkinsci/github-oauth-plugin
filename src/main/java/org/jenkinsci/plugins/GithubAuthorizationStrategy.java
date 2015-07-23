@@ -122,11 +122,11 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
     public ACL getACL(Job<?,?> job) {
         if(job instanceof AbstractProject) {
             AbstractProject project = (AbstractProject)job;
-                    GithubRequireOrganizationMembershipACL githubACL = (GithubRequireOrganizationMembershipACL) getRootACL();
+            GithubRequireOrganizationMembershipACL githubACL = (GithubRequireOrganizationMembershipACL) getRootACL();
             return githubACL.cloneForProject(project);
-          } else {
+        } else {
             return getRootACL();
-          }
+        }
     }
 
     /*
@@ -214,6 +214,29 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
      */
     public boolean isAllowAnonymousJobStatusPermission() {
         return rootACL.isAllowAnonymousJobStatusPermission();
+    }
+
+    /**
+     * Compare an object against this instance for equivalence.
+     * @param object An object to campare this instance to.
+     * @return true if the objects are the same instance and configuration.
+     */
+    @Override
+    public boolean equals(Object object){
+        if(object instanceof GithubAuthorizationStrategy) {
+            GithubAuthorizationStrategy obj = (GithubAuthorizationStrategy) object;
+            return this.getOrganizationNames().equals(obj.getOrganizationNames()) &&
+                this.getAdminUserNames().equals(obj.getAdminUserNames()) &&
+                this.isUseRepositoryPermissions() == obj.isUseRepositoryPermissions() &&
+                this.isAuthenticatedUserCreateJobPermission() == obj.isAuthenticatedUserCreateJobPermission() &&
+                this.isAuthenticatedUserReadPermission() == obj.isAuthenticatedUserReadPermission() &&
+                this.isAllowGithubWebHookPermission() == obj.isAllowGithubWebHookPermission() &&
+                this.isAllowCcTrayPermission() == obj.isAllowCcTrayPermission() &&
+                this.isAllowAnonymousReadPermission() == obj.isAllowAnonymousReadPermission() &&
+                this.isAllowAnonymousJobStatusPermission() == obj.isAllowAnonymousJobStatusPermission();
+        } else {
+            return false;
+        }
     }
 
     @Extension
