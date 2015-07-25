@@ -15,7 +15,7 @@
     <description>A Jenkins authentication plugin that delegates to github.  We also implement an Authorization Strategy that users the acquired OAuth token to interact with the Github API to determine a users level of access to Jenkins.</description>
     <packaging>hpi</packaging>
 
-    <url>https://wiki.jenkins-ci.org/display/JENKINS/GitHub+Authentication+Plugin</url>
+    <url>http://wiki.jenkins-ci.org/display/JENKINS/Github+OAuth+Plugin</url>
 
     <licenses>
         <license>
@@ -26,7 +26,7 @@
 
     <!--
       The developers show up as current maintainers in the Jenkins wiki.
-      https://wiki.jenkins-ci.org/display/JENKINS/GitHub+Authentication+Plugin
+      https://wiki.jenkins-ci.org/display/JENKINS/Github+OAuth+Plugin
 
       The id should be the jenkinsci.org username and not your GitHub username.
     -->
