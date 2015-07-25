@@ -320,7 +320,21 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         if (user != null) {
             List<GrantedAuthority> groups = new ArrayList<GrantedAuthority>();
             try {
-                for (GHOrganization ghOrganization : user.getOrganizations()) {
+                GHPersonSet<GHOrganization> orgs;
+                if(myRealm == null) {
+                    myRealm = (GithubSecurityRealm) Jenkins.getInstance().getSecurityRealm();
+                }
+                //Search for scopes that allow fetching team membership.  This is documented online.
+                //https://developer.github.com/v3/orgs/#list-your-organizations
+                //https://developer.github.com/v3/orgs/teams/#list-user-teams
+                if(this.userName.equals(username) && (myRealm.hasScope("read:org") || myRealm.hasScope("admin:org") || myRealm.hasScope("user") || myRealm.hasScope("repo"))) {
+                    //This allows us to search for private organization membership.
+                    orgs = me.getAllOrganizations();
+                } else {
+                    //This searches for public organization membership.
+                    orgs = user.getOrganizations();
+                }
+                for (GHOrganization ghOrganization : orgs) {
                     String orgLogin = ghOrganization.getLogin();
                     LOGGER.log(Level.FINE, "Fetch teams for user " + username + " in organization " + orgLogin);
                     groups.add(new GrantedAuthorityImpl(orgLogin));
