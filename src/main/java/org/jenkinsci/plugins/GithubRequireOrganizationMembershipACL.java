@@ -161,11 +161,11 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
                     if (allowGithubWebHookPermission &&
                             (currentUriPathEquals("github-webhook") ||
                              currentUriPathEquals("github-webhook/"))) {
-                        log.info("Granting READ access for github-webhook url: " + requestURI());
+                        log.finest("Granting READ access for github-webhook url: " + requestURI());
                         return true;
                     }
                     if (allowCcTrayPermission && currentUriPathEquals("cc.xml")) {
-                        log.info("Granting READ access for cctray url: " + requestURI());
+                        log.finest("Granting READ access for cctray url: " + requestURI());
                         return true;
                     }
                     log.finer("Denying anonymous READ permission to url: " + requestURI());
