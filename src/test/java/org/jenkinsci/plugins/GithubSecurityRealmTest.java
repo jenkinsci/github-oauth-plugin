@@ -24,13 +24,29 @@ THE SOFTWARE.
 
 package org.jenkinsci.plugins;
 
+import hudson.util.Secret;
 import java.io.IOException;
 import junit.framework.TestCase;
 import org.jenkinsci.plugins.GithubSecurityRealm.DescriptorImpl;
 import org.junit.runner.RunWith;
 import org.junit.Test;
+import org.powermock.modules.junit4.PowerMockRunner;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.api.mockito.PowerMockito;
+import org.junit.Before;
+import org.mockito.Mockito;
+import java.security.GeneralSecurityException;
 
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({Secret.class})
 public class GithubSecurityRealmTest extends TestCase {
+
+    @Before
+    public void setUp() throws Exception {
+        //skip attempting to decrypt a secret
+        PowerMockito.mockStatic(Secret.class);
+        PowerMockito.when(Secret.class ,"decrypt", Mockito.any(String.class)).thenReturn((Secret) null);
+    }
 
     @Test
     public void testEquals_true() {
