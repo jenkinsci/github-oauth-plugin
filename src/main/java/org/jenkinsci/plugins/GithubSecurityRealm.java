@@ -42,6 +42,7 @@ import hudson.security.SecurityRealm;
 import hudson.security.UserMayOrMayNotExistException;
 import hudson.tasks.Mailer;
 import hudson.Util;
+import hudson.util.Secret;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -105,7 +106,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
     private String githubWebUri;
     private String githubApiUri;
     private String clientID;
-    private String clientSecret;
+    private Secret clientSecret;
     private String oauthScopes;
     private String[] myScopes;
 
@@ -129,7 +130,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
         this.githubWebUri = Util.fixEmptyAndTrim(githubWebUri);
         this.githubApiUri = Util.fixEmptyAndTrim(githubApiUri);
         this.clientID     = Util.fixEmptyAndTrim(clientID);
-        this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
+        setClientSecret(Util.fixEmptyAndTrim(clientSecret));
         this.oauthScopes  = Util.fixEmptyAndTrim(oauthScopes);
     }
 
@@ -154,7 +155,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
         this.githubWebUri = Util.fixEmptyAndTrim(githubWebUri);
         this.githubApiUri = Util.fixEmptyAndTrim(githubApiUri);
         this.clientID     = Util.fixEmptyAndTrim(clientID);
-        this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
+        setClientSecret(Util.fixEmptyAndTrim(clientSecret));
         this.oauthScopes  = DEFAULT_OAUTH_SCOPES;
     }
 
@@ -173,7 +174,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
         this.githubWebUri = Util.fixEmptyAndTrim(githubWebUri);
         this.githubApiUri = determineApiUri(this.githubWebUri);
         this.clientID     = Util.fixEmptyAndTrim(clientID);
-        this.clientSecret = Util.fixEmptyAndTrim(clientSecret);
+        setClientSecret(Util.fixEmptyAndTrim(clientSecret));
         this.oauthScopes  = DEFAULT_OAUTH_SCOPES;
     }
 
@@ -225,7 +226,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
      * @param clientSecret the clientSecret to set
      */
     private void setClientSecret(String clientSecret) {
-        this.clientSecret = clientSecret;
+        this.clientSecret = Secret.fromString(clientSecret);
     }
 
     /**
@@ -286,7 +287,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
             writer.endNode();
 
             writer.startNode("clientSecret");
-            writer.setValue(realm.getClientSecret());
+            writer.setValue(realm.getClientSecret().getEncryptedValue());
             writer.endNode();
 
             writer.startNode("oauthScopes");
@@ -371,7 +372,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
     /**
      * @return the clientSecret
      */
-    public String getClientSecret() {
+    public Secret getClientSecret() {
         return clientSecret;
     }
 
@@ -381,12 +382,6 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
     public String getOauthScopes() {
         return oauthScopes;
     }
-
-    // @Override
-    // public Filter createFilter(FilterConfig filterConfig) {
-    //
-    // return new GithubOAuthAuthenticationFilter();
-    // }
 
     public HttpResponse doCommenceLogin(StaplerRequest request, @Header("Referer") final String referer)
             throws IOException {
@@ -735,7 +730,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
                 if(instance.getSecurityRealm() instanceof GithubSecurityRealm) {
                     GithubSecurityRealm myRealm = (GithubSecurityRealm) instance.getSecurityRealm();
                     if(myRealm.getOauthScopes() == null) {
-                        GithubSecurityRealm newRealm = new GithubSecurityRealm(myRealm.getGithubWebUri(), myRealm.getGithubApiUri(), myRealm.getClientID(), myRealm.getClientSecret());
+                        GithubSecurityRealm newRealm = new GithubSecurityRealm(myRealm.getGithubWebUri(), myRealm.getGithubApiUri(), myRealm.getClientID(), myRealm.getClientSecret().getPlainText());
                         instance.setSecurityRealm(newRealm);
                         instance.save();
                     }

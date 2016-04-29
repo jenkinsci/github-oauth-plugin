@@ -24,13 +24,14 @@ THE SOFTWARE.
 
 package org.jenkinsci.plugins;
 
+import hudson.util.Secret;
 import java.io.IOException;
-import junit.framework.TestCase;
+import org.jvnet.hudson.test.HudsonTestCase;
 import org.jenkinsci.plugins.GithubSecurityRealm.DescriptorImpl;
 import org.junit.runner.RunWith;
 import org.junit.Test;
 
-public class GithubSecurityRealmTest extends TestCase {
+public class GithubSecurityRealmTest extends HudsonTestCase {
 
     @Test
     public void testEquals_true() {
