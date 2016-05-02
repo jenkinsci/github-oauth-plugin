@@ -39,7 +39,7 @@
             <roles>
                 <role>maintainer</role>
             </roles>
-            <timezone>America/New_York</timezone>
+            <timezone>America/Los_Angeles</timezone>
         </developer>
     </developers>
 
