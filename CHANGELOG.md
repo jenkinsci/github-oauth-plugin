@@ -1,3 +1,7 @@
+# Version 0.23 (Released May 1, 2016)
+
+* Encrypt client secret in stored settings ([pull request #51][#51])
+
 # Version 0.22.2 (Released July 25, 2015)
 
 * The wiki page was having issues rendering plugin information. Unless I
