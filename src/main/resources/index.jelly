@@ -1,4 +1,4 @@
 
 <div>
-    This is the an authentication plugin using github OAuth.
+    Authentication plugin using Github OAuth to provide authentication and authorization capabilities for Github and Github Enterprise.
 </div>
