@@ -244,7 +244,7 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
             Descriptor<AuthorizationStrategy> {
 
         public String getDisplayName() {
-            return "Github Committer Authorization Strategy";
+            return "GitHub Committer Authorization Strategy";
         }
 
         public String getHelpFile() {
