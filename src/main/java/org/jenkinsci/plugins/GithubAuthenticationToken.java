@@ -26,27 +26,27 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import hudson.security.SecurityRealm;
+
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.HashSet;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.Map;
-import java.util.Set;
+
 import jenkins.model.Jenkins;
+
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.providers.AbstractAuthenticationToken;
-import org.jenkinsci.plugins.GithubOAuthUserDetails;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHPersonSet;
@@ -54,6 +54,9 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHTeam;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 /**
  * @author mocleiri
@@ -112,7 +115,16 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
             //https://developer.github.com/v3/orgs/#list-your-organizations
             //https://developer.github.com/v3/orgs/teams/#list-user-teams
             if(myRealm.hasScope("read:org") || myRealm.hasScope("admin:org") || myRealm.hasScope("user") || myRealm.hasScope("repo")) {
+                Map<String, GHOrganization> myOrgs = gh.getMyOrganizations();
                 Map<String, Set<GHTeam>> myTeams = gh.getMyTeams();
+
+                //fetch organization-only memberships (i.e.: groups without teams)
+                for(String orgLogin : myOrgs.keySet()){
+                    if(!myTeams.containsKey(orgLogin)){
+                        myTeams.put(orgLogin, Collections.<GHTeam>emptySet());
+                    }
+                }
+
                 for (String orgLogin : myTeams.keySet()) {
                     LOGGER.log(Level.FINE, "Fetch teams for user " + userName + " in organization " + orgLogin);
                     authorities.add(new GrantedAuthorityImpl(orgLogin));
