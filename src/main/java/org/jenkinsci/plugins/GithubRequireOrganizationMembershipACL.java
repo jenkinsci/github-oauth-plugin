@@ -164,7 +164,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
                         log.finest("Granting READ access for github-webhook url: " + requestURI());
                         return true;
                     }
-                    if (allowCcTrayPermission && currentUriPathEquals("cc.xml")) {
+                    if (allowCcTrayPermission && currentUriPathEndsWithSegment("cc.xml")) {
                         log.finest("Granting READ access for cctray url: " + requestURI());
                         return true;
                     }
@@ -191,6 +191,15 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
         if (requestUri != null) {
             String basePath = URI.create(Jenkins.getInstance().getRootUrl()).getPath();
             return URI.create(requestUri).getPath().equals(basePath + specificPath);
+        } else {
+            return false;
+        }
+    }
+
+    private boolean currentUriPathEndsWithSegment( String segment ) {
+        String requestUri = requestURI();
+        if (requestUri != null) {
+          return requestUri.substring(requestUri.lastIndexOf('/') + 1).equals(segment);
         } else {
             return false;
         }

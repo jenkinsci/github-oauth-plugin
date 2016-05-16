@@ -1,4 +1,4 @@
-# Jenkins Github OAuth Plugin
+# Jenkins GitHub OAuth Plugin
 
 * License: [MIT Licensed](LICENSE.txt)
 * Read more: [GitHub OAuth Plugin wiki page][wiki]
