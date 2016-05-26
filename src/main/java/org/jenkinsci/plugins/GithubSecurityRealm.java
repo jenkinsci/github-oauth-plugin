@@ -628,6 +628,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
      *
      * @param username
      * @return
+     * @throws UserMayOrMayNotExistException
      * @throws UsernameNotFoundException
      * @throws DataAccessException
      */
@@ -636,10 +637,18 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
             throws UsernameNotFoundException, DataAccessException {
         GHUser user = null;
 
-        GithubAuthenticationToken authToken =  (GithubAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+        Authentication token = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authToken == null) {
+        if (token == null) {
             throw new UserMayOrMayNotExistException("Could not get auth token.");
+        }
+
+        GithubAuthenticationToken authToken;
+
+        if (token instanceof GithubAuthenticationToken) {
+            authToken = (GithubAuthenticationToken) token;
+        } else {
+            throw new UserMayOrMayNotExistException("Unexpected authentication type: " + token);
         }
 
         try {
