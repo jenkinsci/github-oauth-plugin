@@ -1,6 +1,27 @@
+# Version 0.24 (Released May 26, 2016)
+
+* Bugfix [JENKINS-34775][JENKINS-34775] Don't cast inconvertible un/pw token.
+  ([pull request #56][#56])
+* Bugfix [JENKINS-33883][JENKINS-33883] by allowing `.*/cc.xml` instead of only
+  root one. ([pull request #51][#52])
+* Bugfix loading orgs as groups when orgs contain no teams. ([pull request
+  #54][#54])
+* Correct spelling of GitHub and committer. (pull requests [#53][#53] and
+  [#55][#55])
+
+[#52]: https://github.com/jenkinsci/github-oauth-plugin/pull/52
+[#53]: https://github.com/jenkinsci/github-oauth-plugin/pull/53
+[#54]: https://github.com/jenkinsci/github-oauth-plugin/pull/54
+[#55]: https://github.com/jenkinsci/github-oauth-plugin/pull/55
+[#56]: https://github.com/jenkinsci/github-oauth-plugin/pull/56
+[JENKINS-33883]: https://issues.jenkins-ci.org/browse/JENKINS-33883
+[JENKINS-34775]: https://issues.jenkins-ci.org/browse/JENKINS-34775
+
 # Version 0.23 (Released May 1, 2016)
 
 * Encrypt client secret in stored settings ([pull request #51][#51])
+
+[#51]: https://github.com/jenkinsci/github-oauth-plugin/pull/51
 
 # Version 0.22.2 (Released July 25, 2015)
 
