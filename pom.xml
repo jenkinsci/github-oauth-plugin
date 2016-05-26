@@ -4,10 +4,25 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <!-- which version of Jenkins is this plugin built against? -->
+        <!--
+            Use Plugin Parent POM version
+            https://wiki.jenkins-ci.org/display/JENKINS/Choosing+Jenkins+version+to+build+against
+            https://github.com/jenkinsci/plugin-pom
+        -->
         <version>2.17</version>
     </parent>
 
+    <properties>
+        <!-- Baseline Jenkins version you use to build the plugin. Users must have this version or newer to run. -->
+        <jenkins.version>1.612</jenkins.version>
+        <!-- Java Level to use. Java 7 required when using core >= 1.612 -->
+        <java.level>7</java.level>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <powermock.version>1.6.5</powermock.version>
+    </properties>
+
+    <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>github-oauth</artifactId>
     <version>0.25-SNAPSHOT</version>
     <name>GitHub Authentication plugin</name>
@@ -46,34 +61,40 @@
         <connection>scm:git:ssh://github.com/jenkinsci/github-oauth-plugin.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jenkinsci/github-oauth-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/github-oauth-plugin</url>
-      <tag>HEAD</tag>
-  </scm>
+        <tag>HEAD</tag>
+    </scm>
 
-  <!-- Use repositories suggested in plugin tutorial: https://wiki.jenkins-ci.org/display/JENKINS/Plugin+tutorial -->
-  <repositories>
-    <repository>
-      <id>repo.jenkins-ci.org</id>
-      <url>https://repo.jenkins-ci.org/public/</url>
-    </repository>
-  </repositories>
-  <pluginRepositories>
-    <pluginRepository>
-      <id>repo.jenkins-ci.org</id>
-      <url>https://repo.jenkins-ci.org/public/</url>
-    </pluginRepository>
-  </pluginRepositories>
+    <!-- Use repositories suggested in plugin tutorial: https://wiki.jenkins-ci.org/display/JENKINS/Plugin+tutorial -->
+    <repositories>
+        <repository>
+            <id>repo.jenkins-ci.org</id>
+            <url>https://repo.jenkins-ci.org/public/</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>repo.jenkins-ci.org</id>
+            <url>https://repo.jenkins-ci.org/public/</url>
+        </pluginRepository>
+    </pluginRepositories>
 
-  <dependencies>
+    <dependencies>
         <dependency>
-          <groupId>org.jenkins-ci.plugins</groupId>
-          <artifactId>mailer</artifactId>
-          <version>1.18</version>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>mailer</artifactId>
+            <version>1.18</version>
         </dependency>
 
         <dependency>
-          <groupId>org.jenkins-ci.plugins</groupId>
-          <artifactId>github-api</artifactId>
-          <version>1.77</version>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>github-api</artifactId>
+            <version>1.77</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>matrix-project</artifactId>
+            <version>1.7</version>
         </dependency>
 
         <dependency>
@@ -112,6 +133,13 @@
                 <extensions>true</extensions>
                 <configuration>
                     <compatibleSinceVersion>1.93</compatibleSinceVersion>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <additionalparam>-Xdoclint:none</additionalparam>
                 </configuration>
             </plugin>
         </plugins>
@@ -274,10 +302,4 @@
             </plugins>
         </pluginManagement>
     </build>
-
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <powermock.version>1.6.5</powermock.version>
-    </properties>
 </project>
