@@ -32,11 +32,9 @@
           <p>Have a nice day</p>
         </j:when>
         <j:otherwise>
-          <div style="font-size: +4">
-            <h2>Woo There....</h2>
-            <p>You are not logged out - don't run away!</p>
-            <p>Whilst you should been logged out you are not actually logged out...</p>
-          </div>
+          <h2>Woo There....</h2>
+          <p>You are not logged out - don't run away!</p>
+          <p>Whilst you should been logged out you are not actually logged out...</p>
         </j:otherwise>
       </j:choose>
     </l:main-panel>
