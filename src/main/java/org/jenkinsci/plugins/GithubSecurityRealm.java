@@ -579,6 +579,10 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
     @Override
     public UserDetails loadUserByUsername(String username)
             throws UsernameNotFoundException, DataAccessException {
+        //username is in org*team format
+        if(username.indexOf(GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR) >= 0 ) {
+            throw new UsernameNotFoundException("Using org*team format instead of username: " + username);
+        }
 
         Authentication token = SecurityContextHolder.getContext().getAuthentication();
 
