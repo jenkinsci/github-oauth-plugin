@@ -33,26 +33,15 @@ import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Extension;
-import hudson.model.Descriptor;
-import hudson.model.listeners.ItemListener;
-import hudson.model.User;
 import hudson.ProxyConfiguration;
+import hudson.Util;
+import hudson.model.Descriptor;
+import hudson.model.User;
 import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
 import hudson.security.UserMayOrMayNotExistException;
 import hudson.tasks.Mailer;
-import hudson.Util;
 import hudson.util.Secret;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.Set;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
@@ -64,11 +53,12 @@ import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.httpclient.URIException;
+import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.conn.params.ConnRoutePNames;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
@@ -87,6 +77,17 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataRetrievalFailureException;
 
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  *
  * Implementation of the AbstractPasswordBasedSecurityRealm that uses github
@@ -100,9 +101,6 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
     private static final String DEFAULT_API_URI = "https://api.github.com";
     private static final String DEFAULT_ENTERPRISE_API_SUFFIX = "/api/v3";
     private static final String DEFAULT_OAUTH_SCOPES = "read:org,user:email";
-
-    @Deprecated
-    private static final String DEFAULT_URI = DEFAULT_WEB_URI;
 
     private String githubWebUri;
     private String githubApiUri;
@@ -135,50 +133,6 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
         this.oauthScopes  = Util.fixEmptyAndTrim(oauthScopes);
     }
 
-    /**
-     * @deprecated Use {@link GithubSecurityRealm#GithubSecurityRealm(String, String, String, String, String)}
-     *             instead.
-     *
-     * @param githubWebUri The URI to the root of the web UI for GitHub or GitHub Enterprise,
-     *                     including the protocol (e.g. https).
-     * @param githubApiUri The URI to the root of the API for GitHub or GitHub Enterprise,
-     *                     including the protocol (e.g. https).
-     * @param clientID The client ID for the created OAuth Application.
-     * @param clientSecret The client secret for the created GitHub OAuth Application.
-     */
-    @Deprecated
-    public GithubSecurityRealm(String githubWebUri,
-            String githubApiUri,
-            String clientID,
-            String clientSecret) {
-        super();
-
-        this.githubWebUri = Util.fixEmptyAndTrim(githubWebUri);
-        this.githubApiUri = Util.fixEmptyAndTrim(githubApiUri);
-        this.clientID     = Util.fixEmptyAndTrim(clientID);
-        setClientSecret(Util.fixEmptyAndTrim(clientSecret));
-        this.oauthScopes  = DEFAULT_OAUTH_SCOPES;
-    }
-
-    /**
-     * @deprecated Use {@link GithubSecurityRealm#GithubSecurityRealm(String, String, String, String)}
-     *             instead.
-     *
-     * @param githubWebUri The URI to the root of the web UI for GitHub or GitHub Enterprise.
-     * @param clientID The client ID for the created OAuth Application.
-     * @param clientSecret The client secret for the created GitHub OAuth Application.
-     */
-    @Deprecated
-    public GithubSecurityRealm(String githubWebUri, String clientID, String clientSecret) {
-        super();
-
-        this.githubWebUri = Util.fixEmptyAndTrim(githubWebUri);
-        this.githubApiUri = determineApiUri(this.githubWebUri);
-        this.clientID     = Util.fixEmptyAndTrim(clientID);
-        setClientSecret(Util.fixEmptyAndTrim(clientSecret));
-        this.oauthScopes  = DEFAULT_OAUTH_SCOPES;
-    }
-
     private GithubSecurityRealm() {    }
 
     /**
@@ -203,17 +157,6 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
      */
     private void setGithubWebUri(String githubWebUri) {
         this.githubWebUri = githubWebUri;
-    }
-
-    /**
-     * @param githubWebUri
-     *            the string representation of the URI to the root of the Web UI for
-     *            GitHub or GitHub Enterprise.
-     * @deprecated Use {@link GithubSecurityRealm#setGithubWebUri(String)} instead.
-     */
-    @Deprecated
-    private void setGithubUri(String githubWebUri) {
-        setGithubWebUri(githubWebUri);
     }
 
     /**
@@ -388,8 +331,8 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
             throws IOException {
         request.getSession().setAttribute(REFERER_ATTRIBUTE,referer);
 
-        Set<String> scopes = new HashSet<String>();
-        for (GitHubOAuthScope s : Jenkins.getInstance().getExtensionList(GitHubOAuthScope.class)) {
+        Set<String> scopes = new HashSet<>();
+        for (GitHubOAuthScope s : getJenkins().getExtensionList(GitHubOAuthScope.class)) {
             scopes.addAll(s.getScopesToRequest());
         }
         String suffix="";
@@ -406,7 +349,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
     }
 
     /**
-     * This is where the user comes back to at the end of the OpenID redirect
+     * This is where the user comes back to at the end of the OAuth redirect
      * ping-pong.
      */
     public HttpResponse doFinishLogin(StaplerRequest request)
@@ -450,6 +393,9 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
 
             GHMyself self = auth.getMyself();
             User u = User.current();
+            if (u == null) {
+                throw new IllegalStateException("Can't find user");
+            }
             u.setFullName(self.getName());
             // Set email from github only if empty
             if (!u.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
@@ -488,9 +434,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
             Class<?> c = Class.forName("jenkins.security.SecurityListener");
             Method m = c.getMethod("fireAuthenticated", UserDetails.class);
             m.invoke(null,details);
-        } catch (ClassNotFoundException e) {
-            // running with old core
-        } catch (NoSuchMethodException e) {
+        } catch (ClassNotFoundException | NoSuchMethodException e) {
             // running with old core
         } catch (IllegalAccessException e) {
             throw (Error)new IllegalAccessError(e.getMessage()).initCause(e);
@@ -503,7 +447,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
      * Returns the proxy to be used when connecting to the given URI.
      */
     private HttpHost getProxy(HttpUriRequest method) throws URIException {
-        ProxyConfiguration proxy = Jenkins.getInstance().proxy;
+        ProxyConfiguration proxy = getJenkins().proxy;
         if (proxy==null)    return null;    // defensive check
 
         Proxy p = proxy.createProxy(method.getURI().getHost());
@@ -627,8 +571,8 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
 
     /**
      *
-     * @param username
-     * @return
+     * @param username username to lookup
+     * @return userDetails
      * @throws UserMayOrMayNotExistException
      * @throws UsernameNotFoundException
      * @throws DataAccessException
@@ -664,7 +608,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
             }
 
             return userDetails;
-        } catch (Error e) {
+        } catch (IOException | Error e) {
             throw new DataRetrievalFailureException("loadUserByUsername (username=" + username +")", e);
         }
     }
@@ -688,10 +632,21 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
         }
     }
 
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder()
+                .append(this.getGithubWebUri())
+                .append(this.getGithubApiUri())
+                .append(this.getClientID())
+                .append(this.getClientSecret())
+                .append(this.getOauthScopes())
+                .toHashCode();
+    }
+
     /**
      *
-     * @param groupName
-     * @return
+     * @param groupName groupName to look up
+     * @return groupDetails
      * @throws UsernameNotFoundException
      * @throws DataAccessException
      */
@@ -727,29 +682,12 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
         }
     }
 
-    /*
-       Migrate settings from 0.20 to 0.21+
-     */
-    @Extension
-    public static final class Migrator extends ItemListener {
-        @SuppressWarnings("deprecation")
-        @Override
-        public void onLoaded() {
-            try {
-                Jenkins instance = Jenkins.getInstance();
-                if(instance.getSecurityRealm() instanceof GithubSecurityRealm) {
-                    GithubSecurityRealm myRealm = (GithubSecurityRealm) instance.getSecurityRealm();
-                    if(myRealm.getOauthScopes() == null) {
-                        GithubSecurityRealm newRealm = new GithubSecurityRealm(myRealm.getGithubWebUri(), myRealm.getGithubApiUri(), myRealm.getClientID(), myRealm.getClientSecret().getPlainText());
-                        instance.setSecurityRealm(newRealm);
-                        instance.save();
-                    }
-                }
-            }
-            catch(IOException e) {
-                LOGGER.log(Level.WARNING, "could not migrate GithubSecurityRealm", e);
-            }
+    static Jenkins getJenkins() {
+        Jenkins jenkins = Jenkins.getInstance();
+        if (jenkins == null) {
+            throw new IllegalStateException("Jenkins not started");
         }
+        return jenkins;
     }
 
     /**
