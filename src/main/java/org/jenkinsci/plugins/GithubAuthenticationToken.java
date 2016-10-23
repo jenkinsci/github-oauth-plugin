@@ -40,6 +40,8 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHTeam;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.GitHubBuilder;
+import org.kohsuke.github.RateLimitHandler;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -165,7 +167,11 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
     public GitHub getGitHub() throws IOException {
         if (this.gh == null) {
-            this.gh = GitHub.connectUsingOAuth(this.githubServer, this.accessToken);
+            this.gh = GitHubBuilder.fromEnvironment()
+                    .withEndpoint(this.githubServer)
+                    .withOAuthToken(this.accessToken)
+                    .withRateLimitHandler(RateLimitHandler.FAIL)
+                    .build();
         }
         return gh;
     }
