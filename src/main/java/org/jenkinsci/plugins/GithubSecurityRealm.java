@@ -43,6 +43,7 @@ import hudson.security.UserMayOrMayNotExistException;
 import hudson.tasks.Mailer;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
+import jenkins.security.SecurityListener;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.AuthenticationManager;
@@ -79,14 +80,11 @@ import org.springframework.dao.DataRetrievalFailureException;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -392,7 +390,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
                 }
             }
 
-            fireAuthenticated(new GithubOAuthUserDetails(self.getLogin(), auth.getAuthorities()));
+            SecurityListener.fireAuthenticated(new GithubOAuthUserDetails(self.getLogin(), auth.getAuthorities()));
         } else {
             Log.info("Github did not return an access token.");
         }
@@ -427,25 +425,6 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
             }
         }
         return null;
-    }
-
-    /**
-     * Calls {@code SecurityListener.fireAuthenticated()} but through reflection to avoid
-     * hard dependency on non-LTS core version.
-     * TODO delete in 1.569+
-     */
-    private void fireAuthenticated(UserDetails details) {
-        try {
-            Class<?> c = Class.forName("jenkins.security.SecurityListener");
-            Method m = c.getMethod("fireAuthenticated", UserDetails.class);
-            m.invoke(null,details);
-        } catch (ClassNotFoundException | NoSuchMethodException e) {
-            // running with old core
-        } catch (IllegalAccessException e) {
-            throw (Error)new IllegalAccessError(e.getMessage()).initCause(e);
-        } catch (InvocationTargetException e) {
-            LOGGER.log(Level.WARNING, "Failed to invoke fireAuthenticated", e);
-        }
     }
 
     /**
