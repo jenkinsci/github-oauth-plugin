@@ -67,7 +67,6 @@ import org.kohsuke.github.GHEmail;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHTeam;
-import org.kohsuke.github.GHUser;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Header;
 import org.kohsuke.stapler.HttpRedirect;
@@ -393,7 +392,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
                 }
             }
 
-            fireAuthenticated(new GithubOAuthUserDetails(self, auth.getAuthorities()));
+            fireAuthenticated(new GithubOAuthUserDetails(self.getLogin(), auth.getAuthorities()));
         } else {
             Log.info("Github did not return an access token.");
         }
@@ -580,7 +579,6 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
     @Override
     public UserDetails loadUserByUsername(String username)
             throws UsernameNotFoundException, DataAccessException {
-        GHUser user = null;
 
         Authentication token = SecurityContextHolder.getContext().getAuthentication();
 
@@ -594,6 +592,15 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
             authToken = (GithubAuthenticationToken) token;
         } else {
             throw new UserMayOrMayNotExistException("Unexpected authentication type: " + token);
+        }
+
+        /**
+         * Always lookup the local user first. If we can't resolve it then we can burn an API request to Github for this user
+         * Taken from hudson.security.HudsonPrivateSecurityRealm#loadUserByUsername(java.lang.String)
+         */
+        User localUser = User.getById(username, false);
+        if (localUser != null) {
+            return new GithubOAuthUserDetails(username, authToken);
         }
 
         try {

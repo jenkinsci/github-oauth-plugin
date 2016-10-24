@@ -91,10 +91,21 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     private static final Cache<String, Boolean> publicRepositoryCache =
             CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
-    private static final Cache<String, GHUser> usersByIdCache =
+    private static final Cache<String, GithubUser> usersByIdCache =
             CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
     private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
+
+    private static final GithubUser UNKNOWN_USER = new GithubUser(null);
+
+    /** Wrapper for cache **/
+    static class GithubUser {
+        public final GHUser user;
+
+        public GithubUser(GHUser user) {
+            this.user = user;
+        }
+    }
 
     public GithubAuthenticationToken(final String accessToken, final String githubServer) throws IOException {
         super(new GrantedAuthority[] {});
@@ -300,18 +311,20 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
             .getLogger(GithubAuthenticationToken.class.getName());
 
     public GHUser loadUser(String username) throws IOException {
-        GHUser user;
+        GithubUser user;
         try {
             user = usersByIdCache.get(username);
             if (gh != null && user == null && isAuthenticated()) {
-                user = getGitHub().getUser(username);
-                usersByIdCache.put(user.getLogin(), user);
+                GHUser ghUser = getGitHub().getUser(username);
+                user = new GithubUser(ghUser);
+                usersByIdCache.put(username, user);
             }
         } catch (IOException | ExecutionException e) {
             LOGGER.log(Level.FINEST, e.getMessage(), e);
-            user = null;
+            user = UNKNOWN_USER;
+            usersByIdCache.put(username, UNKNOWN_USER);
         }
-        return user;
+        return user != null ? user.user : null;
     }
 
     public GHOrganization loadOrganization(String organization) {
@@ -352,51 +365,55 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     public GithubOAuthUserDetails getUserDetails(String username) throws IOException {
         GHUser user = loadUser(username);
         if (user != null) {
-            List<GrantedAuthority> groups = new ArrayList<GrantedAuthority>();
-            try {
-                GHPersonSet<GHOrganization> orgs;
-                if(myRealm == null) {
-                    Jenkins jenkins = Jenkins.getInstance();
-                    if (jenkins == null) {
-                        throw new IllegalStateException("Jenkins not started");
-                    }
-                    myRealm = (GithubSecurityRealm) jenkins.getSecurityRealm();
-                }
-                //Search for scopes that allow fetching team membership.  This is documented online.
-                //https://developer.github.com/v3/orgs/#list-your-organizations
-                //https://developer.github.com/v3/orgs/teams/#list-user-teams
-                if(this.userName.equals(username) && (myRealm.hasScope("read:org") || myRealm.hasScope("admin:org") || myRealm.hasScope("user") || myRealm.hasScope("repo"))) {
-                    //This allows us to search for private organization membership.
-                    orgs = getMyself().getAllOrganizations();
-                } else {
-                    //This searches for public organization membership.
-                    orgs = user.getOrganizations();
-                }
-                for (GHOrganization ghOrganization : orgs) {
-                    String orgLogin = ghOrganization.getLogin();
-                    LOGGER.log(Level.FINE, "Fetch teams for user " + username + " in organization " + orgLogin);
-                    groups.add(new GrantedAuthorityImpl(orgLogin));
-                    try {
-                        if (!getMyself().isMemberOf(ghOrganization)) {
-                            continue;
-                        }
-                        Map<String, GHTeam> teams = ghOrganization.getTeams();
-                        for (Map.Entry<String, GHTeam> entry : teams.entrySet()) {
-                            GHTeam team = entry.getValue();
-                            if (team.hasMember(user)) {
-                                groups.add(new GrantedAuthorityImpl(orgLogin + GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR
-                                        + team));
-                            }
-                        }
-                    } catch (IOException | Error ignore) {
-                        LOGGER.log(Level.FINEST, "not enough rights to list teams from " + orgLogin, ignore);
-                    }
-                }
-            } catch(IOException e) {
-                LOGGER.log(Level.FINE, e.getMessage(), e);
-            }
-            return new GithubOAuthUserDetails(user, groups.toArray(new GrantedAuthority[groups.size()]));
+            return new GithubOAuthUserDetails(user.getLogin(), this);
         }
         return null;
+    }
+
+    public GrantedAuthority[] getGrantedAuthorities(GHUser user) {
+        List<GrantedAuthority> groups = new ArrayList<GrantedAuthority>();
+        try {
+            GHPersonSet<GHOrganization> orgs;
+            if(myRealm == null) {
+                Jenkins jenkins = Jenkins.getInstance();
+                if (jenkins == null) {
+                    throw new IllegalStateException("Jenkins not started");
+                }
+                myRealm = (GithubSecurityRealm) jenkins.getSecurityRealm();
+            }
+            //Search for scopes that allow fetching team membership.  This is documented online.
+            //https://developer.github.com/v3/orgs/#list-your-organizations
+            //https://developer.github.com/v3/orgs/teams/#list-user-teams
+            if(this.userName.equals(user.getLogin()) && (myRealm.hasScope("read:org") || myRealm.hasScope("admin:org") || myRealm.hasScope("user") || myRealm.hasScope("repo"))) {
+                //This allows us to search for private organization membership.
+                orgs = getMyself().getAllOrganizations();
+            } else {
+                //This searches for public organization membership.
+                orgs = user.getOrganizations();
+            }
+            for (GHOrganization ghOrganization : orgs) {
+                String orgLogin = ghOrganization.getLogin();
+                LOGGER.log(Level.FINE, "Fetch teams for user " + user.getLogin() + " in organization " + orgLogin);
+                groups.add(new GrantedAuthorityImpl(orgLogin));
+                try {
+                    if (!getMyself().isMemberOf(ghOrganization)) {
+                        continue;
+                    }
+                    Map<String, GHTeam> teams = ghOrganization.getTeams();
+                    for (Map.Entry<String, GHTeam> entry : teams.entrySet()) {
+                        GHTeam team = entry.getValue();
+                        if (team.hasMember(user)) {
+                            groups.add(new GrantedAuthorityImpl(orgLogin + GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR
+                                    + team));
+                        }
+                    }
+                } catch (IOException | Error ignore) {
+                    LOGGER.log(Level.FINEST, "not enough rights to list teams from " + orgLogin, ignore);
+                }
+            }
+        } catch(IOException e) {
+            LOGGER.log(Level.FINE, e.getMessage(), e);
+        }
+        return groups.toArray(new GrantedAuthority[groups.size()]);
     }
 }
