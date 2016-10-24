@@ -56,9 +56,9 @@ import org.apache.commons.httpclient.URIException;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
@@ -77,6 +77,8 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataRetrievalFailureException;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -361,30 +363,7 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
             return HttpResponses.redirectToContextRoot();
         }
 
-        Log.info("test");
-
-        HttpPost httpost = new HttpPost(githubWebUri
-                + "/login/oauth/access_token?" + "client_id=" + clientID + "&"
-                + "client_secret=" + clientSecret + "&" + "code=" + code);
-
-        CloseableHttpClient httpclient = HttpClients.createDefault();
-        HttpHost proxy = getProxy(httpost);
-        if (proxy != null) {
-            httpclient.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, proxy);
-        }
-
-        org.apache.http.HttpResponse response = httpclient.execute(httpost);
-
-        HttpEntity entity = response.getEntity();
-
-        String content = EntityUtils.toString(entity);
-
-        // When HttpClient instance is no longer needed,
-        // shut down the connection manager to ensure
-        // immediate deallocation of all system resources
-        httpclient.getConnectionManager().shutdown();
-
-        String accessToken = extractToken(content);
+        String accessToken = getAccessToken(code);
 
         if (accessToken != null && accessToken.trim().length() > 0) {
             // only set the access token if it exists.
@@ -424,6 +403,33 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
         return HttpResponses.redirectToContextRoot();   // referer should be always there, but be defensive
     }
 
+    @Nullable
+    private String getAccessToken(@Nonnull String code) throws IOException {
+        String content;
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpPost httpost = new HttpPost(githubWebUri
+                    + "/login/oauth/access_token?" + "client_id=" + clientID + "&"
+                    + "client_secret=" + clientSecret + "&" + "code=" + code);
+            HttpHost proxy = getProxy(httpost);
+            if (proxy != null) {
+                RequestConfig requestConfig = RequestConfig.custom().setProxy(proxy).build();
+                httpost.setConfig(requestConfig);
+            }
+            org.apache.http.HttpResponse response = httpClient.execute(httpost);
+            HttpEntity entity = response.getEntity();
+            content = EntityUtils.toString(entity);
+
+        }
+        String parts[] = content.split("&");
+        for (String part : parts) {
+            if (content.contains("access_token")) {
+                String tokenParts[] = part.split("=");
+                return tokenParts[1];
+            }
+        }
+        return null;
+    }
+
     /**
      * Calls {@code SecurityListener.fireAuthenticated()} but through reflection to avoid
      * hard dependency on non-LTS core version.
@@ -461,24 +467,6 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
         default:
             return null;        // not supported yet
         }
-    }
-
-    private String extractToken(String content) {
-        String parts[] = content.split("&");
-
-        for (String part : parts) {
-
-            if (content.contains("access_token")) {
-
-                String tokenParts[] = part.split("=");
-
-                return tokenParts[1];
-            }
-
-            // fall through
-        }
-
-        return null;
     }
 
     /*
