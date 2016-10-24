@@ -36,14 +36,6 @@ import hudson.plugins.git.UserRemoteConfig;
 import hudson.scm.NullSCM;
 import hudson.security.Permission;
 import hudson.security.PermissionScope;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import jenkins.model.Jenkins;
 import junit.framework.TestCase;
 import org.acegisecurity.Authentication;
@@ -51,8 +43,8 @@ import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.providers.anonymous.AnonymousAuthenticationToken;
 import org.junit.Before;
-import org.junit.runner.RunWith;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHPerson;
@@ -65,7 +57,15 @@ import org.mockito.Mock;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-import static org.mockito.Matchers.anyObject;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  *
@@ -90,7 +90,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         PowerMockito.when(securityRealm.getOauthScopes()).thenReturn("read:org");
     }
 
-    private final Permission VIEW_JOBSTATUS_PERMISSION = new Permission(Item.PERMISSIONS,
+    private static final Permission VIEW_JOBSTATUS_PERMISSION = new Permission(Item.PERMISSIONS,
             "ViewStatus",
             Messages._Item_READ_description(),
             Permission.READ,
