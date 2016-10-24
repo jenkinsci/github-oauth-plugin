@@ -75,20 +75,24 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     private transient GHMyself me;
     private transient GithubSecurityRealm myRealm = null;
 
+    public static final TimeUnit CACHE_EXPIRY = TimeUnit.HOURS;
     /**
      * Cache for faster organization based security
      */
     private static final Cache<String, Set<String>> userOrganizationCache =
-            CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
+            CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
     private static final Cache<String, Set<String>> repositoryCollaboratorsCache =
-            CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
+            CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
     private static final Cache<String, Set<String>> repositoriesByUserCache =
-            CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
+            CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
     private static final Cache<String, Boolean> publicRepositoryCache =
-            CacheBuilder.newBuilder().expireAfterWrite(1,TimeUnit.HOURS).build();
+            CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
+
+    private static final Cache<String, GHUser> usersByIdCache =
+            CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
     private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
 
@@ -296,13 +300,18 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
             .getLogger(GithubAuthenticationToken.class.getName());
 
     public GHUser loadUser(String username) throws IOException {
+        GHUser user;
         try {
-            if (gh != null && isAuthenticated())
-                return getGitHub().getUser(username);
-        } catch (IOException e) {
+            user = usersByIdCache.get(username);
+            if (gh != null && user == null && isAuthenticated()) {
+                user = getGitHub().getUser(username);
+                usersByIdCache.put(user.getLogin(), user);
+            }
+        } catch (IOException | ExecutionException e) {
             LOGGER.log(Level.FINEST, e.getMessage(), e);
+            user = null;
         }
-        return null;
+        return user;
     }
 
     public GHOrganization loadOrganization(String organization) {
