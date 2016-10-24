@@ -8,6 +8,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.GitHubBuilder;
+import org.kohsuke.github.RateLimitHandler;
 import org.mockito.Mock;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -18,7 +20,7 @@ import java.io.IOException;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({GitHub.class, Jenkins.class, GithubSecurityRealm.class})
+@PrepareForTest({GitHub.class, GitHubBuilder.class, Jenkins.class, GithubSecurityRealm.class})
 public class GithubAuthenticationTokenTest {
 
     @Mock
@@ -54,8 +56,14 @@ public class GithubAuthenticationTokenTest {
 
     private GHMyself mockGHMyselfAs(String username) throws IOException {
         GitHub gh = PowerMockito.mock(GitHub.class);
+        GitHubBuilder builder = PowerMockito.mock(GitHubBuilder.class);
         PowerMockito.mockStatic(GitHub.class);
-        PowerMockito.when(GitHub.connectUsingOAuth("https://api.github.com", "accessToken")).thenReturn(gh);
+        PowerMockito.mockStatic(GitHubBuilder.class);
+        PowerMockito.when(GitHubBuilder.fromEnvironment()).thenReturn(builder);
+        PowerMockito.when(builder.withEndpoint("https://api.github.com")).thenReturn(builder);
+        PowerMockito.when(builder.withOAuthToken("accessToken")).thenReturn(builder);
+        PowerMockito.when(builder.withRateLimitHandler(RateLimitHandler.FAIL)).thenReturn(builder);
+        PowerMockito.when(builder.build()).thenReturn(gh);
         GHMyself me = PowerMockito.mock(GHMyself.class);
         PowerMockito.when(gh.getMyself()).thenReturn(me);
         PowerMockito.when(me.getLogin()).thenReturn(username);
