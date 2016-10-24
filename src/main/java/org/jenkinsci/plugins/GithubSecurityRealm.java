@@ -1,7 +1,7 @@
 /**
  The MIT License
 
-Copyright (c) 2011 Michael O'Cleirigh
+Copyright (c) 2011-2016 Michael O'Cleirigh, James Nord, CloudBees, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,6 +38,7 @@ import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.User;
 import hudson.security.GroupDetails;
+import hudson.security.Permission;
 import hudson.security.SecurityRealm;
 import hudson.security.UserMayOrMayNotExistException;
 import hudson.tasks.Mailer;
@@ -510,6 +511,16 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
     @Override
     public String getLoginUrl() {
         return "securityRealm/commenceLogin";
+    }
+
+    @Override
+    protected String getPostLogOutUrl(StaplerRequest req, Authentication auth) {
+        // if we just redirect to the root and anonymous does not have Overall read then we will start a login all over again.
+        // we are actually anonymous here as the security context has been cleared 
+        if (Jenkins.getInstance().hasPermission(Jenkins.READ)) {
+            return super.getPostLogOutUrl(req, auth);
+        }
+        return req.getContextPath()+ "/" + GithubLogoutAction.POST_LOGOUT_URL;
     }
 
     @Extension
