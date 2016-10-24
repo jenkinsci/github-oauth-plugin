@@ -517,7 +517,9 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
     protected String getPostLogOutUrl(StaplerRequest req, Authentication auth) {
         // if we just redirect to the root and anonymous does not have Overall read then we will start a login all over again.
         // we are actually anonymous here as the security context has been cleared 
-        if (Jenkins.getInstance().hasPermission(Jenkins.READ)) {
+        Jenkins j = Jenkins.getInstance();
+        assert j != null;
+        if (j.hasPermission(Jenkins.READ)) {
             return super.getPostLogOutUrl(req, auth);
         }
         return req.getContextPath()+ "/" + GithubLogoutAction.POST_LOGOUT_URL;
