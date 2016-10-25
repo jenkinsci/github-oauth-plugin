@@ -21,21 +21,25 @@ public class GithubOAuthUserDetails extends User implements UserDetails {
 
     private static final long serialVersionUID = 1L;
 
+    private boolean hasGrantedAuthorities;
+
     private final GithubAuthenticationToken authenticationToken;
 
     public GithubOAuthUserDetails(@Nonnull String login, @Nonnull GrantedAuthority[] authorities) {
         super(login, "", true, true, true, true, authorities);
         this.authenticationToken = null;
+        this.hasGrantedAuthorities = true;
     }
 
     public GithubOAuthUserDetails(@Nonnull String login, @Nonnull GithubAuthenticationToken authenticationToken) {
-        super(login, "", true, true, true, true, null);
+        super(login, "", true, true, true, true, new GrantedAuthority[0]);
         this.authenticationToken = authenticationToken;
+        this.hasGrantedAuthorities = false;
     }
 
     @Override
     public GrantedAuthority[] getAuthorities() {
-        if (super.getAuthorities() == null) {
+        if (!hasGrantedAuthorities) {
             try {
                 GHUser user = authenticationToken.loadUser(getUsername());
                 setAuthorities(authenticationToken.getGrantedAuthorities(user));
