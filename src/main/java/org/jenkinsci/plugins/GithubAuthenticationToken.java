@@ -162,6 +162,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         userOrganizationCache.invalidateAll();
         repositoryCollaboratorsCache.invalidateAll();
         repositoriesByUserCache.invalidateAll();
+        usersByIdCache.invalidateAll();
     }
 
     /**
