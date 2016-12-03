@@ -1,3 +1,9 @@
+# Version 0.25 (Released Sept 9, 2016)
+
+* Added support for SSL server name indication. (pull request [#59][#59])
+
+[#59]: https://github.com/jenkinsci/github-oauth-plugin/pull/59
+
 # Version 0.24 (Released May 26, 2016)
 
 * Bugfix [JENKINS-34775][JENKINS-34775] Don't cast inconvertible un/pw token.
