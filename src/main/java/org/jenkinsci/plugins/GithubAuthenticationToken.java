@@ -314,13 +314,13 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     public GHUser loadUser(String username) throws IOException {
         GithubUser user;
         try {
-            user = usersByIdCache.get(username);
+            user = usersByIdCache.getIfPresent(username);
             if (gh != null && user == null && isAuthenticated()) {
                 GHUser ghUser = getGitHub().getUser(username);
                 user = new GithubUser(ghUser);
                 usersByIdCache.put(username, user);
             }
-        } catch (IOException | ExecutionException e) {
+        } catch (IOException e) {
             LOGGER.log(Level.FINEST, e.getMessage(), e);
             user = UNKNOWN_USER;
             usersByIdCache.put(username, UNKNOWN_USER);
