@@ -16,6 +16,28 @@ Jenkins groups for authorization.  This plugin supports GitHub Enterprise.
 
 More comprehensive documentation is listed on the [wiki page][wiki].
 
+# Building the plugin from master
+
+### Prerequisites
+
+This plugin was last compiled with the following versions.
+
+* Ubuntu 16.04.1 LTS
+* Apache Maven 3.3.9
+* Java version: 1.7.0_79, vendor: Oracle Corporation
+
+Newer/older versions may work.
+
+### Packaging HPI for Jenkins
+
+To create `github-oauth.hpi` which is the plugin that would be loaded in Jenkins
+execute the following command.
+
+    mvn clean package
+
+The command assumes both Maven and Java are in your `$PATH` and that you have
+`$JAVA_HOME` set up.
+
 [build-image]: https://jenkins.ci.cloudbees.com/buildStatus/icon?job=plugins/github-oauth-plugin
 [build-link]: https://jenkins.ci.cloudbees.com/job/plugins/job/github-oauth-plugin/
 [github-wiki-oauth]: https://developer.github.com/v3/oauth/
