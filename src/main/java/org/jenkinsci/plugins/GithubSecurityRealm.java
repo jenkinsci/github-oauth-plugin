@@ -26,6 +26,15 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
+import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.CredentialsStore;
+import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.Domain;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.thoughtworks.xstream.converters.ConversionException;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
@@ -390,6 +399,8 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
                 }
             }
 
+            storeCredentials(accessToken, auth);
+
             SecurityListener.fireAuthenticated(new GithubOAuthUserDetails(self.getLogin(), auth.getAuthorities()));
         } else {
             Log.info("Github did not return an access token.");
@@ -398,6 +409,23 @@ public class GithubSecurityRealm extends SecurityRealm implements UserDetailsSer
         String referer = (String)request.getSession().getAttribute(REFERER_ATTRIBUTE);
         if (referer!=null)  return HttpResponses.redirectTo(referer);
         return HttpResponses.redirectToContextRoot();   // referer should be always there, but be defensive
+    }
+
+    private void storeCredentials(String accessToken, GithubAuthenticationToken auth) throws IOException {
+        CredentialsStore credentialsStore = CredentialsProvider.lookupStores(Jenkins.getInstance()).iterator().next();
+        Credentials github = Iterables.find(credentialsStore.getCredentials(Domain.global()), new Predicate<Credentials>() {
+            @Override
+            public boolean apply(Credentials input) {
+                return input.getDescriptor().getId().equals("Github");
+            }
+        }, null);
+
+        UsernamePasswordCredentials credentials = new UsernamePasswordCredentialsImpl(CredentialsScope.USER, "Github", "Github Access Token", auth.getMyself().getLogin(), accessToken);
+        if (github == null) {
+            credentialsStore.addCredentials(Domain.global(), credentials);
+        } else {
+            credentialsStore.updateCredentials(Domain.global(), github, credentials);
+        }
     }
 
     @Nullable
