@@ -1,3 +1,40 @@
+# Version 0.25 (Released Dec 3, 2016)
+
+* Security improvement: Added support for SSL server name indication. (pull
+  request [#59][#59])
+* Security improvement: release over HTTPS. (pull request [#67][#67])
+* Performance enhancement: Fixes github client rate limitor waits and eats web
+  threads causing Jenkins to be unresponsive tracked by
+  [JENKINS-39200][JENKINS-39200].  (pull request [#63][#63])
+* Performance enhancement: cache user lookups from GitHub. (pull requests
+  [#64][#64], [#65][#65], [#71][#71], [#72][#72], [#73][#73])
+* Bugfix skip searching users when searching for teams tracked by
+  [JENKINS-34896][JENKINS-34896] (pull request [#68][#68])
+* Bugfix logout/login process tracked by [JENKINS-16350][JENKINS-16350]. (pull
+  request [#58][#58])
+* Bugfix building plugin with JDK7 and JDK8. (pull request [#73][#73])
+* General bug fixes and code cleanup. (pull requests [#61][#61], [#62][#62],
+  [#66][#66], [#69][#69], [#70][#70])
+
+[#58]: https://github.com/jenkinsci/github-oauth-plugin/pull/58
+[#59]: https://github.com/jenkinsci/github-oauth-plugin/pull/59
+[#61]: https://github.com/jenkinsci/github-oauth-plugin/pull/61
+[#62]: https://github.com/jenkinsci/github-oauth-plugin/pull/62
+[#63]: https://github.com/jenkinsci/github-oauth-plugin/pull/63
+[#64]: https://github.com/jenkinsci/github-oauth-plugin/pull/64
+[#65]: https://github.com/jenkinsci/github-oauth-plugin/pull/65
+[#66]: https://github.com/jenkinsci/github-oauth-plugin/pull/66
+[#67]: https://github.com/jenkinsci/github-oauth-plugin/pull/67
+[#68]: https://github.com/jenkinsci/github-oauth-plugin/pull/68
+[#69]: https://github.com/jenkinsci/github-oauth-plugin/pull/69
+[#70]: https://github.com/jenkinsci/github-oauth-plugin/pull/70
+[#71]: https://github.com/jenkinsci/github-oauth-plugin/pull/71
+[#72]: https://github.com/jenkinsci/github-oauth-plugin/pull/72
+[#73]: https://github.com/jenkinsci/github-oauth-plugin/pull/73
+[JENKINS-16350]: https://issues.jenkins-ci.org/browse/JENKINS-16350
+[JENKINS-34896]: https://issues.jenkins-ci.org/browse/JENKINS-34896
+[JENKINS-39200]: https://issues.jenkins-ci.org/browse/JENKINS-39200
+
 # Version 0.24 (Released May 26, 2016)
 
 * Bugfix [JENKINS-34775][JENKINS-34775] Don't cast inconvertible un/pw token.
