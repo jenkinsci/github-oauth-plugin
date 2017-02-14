@@ -42,7 +42,9 @@ public class GithubOAuthUserDetails extends User implements UserDetails {
         if (!hasGrantedAuthorities) {
             try {
                 GHUser user = authenticationToken.loadUser(getUsername());
-                setAuthorities(authenticationToken.getGrantedAuthorities(user));
+                if(user != null) {
+                    setAuthorities(authenticationToken.getGrantedAuthorities(user));
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
