@@ -2,7 +2,8 @@ The MIT License
 
 Copyright (c) 2011 Michael O'Cleirigh
 Copyright (c) 2013-2014 Sam Kottler
-Copyright (c) 2015 Sam Gleske
+Copyright (c) 2015-2017 Sam Gleske
+Copyright (c) 2004-, Kohsuke Kawaguchi, Sun Microsystems, Inc., and a number of other of contributors - https://github.com/jenkinsci/jenkins
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
