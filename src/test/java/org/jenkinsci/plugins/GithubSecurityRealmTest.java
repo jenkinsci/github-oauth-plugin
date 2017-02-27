@@ -25,7 +25,7 @@ THE SOFTWARE.
 package org.jenkinsci.plugins;
 
 import org.jenkinsci.plugins.GithubSecurityRealm.DescriptorImpl;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
@@ -35,8 +35,8 @@ import static org.junit.Assert.assertTrue;
 
 public class GithubSecurityRealmTest {
 
-    @Rule
-    public final JenkinsRule rule = new JenkinsRule();
+    @ClassRule
+    public final static JenkinsRule rule = new JenkinsRule();
 
     @Test
     public void testEquals_true() {
