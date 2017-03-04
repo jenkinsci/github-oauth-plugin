@@ -276,6 +276,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
     private String getRepositoryName() {
         String repositoryName = null;
+        String repoUrl = null;
         Describable scm = null;
         if (this.item instanceof WorkflowJob) {
             WorkflowMultiBranchProject project = (WorkflowMultiBranchProject) item.getParent();
@@ -289,28 +290,20 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
         }
         if (scm instanceof GitHubSCMSource) {
             GitHubSCMSource git = (GitHubSCMSource) scm;
-            String repoUrl = git.getRemote();
-            if (repoUrl != null) {
-                GitHubRepositoryName githubRepositoryName =
-                    GitHubRepositoryName.create(repoUrl);
-                if (githubRepositoryName != null) {
-                    repositoryName = githubRepositoryName.userName + "/"
-                        + githubRepositoryName.repositoryName;
-                }
-            }
+            repoUrl = git.getRemote();
         } else if (scm instanceof GitSCM) {
             GitSCM git = (GitSCM) scm;
             List<UserRemoteConfig> userRemoteConfigs = git.getUserRemoteConfigs();
             if (!userRemoteConfigs.isEmpty()) {
-                String repoUrl = userRemoteConfigs.get(0).getUrl();
-                if (repoUrl != null) {
-                    GitHubRepositoryName githubRepositoryName =
-                        GitHubRepositoryName.create(repoUrl);
-                    if (githubRepositoryName != null) {
-                        repositoryName = githubRepositoryName.userName + "/"
-                            + githubRepositoryName.repositoryName;
-                    }
-                }
+                repoUrl = userRemoteConfigs.get(0).getUrl();
+            }
+        }
+        if (repoUrl != null) {
+            GitHubRepositoryName githubRepositoryName =
+                GitHubRepositoryName.create(repoUrl);
+            if (githubRepositoryName != null) {
+                repositoryName = githubRepositoryName.userName + "/"
+                    + githubRepositoryName.repositoryName;
             }
         }
         return repositoryName;
