@@ -3,9 +3,10 @@
  */
 package org.jenkinsci.plugins;
 
-import hudson.security.GroupDetails;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHTeam;
+
+import hudson.security.GroupDetails;
 
 /**
  * @author Mike

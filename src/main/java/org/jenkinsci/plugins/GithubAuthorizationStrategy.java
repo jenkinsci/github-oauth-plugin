@@ -27,17 +27,23 @@ THE SOFTWARE.
 package org.jenkinsci.plugins;
 
 import com.google.common.collect.ImmutableList;
+
+import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
+import org.kohsuke.stapler.DataBoundConstructor;
+
+import java.util.Collection;
+
+import javax.annotation.Nonnull;
+
 import hudson.Extension;
+import hudson.model.AbstractItem;
 import hudson.model.AbstractProject;
 import hudson.model.Descriptor;
 import hudson.model.Job;
 import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
-import org.apache.commons.lang.StringUtils;
-import org.kohsuke.stapler.DataBoundConstructor;
-
-import javax.annotation.Nonnull;
-import java.util.Collection;
 
 /**
  * @author mocleiri
@@ -84,11 +90,20 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     @Nonnull
-    public ACL getACL(@Nonnull Job<?,?> job) {
-        if(job instanceof AbstractProject) {
-            AbstractProject project = (AbstractProject)job;
+    public ACL getACL(@Nonnull AbstractItem item) {
+        if(item instanceof WorkflowMultiBranchProject) {
             GithubRequireOrganizationMembershipACL githubACL = (GithubRequireOrganizationMembershipACL) getRootACL();
-            return githubACL.cloneForProject(project);
+            return githubACL.cloneForProject(item);
+        } else {
+            return getRootACL();
+        }
+    }
+
+    @Nonnull
+    public ACL getACL(@Nonnull Job<?,?> job) {
+        if(job instanceof WorkflowJob || job instanceof AbstractProject) {
+            GithubRequireOrganizationMembershipACL githubACL = (GithubRequireOrganizationMembershipACL) getRootACL();
+            return githubACL.cloneForProject(job);
         } else {
             return getRootACL();
         }
