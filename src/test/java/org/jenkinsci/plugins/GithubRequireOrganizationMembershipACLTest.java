@@ -36,6 +36,7 @@ import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.providers.anonymous.AnonymousAuthenticationToken;
 import org.jenkinsci.plugins.github_branch_source.GitHubSCMSource;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.junit.Before;
 import org.junit.Test;
@@ -73,6 +74,7 @@ import hudson.plugins.git.UserRemoteConfig;
 import hudson.scm.NullSCM;
 import hudson.security.Permission;
 import hudson.security.PermissionScope;
+import jenkins.branch.Branch;
 import jenkins.branch.MultiBranchProject;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSource;
@@ -236,13 +238,16 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
     private WorkflowJob mockWorkflowJob(String url) {
         WorkflowJob project = PowerMockito.mock(WorkflowJob.class);
-        WorkflowMultiBranchProject parent = PowerMockito.mock(WorkflowMultiBranchProject.class);
-        GitHubSCMSource gitHubSCM = PowerMockito.mock(GitHubSCMSource.class);
-        ArrayList<SCMSource> scmSources = new ArrayList<SCMSource>();
-        scmSources.add(gitHubSCM);
-        PowerMockito.when(project.getParent()).thenReturn(parent);
-        PowerMockito.when(parent.getSCMSources()).thenReturn(scmSources);
-        PowerMockito.when(gitHubSCM.getRemote()).thenReturn(url);
+        GitSCM gitSCM = PowerMockito.mock(GitSCM.class);
+        Branch branch = PowerMockito.mock(Branch.class);
+        BranchJobProperty branchJobProperty = PowerMockito.mock(BranchJobProperty.class);
+        UserRemoteConfig userRemoteConfig = PowerMockito.mock(UserRemoteConfig.class);
+        List<UserRemoteConfig> userRemoteConfigs = Arrays.asList(userRemoteConfig);
+        PowerMockito.when(project.getProperty(BranchJobProperty.class)).thenReturn(branchJobProperty);
+        PowerMockito.when(branchJobProperty.getBranch()).thenReturn(branch);
+        PowerMockito.when(branch.getScm()).thenReturn(gitSCM);
+        PowerMockito.when(gitSCM.getUserRemoteConfigs()).thenReturn(userRemoteConfigs);
+        PowerMockito.when(userRemoteConfig.getUrl()).thenReturn(url);
         return project;
     }
 

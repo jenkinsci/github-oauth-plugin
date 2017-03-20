@@ -29,7 +29,7 @@ package org.jenkinsci.plugins;
 import org.acegisecurity.Authentication;
 import org.jenkinsci.plugins.github_branch_source.GitHubSCMSource;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
+import org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 
@@ -48,7 +48,9 @@ import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.UserRemoteConfig;
 import hudson.security.ACL;
 import hudson.security.Permission;
+import jenkins.branch.MultiBranchProject;
 import jenkins.model.Jenkins;
+import jenkins.scm.api.SCMSource;
 
 /**
  * @author Mike
@@ -279,12 +281,12 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
         String repoUrl = null;
         Describable scm = null;
         if (this.item instanceof WorkflowJob) {
-            WorkflowMultiBranchProject project = (WorkflowMultiBranchProject) item.getParent();
-            scm = project.getSCMSources().get(0);
-        } else if (item instanceof WorkflowMultiBranchProject) {
-            WorkflowMultiBranchProject project = (WorkflowMultiBranchProject) item;
-            scm = project.getSCMSources().get(0);
-        } else if (item instanceof AbstractProject) {
+            WorkflowJob project = (WorkflowJob) item;
+            scm = project.getProperty(BranchJobProperty.class).getBranch().getScm();
+        } else if (this.item instanceof MultiBranchProject) {
+            MultiBranchProject project = (MultiBranchProject) item;
+            scm = (SCMSource) project.getSCMSources().get(0);
+        } else if (this.item instanceof AbstractProject) {
             AbstractProject project = (AbstractProject) item;
             scm = project.getScm();
         }
