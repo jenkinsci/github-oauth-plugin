@@ -1,3 +1,18 @@
+# Version 0.26 (Released Apr 21, 2017)
+
+* Bugfix Fix for NPE in `GithubOAuthUserDetails.getAuthorities()`. (pull request
+  [#76][#76])
+* Bugfix [JENKINS-27045][JENKINS-27045] Jenkins CLI --username/--password
+  options. (pull request [#77][#77])
+- Bugfix [JENKINS-38096][JENKINS-38096] add in authorization checks for
+  multibranch workflow jobs. (pull request [#78][#78])
+
+[#76]: https://github.com/jenkinsci/github-oauth-plugin/pull/76
+[#77]: https://github.com/jenkinsci/github-oauth-plugin/pull/77
+[#78]: https://github.com/jenkinsci/github-oauth-plugin/pull/78
+[JENKINS-27045]: https://issues.jenkins-ci.org/browse/JENKINS-27045
+[JENKINS-38096]: https://issues.jenkins-ci.org/browse/JENKINS-38096
+
 # Version 0.25 (Released Dec 3, 2016)
 
 * Security improvement: Added support for SSL server name indication. (pull
