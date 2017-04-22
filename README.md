@@ -24,7 +24,7 @@ This plugin was last compiled with the following versions.
 
 * Ubuntu 16.04.1 LTS
 * Apache Maven 3.3.9
-* Java version: 1.7.0_79, vendor: Oracle Corporation
+* Java version: 1.8.0_112, vendor: Oracle Corporation
 
 Newer/older versions may work.
 
