@@ -463,6 +463,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         assertTrue(acl.hasPermission(authenticationToken, Item.CONFIGURE));
         assertTrue(acl.hasPermission(authenticationToken, Item.DELETE));
         assertTrue(acl.hasPermission(authenticationToken, Item.EXTENDED_READ));
+        assertTrue(acl.hasPermission(authenticationToken, Item.CANCEL));
     }
 
     @Test
@@ -480,6 +481,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         assertFalse(acl.hasPermission(authenticationToken, Item.CONFIGURE));
         assertFalse(acl.hasPermission(authenticationToken, Item.DELETE));
         assertFalse(acl.hasPermission(authenticationToken, Item.EXTENDED_READ));
+        assertFalse(acl.hasPermission(authenticationToken, Item.CANCEL));
     }
 
     @Test
