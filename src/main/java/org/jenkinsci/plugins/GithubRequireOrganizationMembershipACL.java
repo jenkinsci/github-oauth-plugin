@@ -260,7 +260,8 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
                 if (permission.equals(Item.READ) ||
                         permission.equals(Item.CONFIGURE) ||
                         permission.equals(Item.DELETE) ||
-                        permission.equals(Item.EXTENDED_READ)) {
+                        permission.equals(Item.EXTENDED_READ) ||
+                        permission.equals(Item.CANCEL)) {
                     return true;
                 } else {
                     return false;
