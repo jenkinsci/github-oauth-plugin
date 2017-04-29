@@ -520,8 +520,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
 
             public Authentication authenticate() throws AuthenticationException, IOException, InterruptedException {
                 if(userName == null) {
-                    //return command.getTransportAuthentication();    // no authentication parameter. fallback to the transport
-                    return Jenkins.ANONYMOUS;
+                    super.authenticate();
                 }
                 if(passwordFile != null) {
                     try {
