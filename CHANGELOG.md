@@ -1,3 +1,15 @@
+# Version 0.27 (Released May 1, 2017)
+
+* Allow collaborators to cancel/abort a build tracked by
+  [JENKINS-40566][JENKINS-40566]. (pull request [#81][#81])
+* Bugfix breaking SSH key authentication and transport authentication in Jenkins
+  CLI tracked by [JENKINS-43822][JENKINS-43822]. (pull request [#83][#83])
+
+[#81]: https://github.com/jenkinsci/github-oauth-plugin/pull/81
+[#83]: https://github.com/jenkinsci/github-oauth-plugin/pull/83
+[JENKINS-40566]: https://issues.jenkins-ci.org/browse/JENKINS-40566
+[JENKINS-43822]: https://issues.jenkins-ci.org/browse/JENKINS-43822
+
 # Version 0.26 (Released Apr 21, 2017)
 
 * Bugfix Fix for NPE in `GithubOAuthUserDetails.getAuthorities()`. (pull request
