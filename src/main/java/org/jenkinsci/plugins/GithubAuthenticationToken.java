@@ -28,6 +28,9 @@ package org.jenkinsci.plugins;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.OkUrlFactory;
+
 import hudson.security.SecurityRealm;
 import jenkins.model.Jenkins;
 import org.acegisecurity.GrantedAuthority;
@@ -42,9 +45,12 @@ import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
-
+import org.kohsuke.github.extras.OkHttpConnector;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.Proxy;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -57,6 +63,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.annotation.Nonnull;
 
 
 /**
@@ -185,13 +193,42 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
     public GitHub getGitHub() throws IOException {
         if (this.gh == null) {
+        	
+        	String host;
+            try {
+                host = new URL(this.githubServer).getHost();
+            } catch (MalformedURLException e) {
+                throw new IOException("Invalid GitHub API URL: " + this.githubServer, e);
+            }
+        	
+        	OkHttpClient client = new OkHttpClient().setProxy(getProxy(host));
+
             this.gh = GitHubBuilder.fromEnvironment()
                     .withEndpoint(this.githubServer)
                     .withOAuthToken(this.accessToken)
                     .withRateLimitHandler(RateLimitHandler.FAIL)
+                    .withConnector(new OkHttpConnector(new OkUrlFactory(client)))
                     .build();
         }
         return gh;
+    }
+    
+    /**
+     * Uses proxy if configured on pluginManager/advanced page
+     *
+     * @param host GitHub's hostname to build proxy to
+     *
+     * @return proxy to use it in connector. Should not be null as it can lead to unexpected behaviour
+     */
+    @Nonnull
+    private static Proxy getProxy(@Nonnull String host) {
+        Jenkins jenkins = Jenkins.getInstance();
+
+        if (jenkins.proxy == null) {
+            return Proxy.NO_PROXY;
+        } else {
+            return jenkins.proxy.createProxy(host);
+        }
     }
 
     @Override
