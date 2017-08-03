@@ -194,14 +194,14 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     public GitHub getGitHub() throws IOException {
         if (this.gh == null) {
         	
-        	String host;
+            String host;
             try {
                 host = new URL(this.githubServer).getHost();
             } catch (MalformedURLException e) {
                 throw new IOException("Invalid GitHub API URL: " + this.githubServer, e);
             }
         	
-        	OkHttpClient client = new OkHttpClient().setProxy(getProxy(host));
+            OkHttpClient client = new OkHttpClient().setProxy(getProxy(host));
 
             this.gh = GitHubBuilder.fromEnvironment()
                     .withEndpoint(this.githubServer)
