@@ -51,7 +51,9 @@ import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.PagedIterable;
 import org.kohsuke.github.RateLimitHandler;
+import org.kohsuke.github.extras.OkHttpConnector;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
@@ -176,6 +178,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         PowerMockito.when(builder.withEndpoint("https://api.github.com")).thenReturn(builder);
         PowerMockito.when(builder.withOAuthToken("accessToken")).thenReturn(builder);
         PowerMockito.when(builder.withRateLimitHandler(RateLimitHandler.FAIL)).thenReturn(builder);
+        PowerMockito.when(builder.withConnector(Mockito.any(OkHttpConnector.class))).thenReturn(builder);
         PowerMockito.when(builder.build()).thenReturn(gh);
         GHMyself me = PowerMockito.mock(GHMyself.class);
         PowerMockito.when(gh.getMyself()).thenReturn((GHMyself) me);
