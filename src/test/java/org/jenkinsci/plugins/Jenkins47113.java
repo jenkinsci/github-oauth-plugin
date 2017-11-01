@@ -235,11 +235,11 @@ public class Jenkins47113 {
         makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated"));
 
 //        // in case we trigger loggedIn event when we authenticate with GitHub token.
-//        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "authenticated", "org-a", "org-a*team-b"));
+//        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
 //
 //        wc = j.createWebClient();
 //        // in case of GithubToken there is no session so we retrieve the same result
-//        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "authenticated", "org-a", "org-a*team-b"));
+//        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
     }
 
     private void testBob_usingGithubLogin() throws IOException, SAXException {
@@ -262,8 +262,7 @@ public class Jenkins47113 {
 
         wc = j.createWebClient();
         // retrieve the security group even without the cookie (using LastGrantedAuthorities this time)
-        // twice the authenticated because one from the cache and one from the current request
-        makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "authenticated", "org-c", "org-c*team-d"));
+        makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
     }
 
     private void makeRequestWithAuthCodeAndVerify(String authCode, String expectedLogin, List<String> expectedAuthorities) throws IOException, SAXException {
@@ -294,6 +293,8 @@ public class Jenkins47113 {
             assertEquals(expectedLogin, respObject.getString("name"));
         }
         if (expectedAuthorities != null) {
+            // we use set to avoid having duplicated "authenticated"
+            // as that will be corrected in https://github.com/jenkinsci/jenkins/pull/3123
             Set<String> actualAuthorities = new HashSet<>(
                     JSONArray.toCollection(
                             respObject.getJSONArray("authorities"),
