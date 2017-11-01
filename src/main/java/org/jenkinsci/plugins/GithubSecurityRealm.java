@@ -398,6 +398,8 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             }
 
             SecurityListener.fireAuthenticated(new GithubOAuthUserDetails(self.getLogin(), auth.getAuthorities()));
+
+            SecurityListener.fireLoggedIn(self.getLogin());
         } else {
             Log.info("Github did not return an access token.");
         }
@@ -477,6 +479,12 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                         UsernamePasswordAuthenticationToken token = (UsernamePasswordAuthenticationToken) authentication;
                         GithubAuthenticationToken github = new GithubAuthenticationToken(token.getCredentials().toString(), getGithubApiUri());
                         SecurityContextHolder.getContext().setAuthentication(github);
+
+                        SecurityListener.fireAuthenticated(new GithubOAuthUserDetails(token.getName(), github.getAuthorities()));
+
+                        //TODO do we want to trigger a loggedIn event when using GitHub token ?
+                        // SecurityListener.fireLoggedIn(token.getName());
+
                         return github;
                     } catch (IOException e) {
                             throw new RuntimeException(e);
