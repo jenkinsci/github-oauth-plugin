@@ -36,10 +36,7 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.xml.sax.SAXException;
@@ -191,9 +188,13 @@ public class Jenkins47113 {
         }
     }
 
-    @Issue("JENKINS-47113")
-    @Test
-    public void testGroupPopulation() throws Exception {
+    @Before
+    public void prepareRealmAndWebClient() throws Exception {
+        this.setupRealm();
+        wc = j.createWebClient();
+    }
+
+    private void setupRealm(){
         String githubWebUri = serverUri.toString();
         String githubApiUri = serverUri.toString();
         String clientID = "xxx";
@@ -207,15 +208,13 @@ public class Jenkins47113 {
                 clientSecret,
                 oauthScopes
         );
+
         j.jenkins.setSecurityRealm(githubSecurityRealm);
-
-        wc = j.createWebClient();
-
-        testAlice_usingGithubToken();
-        testBob_usingGithubLogin();
     }
 
-    private void testAlice_usingGithubToken() throws IOException, SAXException {
+    @Issue("JENKINS-47113")
+    @Test
+    public void testUsingGithubToken() throws IOException, SAXException {
         String aliceLogin = "alice";
         servlet.currentLogin = aliceLogin;
         servlet.organizations = Arrays.asList("org-a");
@@ -242,7 +241,9 @@ public class Jenkins47113 {
 //        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
     }
 
-    private void testBob_usingGithubLogin() throws IOException, SAXException {
+    @Issue("JENKINS-47113")
+    @Test
+    public void testUsingGithubLogin() throws IOException, SAXException {
         String bobLogin = "bob";
         servlet.currentLogin = bobLogin;
         servlet.organizations = Arrays.asList("org-c");
