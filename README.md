@@ -42,3 +42,7 @@ The command assumes both Maven and Java are in your `$PATH` and that you have
 [build-link]: https://jenkins.ci.cloudbees.com/job/plugins/job/github-oauth-plugin/
 [github-wiki-oauth]: https://developer.github.com/v3/oauth/
 [wiki]: https://wiki.jenkins-ci.org/display/JENKINS/Github+OAuth+Plugin
+
+## Troubleshooting
+
+The the `<securityRealm>` class should have been updated in your /var/lib/jenkins/config.xml file. The value of `<clientID>` should agree with what you pasted into the admin UI. If it doesn't or you still can't log in, reset to `<securityRealm class="hudson.security.HudsonPrivateSecurityRealm">` and restart Jenkins from the command-line.
