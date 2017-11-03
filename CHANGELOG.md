@@ -1,4 +1,4 @@
-# Version 0.28.1 (Released Oct 1, 2017)
+# Version 0.28.1 (Released Nov 2, 2017)
 
 - Fix a botched release.  0.28 was not released to Artifactory so this is
   another attempt.
