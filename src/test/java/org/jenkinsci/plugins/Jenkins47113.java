@@ -232,13 +232,6 @@ public class Jenkins47113 {
 
         // there is neither loggedIn event triggered nor session at that point
         makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated"));
-
-//        // in case we trigger loggedIn event when we authenticate with GitHub token.
-//        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
-//
-//        wc = j.createWebClient();
-//        // in case of GithubToken there is no session so we retrieve the same result
-//        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
     }
 
     @Issue("JENKINS-47113")

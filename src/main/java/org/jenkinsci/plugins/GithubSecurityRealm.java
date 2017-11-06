@@ -482,9 +482,6 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
 
                         SecurityListener.fireAuthenticated(new GithubOAuthUserDetails(token.getName(), github.getAuthorities()));
 
-                        //TODO do we want to trigger a loggedIn event when using GitHub token ?
-                        // SecurityListener.fireLoggedIn(token.getName());
-
                         return github;
                     } catch (IOException e) {
                             throw new RuntimeException(e);
