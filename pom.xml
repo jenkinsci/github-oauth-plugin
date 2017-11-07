@@ -41,7 +41,7 @@
     <artifactId>github-oauth</artifactId>
     <version>0.29-SNAPSHOT</version>
     <name>GitHub Authentication plugin</name>
-    <description>A Jenkins authentication plugin that delegates to github.  We also implement an Authorization Strategy that users the acquired OAuth token to interact with the Github API to determine a users level of access to Jenkins.</description>
+    <description>A Jenkins authentication plugin that delegates to GitHub.  We also implement an Authorization Strategy that uses the acquired OAuth token to interact with the GitHub API to determine a user's level of access to Jenkins.</description>
     <packaging>hpi</packaging>
 
     <url>http://wiki.jenkins-ci.org/display/JENKINS/Github+OAuth+Plugin</url>
