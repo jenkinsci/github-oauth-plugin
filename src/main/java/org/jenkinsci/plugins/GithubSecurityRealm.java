@@ -115,6 +115,8 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     private String oauthScopes;
     private String[] myScopes;
 
+    private GithubSecretStorage secretStorage;
+
     /**
      * @param githubWebUri The URI to the root of the web UI for GitHub or GitHub Enterprise,
      *                     including the protocol (e.g. https).
@@ -137,6 +139,8 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         this.clientID     = Util.fixEmptyAndTrim(clientID);
         setClientSecret(Util.fixEmptyAndTrim(clientSecret));
         this.oauthScopes  = Util.fixEmptyAndTrim(oauthScopes);
+
+        this.secretStorage = new GithubSecretStorage();
     }
 
     private GithubSecurityRealm() {    }
@@ -379,6 +383,9 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             if (u == null) {
                 throw new IllegalStateException("Can't find user");
             }
+
+            secretStorage.put(u, accessToken);
+
             u.setFullName(self.getName());
             // Set email from github only if empty
             if (!u.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
@@ -399,7 +406,9 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
 
             SecurityListener.fireAuthenticated(new GithubOAuthUserDetails(self.getLogin(), auth.getAuthorities()));
 
-            SecurityListener.fireLoggedIn(self.getLogin());
+            // While LastGrantedAuthorities are triggered by that event, we cannot trigger it there
+            // or modifications in organizations will be not reflected when using API Token, due to that caching
+            // SecurityListener.fireLoggedIn(self.getLogin());
         } else {
             Log.info("Github did not return an access token.");
         }
@@ -479,6 +488,11 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                         UsernamePasswordAuthenticationToken token = (UsernamePasswordAuthenticationToken) authentication;
                         GithubAuthenticationToken github = new GithubAuthenticationToken(token.getCredentials().toString(), getGithubApiUri());
                         SecurityContextHolder.getContext().setAuthentication(github);
+
+                        User user = User.getById(token.getName(), false);
+                        if(user != null){
+                            secretStorage.put(user, token.getCredentials().toString());
+                        }
 
                         SecurityListener.fireAuthenticated(new GithubOAuthUserDetails(token.getName(), github.getAuthorities()));
 
@@ -626,10 +640,22 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             throw new UsernameNotFoundException("Using org*team format instead of username: " + username);
         }
 
+        User localUser = User.getById(username, false);
+
         Authentication token = SecurityContextHolder.getContext().getAuthentication();
 
         if (token == null) {
-            throw new UserMayOrMayNotExistException("Could not get auth token.");
+            if(localUser != null && secretStorage.contains(localUser)){
+                String accessToken = secretStorage.retrieve(localUser);
+                try {
+                    token = new GithubAuthenticationToken(accessToken, getGithubApiUri());
+                    SecurityContextHolder.getContext().setAuthentication(token);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }else{
+                throw new UserMayOrMayNotExistException("Could not get auth token.");
+            }
         }
 
         GithubAuthenticationToken authToken;
@@ -644,7 +670,6 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
          * Always lookup the local user first. If we can't resolve it then we can burn an API request to Github for this user
          * Taken from hudson.security.HudsonPrivateSecurityRealm#loadUserByUsername(java.lang.String)
          */
-        User localUser = User.getById(username, false);
         if (localUser != null) {
             return new GithubOAuthUserDetails(username, authToken);
         }

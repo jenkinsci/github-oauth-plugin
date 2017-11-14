@@ -412,6 +412,8 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
     public GrantedAuthority[] getGrantedAuthorities(GHUser user) {
         List<GrantedAuthority> groups = new ArrayList<GrantedAuthority>();
+        groups.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
+
         try {
             GHPersonSet<GHOrganization> orgs;
             if(myRealm == null) {
@@ -444,7 +446,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
                         GHTeam team = entry.getValue();
                         if (team.hasMember(user)) {
                             groups.add(new GrantedAuthorityImpl(orgLogin + GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR
-                                    + team));
+                                    + team.getName()));
                         }
                     }
                 } catch (IOException | Error ignore) {

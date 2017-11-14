@@ -23,7 +23,6 @@
  */
 package org.jenkinsci.plugins;
 
-
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import hudson.model.User;
@@ -36,7 +35,10 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.xml.sax.SAXException;
@@ -47,37 +49,36 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class Jenkins47113 {
+public class GithubAccessTokenPropertyTest {
 
     @Rule
     public JenkinsRule j = new JenkinsRule();
 
-    private static JenkinsRule staticJenkins;
-
     private JenkinsRule.WebClient wc;
 
-    public Jenkins47113() {
-        staticJenkins = j;
-    }
+    private Server server;
+    private URI serverUri;
+    private MockGithubServlet servlet;
 
-    private static Server server;
-    private static URI serverUri;
-    private static MockGithubServlet servlet;
-
-    @BeforeClass
-    public static void setupMockGithubServer() throws Exception {
+    public void setupMockGithubServer() throws Exception {
         server = new Server();
         ServerConnector connector = new ServerConnector(server);
         // auto-bind to available port
         connector.setPort(0);
         server.addConnector(connector);
 
-        servlet = new MockGithubServlet();
+        servlet = new MockGithubServlet(j);
 
         ServletContextHandler context = new ServletContextHandler();
         ServletHolder servletHolder = new ServletHolder("default", servlet);
@@ -93,6 +94,7 @@ public class Jenkins47113 {
 
         int port = connector.getLocalPort();
         serverUri = new URI(String.format("http://%s:%d/", host, port));
+        servlet.setServerUrl(serverUri);
     }
 
     /**
@@ -105,6 +107,17 @@ public class Jenkins47113 {
         private String currentLogin;
         private List<String> organizations;
         private List<String> teams;
+
+        private JenkinsRule jenkinsRule;
+        private URI serverUri;
+
+        public MockGithubServlet(JenkinsRule jenkinsRule) {
+            this.jenkinsRule = jenkinsRule;
+        }
+
+        public void setServerUrl(URI serverUri) {
+            this.serverUri = serverUri;
+        }
 
         @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
             switch (req.getRequestURI()) {
@@ -120,12 +133,38 @@ public class Jenkins47113 {
                 case "/user/teams":
                     this.onUserTeams(req, resp);
                     break;
+                case "/orgs/org-a":
+                    this.onOrgs(req, resp, "org-a");
+                    break;
+                case "/orgs/org-a/teams":
+                    this.onOrgsTeam(req, resp, "org-a");
+                    break;
+                case "/orgs/org-a/members/alice":
+                    this.onOrgsMember(req, resp, "org-a", "alice");
+                    break;
+                case "/teams/7/members/alice":
+                    this.onTeamMember(req, resp, "team-b", "alice");
+                    break;
+                case "/orgs/org-c":
+                    this.onOrgs(req, resp, "org-c");
+                    break;
+                case "/orgs/org-c/teams":
+                    this.onOrgsTeam(req, resp, "org-c");
+                    break;
+                case "/orgs/org-c/members/bob":
+                    this.onOrgsMember(req, resp, "org-c", "bob");
+                    break;
+                case "/teams/7/members/bob":
+                    this.onTeamMember(req, resp, "team-d", "bob");
+                    break;
                 case "/login/oauth/authorize":
                     this.onLoginOAuthAuthorize(req, resp);
                     break;
                 case "/login/oauth/access_token":
                     this.onLoginOAuthAccessToken(req, resp);
                     break;
+                default:
+                    throw new RuntimeException("Url not mapped yet: " + req.getRequestURI());
             }
         }
 
@@ -153,6 +192,41 @@ public class Jenkins47113 {
             resp.getWriter().write(JSONArray.fromObject(responseBody).toString());
         }
 
+        private void onOrgs(HttpServletRequest req, HttpServletResponse resp, final String orgName) throws IOException {
+            Map<String, Object> responseBody = new HashMap<String, Object>() {{
+                put("login", orgName);
+            }};
+
+            resp.getWriter().write(JSONObject.fromObject(responseBody).toString());
+        }
+
+        private void onOrgsMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) throws IOException {
+            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+            // 302 / 404 responses not implemented
+        }
+
+        private void onTeamMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) throws IOException {
+            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+            // 302 / 404 responses not implemented
+        }
+
+        private void onOrgsTeam(HttpServletRequest req, HttpServletResponse resp, final String orgName) throws IOException {
+            List<Map<String, Object>> responseBody = new ArrayList<>();
+            for (String teamName : teams) {
+                final String teamName_ = teamName;
+                responseBody.add(new HashMap<String, Object>() {{
+                    put("id", 7);
+                    put("login", teamName_ + "_login");
+                    put("name", teamName_);
+                    put("organization", new HashMap<String, Object>() {{
+                        put("login", orgName);
+                    }});
+                }});
+            }
+
+            resp.getWriter().write(JSONArray.fromObject(responseBody).toString());
+        }
+
         private void onUserTeams(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             List<Map<String, Object>> responseBody = new ArrayList<>();
             for (String teamName : teams) {
@@ -171,7 +245,7 @@ public class Jenkins47113 {
 
         private void onLoginOAuthAuthorize(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             String code = "test";
-            resp.sendRedirect(staticJenkins.getURL() + "securityRealm/finishLogin?code=" + code);
+            resp.sendRedirect(jenkinsRule.getURL() + "securityRealm/finishLogin?code=" + code);
         }
 
         private void onLoginOAuthAccessToken(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -179,17 +253,9 @@ public class Jenkins47113 {
         }
     }
 
-    @AfterClass
-    public static void stopJetty() {
-        try {
-            server.stop();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     @Before
     public void prepareRealmAndWebClient() throws Exception {
+        this.setupMockGithubServer();
         this.setupRealm();
         wc = j.createWebClient();
     }
@@ -212,6 +278,15 @@ public class Jenkins47113 {
         j.jenkins.setSecurityRealm(githubSecurityRealm);
     }
 
+    @After
+    public void stopEmbeddedJettyServer() {
+        try {
+            server.stop();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     @Issue("JENKINS-47113")
     @Test
     public void testUsingGithubToken() throws IOException, SAXException {
@@ -230,8 +305,12 @@ public class Jenkins47113 {
         // request whoAmI with GitHubToken => group populated
         makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceGitHubToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
 
-        // there is neither loggedIn event triggered nor session at that point
-        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated"));
+        // no authentication in session but use the cache
+        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
+
+        wc = j.createWebClient();
+        // no session at all, use the cache also
+        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
     }
 
     @Issue("JENKINS-47113")
