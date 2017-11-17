@@ -115,8 +115,6 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     private String oauthScopes;
     private String[] myScopes;
 
-    private GithubSecretStorage secretStorage;
-
     /**
      * @param githubWebUri The URI to the root of the web UI for GitHub or GitHub Enterprise,
      *                     including the protocol (e.g. https).
@@ -139,8 +137,6 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         this.clientID     = Util.fixEmptyAndTrim(clientID);
         setClientSecret(Util.fixEmptyAndTrim(clientSecret));
         this.oauthScopes  = Util.fixEmptyAndTrim(oauthScopes);
-
-        this.secretStorage = new GithubSecretStorage();
     }
 
     private GithubSecurityRealm() {    }
@@ -384,7 +380,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                 throw new IllegalStateException("Can't find user");
             }
 
-            secretStorage.put(u, accessToken);
+            GithubSecretStorage.put(u, accessToken);
 
             u.setFullName(self.getName());
             // Set email from github only if empty
@@ -491,7 +487,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
 
                         User user = User.getById(token.getName(), false);
                         if(user != null){
-                            secretStorage.put(user, token.getCredentials().toString());
+                            GithubSecretStorage.put(user, token.getCredentials().toString());
                         }
 
                         SecurityListener.fireAuthenticated(new GithubOAuthUserDetails(token.getName(), github.getAuthorities()));
@@ -645,8 +641,8 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         Authentication token = SecurityContextHolder.getContext().getAuthentication();
 
         if (token == null) {
-            if(localUser != null && secretStorage.contains(localUser)){
-                String accessToken = secretStorage.retrieve(localUser);
+            if(localUser != null && GithubSecretStorage.contains(localUser)){
+                String accessToken = GithubSecretStorage.retrieve(localUser);
                 try {
                     token = new GithubAuthenticationToken(accessToken, getGithubApiUri());
                     SecurityContextHolder.getContext().setAuthentication(token);

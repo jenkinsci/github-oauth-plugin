@@ -32,11 +32,15 @@ import java.io.IOException;
 
 public class GithubSecretStorage {
 
-    public boolean contains(@Nonnull User user) {
+    private GithubSecretStorage(){
+        // no accessible constructor
+    }
+
+    public static boolean contains(@Nonnull User user) {
         return user.getProperty(GithubAccessTokenProperty.class) != null;
     }
 
-    public @CheckForNull String retrieve(@Nonnull User user) {
+    public static @CheckForNull String retrieve(@Nonnull User user) {
         GithubAccessTokenProperty property = user.getProperty(GithubAccessTokenProperty.class);
         if (property == null) {
             Log.debug("Cache miss for username: " + user.getId());
@@ -47,12 +51,12 @@ public class GithubSecretStorage {
         }
     }
 
-    public void put(@Nonnull User user, @Nonnull String accessToken) {
+    public static void put(@Nonnull User user, @Nonnull String accessToken) {
         Log.debug("Populating the cache for username: " + user.getId());
         try {
             user.addProperty(new GithubAccessTokenProperty(accessToken));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            Log.warn("Received an exception when trying to add the GitHub access token to the user: " + user.getId(), e);
         }
     }
 }
