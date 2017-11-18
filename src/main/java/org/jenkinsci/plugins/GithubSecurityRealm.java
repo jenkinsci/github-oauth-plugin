@@ -426,7 +426,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         }
         String parts[] = content.split("&");
         for (String part : parts) {
-            if (content.contains("access_token")) {
+            if (part.startsWith("access_token=")) {
                 String tokenParts[] = part.split("=");
                 return tokenParts[1];
             }
