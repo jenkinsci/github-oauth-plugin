@@ -31,7 +31,9 @@ import com.google.common.cache.CacheBuilder;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.OkUrlFactory;
 
+import hudson.security.Permission;
 import hudson.security.SecurityRealm;
+import hudson.model.Item;
 import jenkins.model.Jenkins;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
@@ -193,14 +195,14 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
     public GitHub getGitHub() throws IOException {
         if (this.gh == null) {
-        	
+
             String host;
             try {
                 host = new URL(this.githubServer).getHost();
             } catch (MalformedURLException e) {
                 throw new IOException("Invalid GitHub API URL: " + this.githubServer, e);
             }
-        	
+
             OkHttpClient client = new OkHttpClient().setProxy(getProxy(host));
 
             this.gh = GitHubBuilder.fromEnvironment()
@@ -212,7 +214,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         }
         return gh;
     }
-    
+
     /**
      * Uses proxy if configured on pluginManager/advanced page
      *
@@ -289,8 +291,51 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         }
     }
 
-    public boolean hasRepositoryPermission(final String repositoryName) {
-        return myRepositories().contains(repositoryName);
+    public boolean hasRepositoryPermission(final String repositoryName, final Permission permission) {
+        boolean isRepoOfMine = myRepositories().contains(repositoryName);
+        if (isRepoOfMine) {
+          return true;
+        }
+        // This is not my repository, nor is it a repository of an organization I belong to.
+        // Check what rights I have on the github repo.
+        GHRepository repository = loadRepository(repositoryName);
+        if (repository == null) {
+          return false;
+        }
+        // let admins do anything
+        if (repository.hasAdminAccess()) {
+          return true;
+        }
+        // WRITE or READ can Read/Build/View Workspace
+        if (permission.equals(Item.READ) || permission.equals(Item.BUILD) || permission.equals(Item.WORKSPACE)) {
+          return repository.hasPullAccess() || repository.hasPushAccess();
+        }
+        // WRITE can cancel builds or view config
+        if (permission.equals(Item.CANCEL) || permission.equals(Item.EXTENDED_READ)) {
+          return repository.hasPushAccess();
+        }
+        // Need ADMIN rights to do rest: configure, create, delete, discover, wipeout
+        return false;
+
+        // Using permission type. I think we need admin access already to get this info!
+        // GHPermissionType type = repository.getPermission(getMyself());
+        // if (type == GHPermissionType.NONE) {
+          // return false; // no permissions means can't do anything
+        // }
+        // if (type == GHPermissionType.ADMIN) {
+          // return true; // let admins do anything
+        // }
+
+        // WRITE or READ can Read/Build/View Workspace
+        // if (permission.equals(Item.READ) || permission.equals(Item.BUILD) || permission.equals(Item.WORKSPACE)) {
+          // return true;
+        // }
+        // WRITE can cancel builds or view config
+        // if (permission.equals(Item.CANCEL) || permission.equals(Item.EXTENDED_READ)) {
+          // return type == GHPermissionType.WRITE;
+        // }
+        // Need ADMIN rights to do rest: configure, create, delete, discover, wipeout
+        // return false;
     }
 
     public Set<String> myRepositories() {
