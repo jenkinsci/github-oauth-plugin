@@ -82,6 +82,6 @@ public class GithubSecurityRealmTest {
     @Test
     public void testDescriptorImplGetDefaultOauthScopes() {
         DescriptorImpl descriptor = new DescriptorImpl();
-        assertTrue("read:org,user:email".equals(descriptor.getDefaultOauthScopes()));
+        assertTrue("read:org,user:email,repo".equals(descriptor.getDefaultOauthScopes()));
     }
 }

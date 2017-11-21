@@ -103,7 +103,9 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         PowerMockito.mockStatic(Jenkins.class);
         PowerMockito.when(Jenkins.getInstance()).thenReturn(jenkins);
         PowerMockito.when(jenkins.getSecurityRealm()).thenReturn(securityRealm);
-        PowerMockito.when(securityRealm.getOauthScopes()).thenReturn("read:org");
+        PowerMockito.when(securityRealm.getOauthScopes()).thenReturn("read:org,repo");
+        PowerMockito.when(securityRealm.hasScope("read:org")).thenReturn(true);
+        PowerMockito.when(securityRealm.hasScope("repo")).thenReturn(true);
     }
 
     private static final Permission VIEW_JOBSTATUS_PERMISSION = new Permission(Item.PERMISSIONS,

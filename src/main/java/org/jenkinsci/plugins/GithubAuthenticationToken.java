@@ -26,6 +26,7 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
+import com.google.common.base.Optional;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.squareup.okhttp.OkHttpClient;
@@ -94,13 +95,10 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     private static final Cache<String, Set<String>> userOrganizationCache =
             CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
-    private static final Cache<String, Set<String>> repositoryCollaboratorsCache =
-            CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
-
     private static final Cache<String, Set<String>> repositoriesByUserCache =
             CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
-    private static final Cache<String, Boolean> publicRepositoryCache =
+    private static final Cache<String, Optional<GHRepository>> repositoryCache =
             CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
     private static final Cache<String, GithubUser> usersByIdCache =
@@ -172,7 +170,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
      */
     public static void clearCaches() {
         userOrganizationCache.invalidateAll();
-        repositoryCollaboratorsCache.invalidateAll();
+        repositoryCache.invalidateAll();
         repositoriesByUserCache.invalidateAll();
         usersByIdCache.invalidateAll();
     }
@@ -292,6 +290,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     }
 
     public boolean hasRepositoryPermission(final String repositoryName, final Permission permission) {
+        LOGGER.log(Level.FINEST, "Checking for permission: " + permission + " on repo: " + repositoryName + " for user: " + this.userName);
         boolean isRepoOfMine = myRepositories().contains(repositoryName);
         if (isRepoOfMine) {
           return true;
@@ -316,26 +315,6 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         }
         // Need ADMIN rights to do rest: configure, create, delete, discover, wipeout
         return false;
-
-        // Using permission type. I think we need admin access already to get this info!
-        // GHPermissionType type = repository.getPermission(getMyself());
-        // if (type == GHPermissionType.NONE) {
-          // return false; // no permissions means can't do anything
-        // }
-        // if (type == GHPermissionType.ADMIN) {
-          // return true; // let admins do anything
-        // }
-
-        // WRITE or READ can Read/Build/View Workspace
-        // if (permission.equals(Item.READ) || permission.equals(Item.BUILD) || permission.equals(Item.WORKSPACE)) {
-          // return true;
-        // }
-        // WRITE can cancel builds or view config
-        // if (permission.equals(Item.CANCEL) || permission.equals(Item.EXTENDED_READ)) {
-          // return type == GHPermissionType.WRITE;
-        // }
-        // Need ADMIN rights to do rest: configure, create, delete, discover, wipeout
-        // return false;
     }
 
     public Set<String> myRepositories() {
@@ -374,22 +353,8 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     }
 
     public boolean isPublicRepository(final String repositoryName) {
-        try {
-            return publicRepositoryCache.get(repositoryName,
-                new Callable<Boolean>() {
-                    @Override
-                    public Boolean call() throws Exception {
-                        GHRepository repository = loadRepository(repositoryName);
-                        // We don't have access so it must not be public (it could be non-existant)
-                        return repository != null && !repository.isPrivate();
-                    }
-                }
-            );
-        } catch (ExecutionException e) {
-            LOGGER.log(Level.SEVERE, "an exception was thrown", e);
-            throw new RuntimeException("authorization failed for user = "
-                    + getName(), e);
-        }
+        GHRepository repository = loadRepository(repositoryName);
+        return repository != null && !repository.isPrivate();
     }
 
     private static final Logger LOGGER = Logger
@@ -422,17 +387,26 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         return null;
     }
 
-    public GHRepository loadRepository(String repositoryName) {
-        try {
-            if (gh != null && isAuthenticated()) {
-                return getGitHub().getRepository(repositoryName);
-            }
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING,
-                    "Looks like a bad GitHub URL OR the Jenkins user does not have access to the repository{0}",
-                    repositoryName);
-        }
-        return null;
+    public GHRepository loadRepository(final String repositoryName) {
+      try {
+          if (gh != null && isAuthenticated() && (myRealm.hasScope("repo") || myRealm.hasScope("public_repo"))) {
+              Optional<GHRepository> optionalRepo = repositoryCache.get(repositoryName,
+                  new Callable<Optional<GHRepository>>() {
+                      @Override
+                      public Optional<GHRepository> call() throws Exception {
+                          return Optional.fromNullable(getGitHub().getRepository(repositoryName));
+                      }
+                  }
+              );
+              return optionalRepo.orNull();
+          }
+      } catch (Exception e) {
+          LOGGER.log(Level.SEVERE, "an exception was thrown", e);
+          LOGGER.log(Level.WARNING,
+              "Looks like a bad GitHub URL OR the Jenkins user {0} does not have access to the repository {1}. May need to add 'repo' or 'public_repo' to the list of oauth scopes requested.",
+              new Object[] { this.userName, repositoryName });
+      }
+      return null;
     }
 
     public GHTeam loadTeam(String organization, String team) {
