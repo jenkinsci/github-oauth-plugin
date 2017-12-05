@@ -645,10 +645,10 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                 String accessToken = GithubSecretStorage.retrieve(localUser);
                 try {
                     token = new GithubAuthenticationToken(accessToken, getGithubApiUri());
-                    SecurityContextHolder.getContext().setAuthentication(token);
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    throw new UserMayOrMayNotExistException("Could not connect to GitHub API server, target URL = " + getGithubApiUri(), e);
                 }
+                SecurityContextHolder.getContext().setAuthentication(token);
             }else{
                 throw new UserMayOrMayNotExistException("Could not get auth token.");
             }
