@@ -44,8 +44,8 @@ public class GithubAccessTokenProperty extends UserProperty {
         this.accessToken = Secret.fromString(accessToken);
     }
 
-    public @Nonnull String getAccessToken() {
-        return accessToken.getPlainText();
+    public @Nonnull Secret getAccessToken() {
+        return accessToken;
     }
 
     @Extension

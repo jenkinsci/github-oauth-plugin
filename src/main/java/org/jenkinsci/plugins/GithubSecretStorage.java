@@ -47,7 +47,7 @@ public class GithubSecretStorage {
             return null;
         } else {
             Log.debug("Token retrieved using cache for username: " + user.getId());
-            return property.getAccessToken();
+            return property.getAccessToken().getPlainText();
         }
     }
 
