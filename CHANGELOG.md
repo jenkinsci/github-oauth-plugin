@@ -1,3 +1,8 @@
+# Version 0.28.1 (Released Nov 2, 2017)
+
+- Fix a botched release.  0.28 was not released to Artifactory so this is
+  another attempt.
+
 # Version 0.28 (Released Oct 1, 2017)
 
 - Corrected a connectivity error on auth with proxy tracked by

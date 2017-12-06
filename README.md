@@ -38,6 +38,11 @@ execute the following command.
 The command assumes both Maven and Java are in your `$PATH` and that you have
 `$JAVA_HOME` set up.
 
+## Troubleshooting Installation
+
+After installing per the [wiki][wiki], the `<securityRealm>` class should have been updated in your /var/lib/jenkins/config.xml file. The value of `<clientID>` should agree with what you pasted into the admin UI. If it doesn't or you still can't log in, reset to `<securityRealm class="hudson.security.HudsonPrivateSecurityRealm">` and restart Jenkins from the command-line.
+
+
 [build-image]: https://jenkins.ci.cloudbees.com/buildStatus/icon?job=plugins/github-oauth-plugin
 [build-link]: https://jenkins.ci.cloudbees.com/job/plugins/job/github-oauth-plugin/
 [github-wiki-oauth]: https://developer.github.com/v3/oauth/
