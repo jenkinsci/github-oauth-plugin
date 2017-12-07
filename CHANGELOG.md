@@ -1,3 +1,23 @@
+# Version 0.29
+
+- New feature: When users authorize OAuth apps from GitHub the token is now
+  stored in a user property.  This will allow Jenkins admins to provide tigher
+  integration with GitHub on the user's behalf.  Use case: Job DSL scripts which
+  configures webhooks for user projects. This is tracked by
+  [JENKINS-47113][JENKINS-47113]. (pull request [#87][#87])
+- Significant performance improvement when visiting user pages when rendering
+  GitHub organizations and teams.  It now uses the built-in cache.  (pull
+  request [#92][#92])
+- Bugfix rendering GitHub teams on user pages tracked by
+  [JENKINS-42421][JENKINS-42421]. (pull request [#92][#92])
+- Grammar and typo fixes. (pull request [#89][#89])
+
+[#87]: https://github.com/jenkinsci/github-oauth-plugin/pull/87
+[#89]: https://github.com/jenkinsci/github-oauth-plugin/pull/89
+[#92]: https://github.com/jenkinsci/github-oauth-plugin/pull/92
+[JENKINS-42421]: https://issues.jenkins-ci.org/browse/JENKINS-42421
+[JENKINS-47113]: https://issues.jenkins-ci.org/browse/JENKINS-47113
+
 # Version 0.28.1 (Released Nov 2, 2017)
 
 - Fix a botched release.  0.28 was not released to Artifactory so this is
