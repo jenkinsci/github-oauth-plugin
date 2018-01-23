@@ -98,22 +98,72 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     private static final Cache<String, Set<String>> repositoriesByUserCache =
             CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
-    private static final Cache<String, Optional<GHRepository>> repositoryCache =
+    private static final Cache<String, GithubUser> usersByIdCache =
             CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
-    private static final Cache<String, GithubUser> usersByIdCache =
+    /**
+     * This cache is for repositories and is explicitly _not_ static because we
+     * want to store repo information per-user (and this class should be per-user).
+     * We potentially could hold a separe static cache for public repo info
+     * that applies to all users, but it wouldn't be able to contain user-specific
+     * details like exact permissions (read/write/admin).
+     *
+     * This representation of the repo holds details on whether the repo is
+     * public/private, as well as whether the current user has pull/push/admin
+     * access.
+     */
+    private final Cache<String, RepoRights> repositoryCache =
             CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
     private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
 
     private static final GithubUser UNKNOWN_USER = new GithubUser(null);
 
-    /** Wrapper for cache **/
+    /** Wrappers for cache **/
     static class GithubUser {
         public final GHUser user;
 
         public GithubUser(GHUser user) {
             this.user = user;
+        }
+    }
+
+    static class RepoRights {
+        public final boolean hasAdminAccess;
+        public final boolean hasPullAccess;
+        public final boolean hasPushAccess;
+        public final boolean isPrivate;
+
+        public RepoRights(GHRepository repo) {
+            if (repo != null) {
+                this.hasAdminAccess = repo.hasAdminAccess();
+                this.hasPullAccess = repo.hasPullAccess();
+                this.hasPushAccess = repo.hasPushAccess();
+                this.isPrivate = repo.isPrivate();
+            } else {
+                // assume null repo means we had no rights to view it
+                // so must be private
+                this.hasAdminAccess = false;
+                this.hasPullAccess = false;
+                this.hasPushAccess = false;
+                this.isPrivate = true;
+            }
+        }
+
+        public boolean hasAdminAccess() {
+          return this.hasAdminAccess;
+        }
+
+        public boolean hasPullAccess() {
+          return this.hasPullAccess;
+        }
+
+        public boolean hasPushAccess() {
+          return this.hasPushAccess;
+        }
+
+        public boolean isPrivate() {
+          return this.isPrivate;
         }
     }
 
@@ -170,7 +220,6 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
      */
     public static void clearCaches() {
         userOrganizationCache.invalidateAll();
-        repositoryCache.invalidateAll();
         repositoriesByUserCache.invalidateAll();
         usersByIdCache.invalidateAll();
     }
@@ -289,7 +338,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         }
     }
 
-    public boolean hasRepositoryPermission(final String repositoryName, final Permission permission) {
+    public boolean hasRepositoryPermission(String repositoryName, Permission permission) {
         LOGGER.log(Level.FINEST, "Checking for permission: " + permission + " on repo: " + repositoryName + " for user: " + this.userName);
         boolean isRepoOfMine = myRepositories().contains(repositoryName);
         if (isRepoOfMine) {
@@ -297,7 +346,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         }
         // This is not my repository, nor is it a repository of an organization I belong to.
         // Check what rights I have on the github repo.
-        GHRepository repository = loadRepository(repositoryName);
+        RepoRights repository = loadRepository(repositoryName);
         if (repository == null) {
           return false;
         }
@@ -352,8 +401,8 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         return names;
     }
 
-    public boolean isPublicRepository(final String repositoryName) {
-        GHRepository repository = loadRepository(repositoryName);
+    public boolean isPublicRepository(String repositoryName) {
+        RepoRights repository = loadRepository(repositoryName);
         return repository != null && !repository.isPrivate();
     }
 
@@ -387,18 +436,18 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         return null;
     }
 
-    public GHRepository loadRepository(final String repositoryName) {
+    public RepoRights loadRepository(final String repositoryName) {
       try {
           if (gh != null && isAuthenticated() && (myRealm.hasScope("repo") || myRealm.hasScope("public_repo"))) {
-              Optional<GHRepository> optionalRepo = repositoryCache.get(repositoryName,
-                  new Callable<Optional<GHRepository>>() {
+              return repositoryCache.get(repositoryName,
+                  new Callable<RepoRights>() {
                       @Override
-                      public Optional<GHRepository> call() throws Exception {
-                          return Optional.fromNullable(getGitHub().getRepository(repositoryName));
+                      public RepoRights call() throws Exception {
+                          GHRepository repo = getGitHub().getRepository(repositoryName);
+                          return new RepoRights(repo);
                       }
                   }
               );
-              return optionalRepo.orNull();
           }
       } catch (Exception e) {
           LOGGER.log(Level.SEVERE, "an exception was thrown", e);
