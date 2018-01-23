@@ -24,7 +24,7 @@ This plugin was last compiled with the following versions.
 
 * Ubuntu 16.04.1 LTS
 * Apache Maven 3.3.9
-* Java version: 1.8.0_112, vendor: Oracle Corporation
+* Java version: `1.8.0_131`, vendor: Oracle Corporation
 
 Newer/older versions may work.
 
@@ -40,10 +40,15 @@ The command assumes both Maven and Java are in your `$PATH` and that you have
 
 ## Troubleshooting Installation
 
-After installing per the [wiki][wiki], the `<securityRealm>` class should have been updated in your /var/lib/jenkins/config.xml file. The value of `<clientID>` should agree with what you pasted into the admin UI. If it doesn't or you still can't log in, reset to `<securityRealm class="hudson.security.HudsonPrivateSecurityRealm">` and restart Jenkins from the command-line.
+After installing per the [wiki][wiki], the `<securityRealm>` class should have
+been updated in your `/var/lib/jenkins/config.xml` file. The value of
+`<clientID>` should agree with what you pasted into the admin UI. If it doesn't
+or you still can't log in, reset to `<securityRealm
+class="hudson.security.HudsonPrivateSecurityRealm">` and restart Jenkins from
+the command-line.
 
 
-[build-image]: https://jenkins.ci.cloudbees.com/buildStatus/icon?job=plugins/github-oauth-plugin
-[build-link]: https://jenkins.ci.cloudbees.com/job/plugins/job/github-oauth-plugin/
+[build-image]: https://ci.jenkins.io/buildStatus/icon?job=Plugins/github-oauth-plugin/master
+[build-link]: https://ci.jenkins.io/job/Plugins/job/github-oauth-plugin/job/master/
 [github-wiki-oauth]: https://developer.github.com/v3/oauth/
 [wiki]: https://wiki.jenkins-ci.org/display/JENKINS/Github+OAuth+Plugin
