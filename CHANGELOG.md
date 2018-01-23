@@ -1,4 +1,4 @@
-# Version 0.29
+# Version 0.29 (Released Jan 22, 2018)
 
 - New feature: When users authorize OAuth apps from GitHub the token is now
   stored in a user property.  This will allow Jenkins admins to provide tigher
