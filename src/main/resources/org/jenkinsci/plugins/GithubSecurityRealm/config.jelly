@@ -23,5 +23,13 @@
         <f:entry title="OAuth Scope(s)" field="oauthScopes" help="/plugin/github-oauth/help/realm/oauth-scopes-help.html">
             <f:textbox default="${descriptor.getDefaultOauthScopes()}" />
         </f:entry>
+        <f:advanced>
+            <f:entry title="Email Domains" field="emailDomains" help="/plugin/github-oauth/help/realm/email-domain.html">
+                <f:textbox />
+            </f:entry>
+            <f:entry title="Force Email from github for existing users" field="forceGithubEmail" help="/plugin/github-oauth/help/realm/force-github-email.html">
+                <f:checkbox />
+            </f:entry>
+        </f:advanced>
     </f:section>
 </j:jelly>
