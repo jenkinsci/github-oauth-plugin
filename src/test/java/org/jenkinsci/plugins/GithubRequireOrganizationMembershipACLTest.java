@@ -92,6 +92,8 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     @Mock
     private Jenkins jenkins;
 
+    private GitHub gh;
+
     @Mock
     private GithubSecurityRealm securityRealm;
 
@@ -101,7 +103,9 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         PowerMockito.mockStatic(Jenkins.class);
         PowerMockito.when(Jenkins.getInstance()).thenReturn(jenkins);
         PowerMockito.when(jenkins.getSecurityRealm()).thenReturn(securityRealm);
-        PowerMockito.when(securityRealm.getOauthScopes()).thenReturn("read:org");
+        PowerMockito.when(securityRealm.getOauthScopes()).thenReturn("read:org,repo");
+        PowerMockito.when(securityRealm.hasScope("read:org")).thenReturn(true);
+        PowerMockito.when(securityRealm.hasScope("repo")).thenReturn(true);
     }
 
     private static final Permission VIEW_JOBSTATUS_PERMISSION = new Permission(Item.PERMISSIONS,
@@ -170,7 +174,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     private GHMyself mockGHMyselfAs(String username) throws IOException {
-        GitHub gh = PowerMockito.mock(GitHub.class);
+        gh = PowerMockito.mock(GitHub.class);
         GitHubBuilder builder = PowerMockito.mock(GitHubBuilder.class);
         PowerMockito.mockStatic(GitHub.class);
         PowerMockito.mockStatic(GitHubBuilder.class);
@@ -264,14 +268,6 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         return multiBranchProject;
     }
 
-    private void mockGithubRepositoryWithCollaborators(GitHub mockGithub, String name, boolean isPrivate, List<String> collaboratorNames) throws IOException {
-        GHRepository ghRepository = PowerMockito.mock(GHRepository.class);
-        PowerMockito.when(mockGithub.getRepository(name)).thenReturn(ghRepository);
-        PowerMockito.when(ghRepository.isPrivate()).thenReturn(isPrivate);
-        Set<String> names = new HashSet(collaboratorNames);
-        PowerMockito.when(ghRepository.getCollaboratorNames()).thenReturn(names);
-    }
-
     @Test
     public void testCanReadAndBuildOneOfMyRepositories() throws IOException {
         GHMyself me = mockGHMyselfAs("Me");
@@ -296,6 +292,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
     @Override
     protected void tearDown() throws Exception {
+        gh = null;
         super.tearDown();
         GithubAuthenticationToken.clearCaches();
     }
@@ -306,6 +303,37 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         mockReposFor(me, Arrays.asList("me/a-repo"));
         mockOrgRepos(me, ImmutableMap.of("some-org", Arrays.asList("some-org/a-private-repo")));
         String repoUrl = "https://github.com/some-org/a-private-repo.git";
+        Project mockProject = mockProject(repoUrl);
+        MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
+        WorkflowJob mockWorkflowJob = mockWorkflowJob(repoUrl);
+        GithubRequireOrganizationMembershipACL workflowJobAcl = aclForWorkflowJob(mockWorkflowJob);
+        GithubRequireOrganizationMembershipACL multiBranchProjectAcl = aclForMultiBranchProject(mockMultiBranchProject);
+        GithubRequireOrganizationMembershipACL projectAcl = aclForProject(mockProject);
+
+        GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
+
+        assertTrue(projectAcl.hasPermission(authenticationToken, Item.READ));
+        assertTrue(projectAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.READ));
+        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.READ));
+        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.BUILD));
+    }
+
+    @Test
+    public void testCanReadAndBuildOtherOrgPrivateRepositoryICollaborateOn() throws IOException {
+        GHMyself me = mockGHMyselfAs("Me");
+        mockReposFor(me, Arrays.asList("me/a-repo"));
+        mockOrgRepos(me, ImmutableMap.of("some-org", Arrays.asList("some-org/a-private-repo")));
+        GHRepository ghRepository = PowerMockito.mock(GHRepository.class);
+        PowerMockito.when(gh.getRepository("org-i-dont-belong-to/a-private-repo-i-collaborate-on")).thenReturn(ghRepository);
+        PowerMockito.when(ghRepository.isPrivate()).thenReturn(true);
+        PowerMockito.when(ghRepository.hasAdminAccess()).thenReturn(false);
+        PowerMockito.when(ghRepository.hasPushAccess()).thenReturn(false);
+        PowerMockito.when(ghRepository.hasPullAccess()).thenReturn(true);
+
+        // The user isn't part of "org-i-dont-belong-to"
+        String repoUrl = "https://github.com/org-i-dont-belong-to/a-private-repo-i-collaborate-on.git";
         Project mockProject = mockProject(repoUrl);
         MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
         WorkflowJob mockWorkflowJob = mockWorkflowJob(repoUrl);

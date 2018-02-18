@@ -106,7 +106,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     private static final String DEFAULT_WEB_URI = "https://github.com";
     private static final String DEFAULT_API_URI = "https://api.github.com";
     private static final String DEFAULT_ENTERPRISE_API_SUFFIX = "/api/v3";
-    private static final String DEFAULT_OAUTH_SCOPES = "read:org,user:email";
+    private static final String DEFAULT_OAUTH_SCOPES = "read:org,user:email,repo";
 
     private String githubWebUri;
     private String githubApiUri;
@@ -566,7 +566,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     @Override
     protected String getPostLogOutUrl(StaplerRequest req, Authentication auth) {
         // if we just redirect to the root and anonymous does not have Overall read then we will start a login all over again.
-        // we are actually anonymous here as the security context has been cleared 
+        // we are actually anonymous here as the security context has been cleared
         Jenkins j = Jenkins.getInstance();
         assert j != null;
         if (j.hasPermission(Jenkins.READ)) {
