@@ -102,7 +102,7 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 
     @Nonnull
     public ACL getACL(@Nonnull Job<?,?> job) {
-        if(job instanceof WorkflowJob && job.getProperty(BranchJobProperty.class) != null || job instanceof AbstractProject) {
+        if(job instanceof WorkflowJob || job instanceof AbstractProject) {
             GithubRequireOrganizationMembershipACL githubACL = (GithubRequireOrganizationMembershipACL) getRootACL();
             return githubACL.cloneForProject(job);
         } else {

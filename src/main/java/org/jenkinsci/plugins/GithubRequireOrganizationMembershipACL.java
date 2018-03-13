@@ -283,7 +283,11 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
         Describable scm = null;
         if (this.item instanceof WorkflowJob) {
             WorkflowJob project = (WorkflowJob) item;
-            scm = project.getProperty(BranchJobProperty.class).getBranch().getScm();
+            if (project.getProperty(BranchJobProperty.class) != null) {
+                scm = project.getProperty(BranchJobProperty.class).getBranch().getScm();
+            } else {
+                scm = project.getTypicalSCM();
+            }
         } else if (this.item instanceof MultiBranchProject) {
             MultiBranchProject project = (MultiBranchProject) item;
             scm = (SCMSource) project.getSCMSources().get(0);
