@@ -305,6 +305,8 @@ public class GithubAccessTokenPropertyTest {
         // request whoAmI with GitHubToken => group populated
         makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceGitHubToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
 
+        GithubAuthenticationToken.clearCaches();
+
         // no authentication in session but use the cache
         makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
 
@@ -333,6 +335,7 @@ public class GithubAccessTokenPropertyTest {
         // request whoAmI with ApiRestToken => group populated (due to login event)
         makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
 
+        GithubAuthenticationToken.clearCaches();
         wc = j.createWebClient();
         // retrieve the security group even without the cookie (using LastGrantedAuthorities this time)
         makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));

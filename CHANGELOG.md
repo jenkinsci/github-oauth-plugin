@@ -1,3 +1,7 @@
+# Version 0.30
+
+- Enabled Cache for User Teams. (pull request [#100])
+
 # Version 0.29 (Released Jan 22, 2018)
 
 - New feature: When users authorize OAuth apps from GitHub the token is now

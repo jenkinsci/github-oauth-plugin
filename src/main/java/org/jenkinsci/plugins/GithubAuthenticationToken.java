@@ -101,6 +101,12 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     private static final Cache<String, GithubUser> usersByIdCache =
             CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
+    private static final Cache<String, GithubMyself> usersByTokenCache =
+            CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
+
+    private static final Cache<String, Map<String, Set<GHTeam>>> userTeamsCache =
+            CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
+
     /**
      * This cache is for repositories and is explicitly _not_ static because we
      * want to store repo information per-user (and this class should be per-user).
@@ -118,6 +124,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
 
     private static final GithubUser UNKNOWN_USER = new GithubUser(null);
+    private static final GithubMyself UNKNOWN_TOKEN = new GithubMyself(null);
 
     /** Wrappers for cache **/
     static class GithubUser {
@@ -125,6 +132,14 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
         public GithubUser(GHUser user) {
             this.user = user;
+        }
+    }
+
+    static class GithubMyself {
+        public final GHMyself me;
+
+        public GithubMyself(GHMyself me) {
+            this.me = me;
         }
     }
 
@@ -173,12 +188,14 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         this.accessToken = accessToken;
         this.githubServer = githubServer;
 
-        this.me = getGitHub().getMyself();
+        this.me = loadMyself(accessToken);
+
         assert this.me!=null;
 
         setAuthenticated(true);
 
         this.userName = this.me.getLogin();
+
         authorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
         Jenkins jenkins = Jenkins.getInstance();
         if (jenkins == null) {
@@ -192,24 +209,40 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
             //https://developer.github.com/v3/orgs/#list-your-organizations
             //https://developer.github.com/v3/orgs/teams/#list-user-teams
             if(myRealm.hasScope("read:org") || myRealm.hasScope("admin:org") || myRealm.hasScope("user") || myRealm.hasScope("repo")) {
-                Map<String, GHOrganization> myOrgs = getGitHub().getMyOrganizations();
-                Map<String, Set<GHTeam>> myTeams = getGitHub().getMyTeams();
+                try{
+                    Set<String> myOrgs = userOrganizationCache.get(getName(), new Callable<Set<String>>() {
+                        @Override
+                        public Set<String> call() throws Exception {
+                            return getGitHub().getMyOrganizations().keySet();
+                        }
+                    });
 
-                //fetch organization-only memberships (i.e.: groups without teams)
-                for(String orgLogin : myOrgs.keySet()){
-                    if(!myTeams.containsKey(orgLogin)){
-                        myTeams.put(orgLogin, Collections.<GHTeam>emptySet());
-                    }
-                }
+                    Map<String, Set<GHTeam>> myTeams = userTeamsCache.get(getName(), new Callable<Map<String, Set<GHTeam>>>() {
+                        @Override
+                        public Map<String, Set<GHTeam>> call() throws Exception {
+                            return getGitHub().getMyTeams();
+                        }
+                    });
 
-                for (Map.Entry<String, Set<GHTeam>> teamEntry : myTeams.entrySet()) {
-                    String orgLogin = teamEntry.getKey();
-                    LOGGER.log(Level.FINE, "Fetch teams for user " + userName + " in organization " + orgLogin);
-                    authorities.add(new GrantedAuthorityImpl(orgLogin));
-                    for (GHTeam team : teamEntry.getValue()) {
-                        authorities.add(new GrantedAuthorityImpl(orgLogin + GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR
-                                + team.getName()));
+                    //fetch organization-only memberships (i.e.: groups without teams)
+                    for(String orgLogin : myOrgs){
+                        if(!myTeams.containsKey(orgLogin)){
+                            myTeams.put(orgLogin, Collections.<GHTeam>emptySet());
+                        }
                     }
+
+                    for (Map.Entry<String, Set<GHTeam>> teamEntry : myTeams.entrySet()) {
+                        String orgLogin = teamEntry.getKey();
+                        LOGGER.log(Level.FINE, "Fetch teams for user " + userName + " in organization " + orgLogin);
+                        authorities.add(new GrantedAuthorityImpl(orgLogin));
+                        for (GHTeam team : teamEntry.getValue()) {
+                            authorities.add(new GrantedAuthorityImpl(orgLogin + GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR
+                                    + team.getName()));
+                        }
+                    }
+                } catch (ExecutionException e) {
+                    throw new RuntimeException("authorization failed for user = "
+                            + getName(), e);
                 }
             }
         }
@@ -222,6 +255,8 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         userOrganizationCache.invalidateAll();
         repositoriesByUserCache.invalidateAll();
         usersByIdCache.invalidateAll();
+        usersByTokenCache.invalidateAll();
+        userTeamsCache.invalidateAll();
     }
 
     /**
@@ -424,6 +459,23 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
             usersByIdCache.put(username, UNKNOWN_USER);
         }
         return user != null ? user.user : null;
+    }
+
+    public GHMyself loadMyself(String token) throws IOException {
+        GithubMyself me;
+        try {
+            me = usersByTokenCache.getIfPresent(token);
+            if (me == null) {
+                GHMyself ghMyself = getGitHub().getMyself();
+                me = new GithubMyself(ghMyself);
+                usersByTokenCache.put(token, me);
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.FINEST, e.getMessage(), e);
+            me = UNKNOWN_TOKEN;
+            usersByTokenCache.put(token, UNKNOWN_TOKEN);
+        }
+        return me.me;
     }
 
     public GHOrganization loadOrganization(String organization) {
