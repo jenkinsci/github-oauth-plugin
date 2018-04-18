@@ -91,6 +91,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -107,12 +108,15 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     private static final String DEFAULT_API_URI = "https://api.github.com";
     private static final String DEFAULT_ENTERPRISE_API_SUFFIX = "/api/v3";
     private static final String DEFAULT_OAUTH_SCOPES = "read:org,user:email,repo";
+    private static final Boolean DEFAULT_FORCE_GITHUB_EMAIL = false;
 
     private String githubWebUri;
     private String githubApiUri;
     private String clientID;
     private Secret clientSecret;
     private String oauthScopes;
+    private String emailDomains;
+    private Boolean forceGithubEmail;
     private String[] myScopes;
 
     /**
@@ -123,13 +127,17 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
      * @param clientID The client ID for the created OAuth Application.
      * @param clientSecret The client secret for the created GitHub OAuth Application.
      * @param oauthScopes A comma separated list of OAuth Scopes to request access to.
+     * @param emailDomains An optional comma separated list of domain(s) to select for email
+     * @param forceGithubEmail Force the email from github to override the one in the profile
      */
     @DataBoundConstructor
     public GithubSecurityRealm(String githubWebUri,
             String githubApiUri,
             String clientID,
             String clientSecret,
-            String oauthScopes) {
+            String oauthScopes,
+            String emailDomains,
+            Boolean forceGithubEmail) {
         super();
 
         this.githubWebUri = Util.fixEmptyAndTrim(githubWebUri);
@@ -137,6 +145,21 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         this.clientID     = Util.fixEmptyAndTrim(clientID);
         setClientSecret(Util.fixEmptyAndTrim(clientSecret));
         this.oauthScopes  = Util.fixEmptyAndTrim(oauthScopes);
+        this.emailDomains  = emailDomains.trim();
+        this.forceGithubEmail  = forceGithubEmail;
+    }
+
+    /**
+       This method is deprecated.
+       @deprecated use GithubSecurityRealm(githubWebUri, githubApiUri, clientID, clientSecret, oauthScopes, emailDomains, forceGithubEmail)
+     */
+    @Deprecated
+    public GithubSecurityRealm(String githubWebUri,
+                 String githubApiUri,
+                 String clientID,
+                 String clientSecret,
+                 String oauthScopes) {
+        this(githubWebUri, githubApiUri, clientID, clientSecret, oauthScopes, "", false);
     }
 
     private GithubSecurityRealm() {    }
@@ -184,6 +207,20 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
      */
     private void setOauthScopes(String oauthScopes) {
         this.oauthScopes = oauthScopes;
+    }
+
+    /**
+     * @param emailDomains the emailDomains to set
+     */
+    private void setEmailDomains(String emailDomains) {
+        this.emailDomains = emailDomains;
+    }
+
+    /**
+     * @param forceGithubEmail the forceGithubEmail to set
+     */
+    private void setForceGithubEmail(Boolean forceGithubEmail) {
+        this.forceGithubEmail = forceGithubEmail;
     }
 
     /**
@@ -244,6 +281,20 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             writer.setValue(realm.getOauthScopes());
             writer.endNode();
 
+            writer.startNode("emailDomains");
+            writer.setValue(realm.getEmailDomains());
+            writer.endNode();
+
+            writer.startNode("forceGithubEmail");
+            //TODO: Is there a better way to do this?
+            if (realm.getForceGithubEmail()) {
+                writer.setValue("true");
+            }
+            else {
+                writer.setValue("false");
+            }
+            writer.endNode();
+
         }
 
         public Object unmarshal(HierarchicalStreamReader reader,
@@ -270,6 +321,10 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                 realm.setGithubApiUri(DEFAULT_API_URI);
             }
 
+            if (realm.getForceGithubEmail() == null) {
+                realm.setForceGithubEmail(DEFAULT_FORCE_GITHUB_EMAIL);
+            }
+
             return realm;
         }
 
@@ -289,6 +344,15 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                 realm.setGithubApiUri(value);
             } else if (node.toLowerCase().equals("oauthscopes")) {
                 realm.setOauthScopes(value);
+            } else if (node.toLowerCase().equals("emaildomains")) {
+                realm.setEmailDomains(value);
+            } else if (node.toLowerCase().equals("forcegithubemail")) {
+                if (value.toLowerCase().equals("true")){
+                    realm.setForceGithubEmail(true);
+                }
+                else {
+                    realm.setForceGithubEmail(false);
+                }
             } else {
                 throw new ConversionException("Invalid node value = " + node);
             }
@@ -331,6 +395,20 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
      */
     public String getOauthScopes() {
         return oauthScopes;
+    }
+
+    /**
+     * @return the emailDomains
+     */
+    public String getEmailDomains() {
+        return emailDomains;
+    }
+
+    /**
+     * @return the forceGithubEmail
+     */
+    public Boolean getForceGithubEmail() {
+        return forceGithubEmail;
     }
 
     public HttpResponse doCommenceLogin(StaplerRequest request, @Header("Referer") final String referer)
@@ -383,17 +461,40 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             GithubSecretStorage.put(u, accessToken);
 
             u.setFullName(self.getName());
-            // Set email from github only if empty
-            if (!u.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
+            // Set email from github only if empty or forceGithubEmail flag is set
+            if (forceGithubEmail || !u.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
                 if(hasScope("user") || hasScope("user:email")) {
                     String primary_email = null;
-                    for(GHEmail e : self.getEmails2()) {
-                        if(e.isPrimary()) {
-                            primary_email = e.getEmail();
+                    String domain_email = null;
+                    if (emailDomains != null) {
+                        LOGGER.log(Level.FINE, "Searching for email of github user \"" + u.getId() + "\" that match domain(s) \"" + emailDomains + "\"");
+                        for (String emailDomain : emailDomains.split(",")) {
+                            for(GHEmail e : self.getEmails2()) {
+                                LOGGER.log(Level.FINE, "Checking if email \"" + e.getEmail() + "\" matches domain \"" + emailDomain + "\" for github user \"" + u.getId() + "\"");
+                                if(e.getEmail().endsWith("@" + emailDomain)) {
+                                    domain_email = e.getEmail();
+                                    LOGGER.log(Level.FINE, "Email \"" + e.getEmail() + "\" matches domain \"" + emailDomain + "\" for github user \"" + u.getId() + "\"");
+                                    break;
+                                }
+                            }
+                            if (domain_email != null) {
+                                LOGGER.log(Level.FINE, "Setting email for github user \"" + u.getId() + "\" to \"" + domain_email + "\" due to matching domain in domain list");
+                                u.addProperty(new Mailer.UserProperty(domain_email));
+                                break;
+                            }
                         }
                     }
-                    if(primary_email != null) {
-                        u.addProperty(new Mailer.UserProperty(primary_email));
+                    if (domain_email == null) {
+                        LOGGER.log(Level.FINE, "Getting primary email for github user \"" + u.getId() + "\"");
+                        for(GHEmail e : self.getEmails2()) {
+                            LOGGER.log(Level.FINE, "Checking if email \"" + e.getEmail() + "\" is primary email for github user \"" + u.getId() + "\"");
+                            if (e.isPrimary()) {
+                                primary_email = e.getEmail();
+                                LOGGER.log(Level.FINE, "Setting email for github user \"" + u.getId() + "\" to primary address \"" + primary_email + "\"");
+                                u.addProperty(new Mailer.UserProperty(primary_email));
+                                break;
+                            }
+                        }
                     }
                 } else {
                     u.addProperty(new Mailer.UserProperty(auth.getGitHub().getMyself().getEmail()));
@@ -600,6 +701,10 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             return DEFAULT_OAUTH_SCOPES;
         }
 
+        public Boolean getDefaultForceGithubEmail() {
+            return DEFAULT_FORCE_GITHUB_EMAIL;
+        }
+
         public DescriptorImpl() {
             super();
             // TODO Auto-generated constructor stub
@@ -700,7 +805,9 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                 this.getGithubApiUri().equals(obj.getGithubApiUri()) &&
                 this.getClientID().equals(obj.getClientID()) &&
                 this.getClientSecret().equals(obj.getClientSecret()) &&
-                this.getOauthScopes().equals(obj.getOauthScopes());
+                this.getOauthScopes().equals(obj.getOauthScopes()) &&
+                this.getEmailDomains().equals(obj.getEmailDomains()) &&
+                this.getForceGithubEmail().equals(obj.getForceGithubEmail());
         } else {
             return false;
         }
