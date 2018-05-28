@@ -93,6 +93,7 @@ import java.util.Set;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.servlet.http.HttpSession;
 
 /**
  *
@@ -361,6 +362,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     public HttpResponse doFinishLogin(StaplerRequest request)
             throws IOException {
         String code = request.getParameter("code");
+        String referer = (String)request.getSession().getAttribute(REFERER_ATTRIBUTE);
 
         if (code == null || code.trim().length() == 0) {
             Log.info("doFinishLogin: missing code.");
@@ -372,6 +374,14 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         if (accessToken != null && accessToken.trim().length() > 0) {
             // only set the access token if it exists.
             GithubAuthenticationToken auth = new GithubAuthenticationToken(accessToken, getGithubApiUri());
+
+            HttpSession session = request.getSession(false);
+            if(session != null){
+                // avoid session fixation
+                session.invalidate();
+            }
+            request.getSession(true);
+
             SecurityContextHolder.getContext().setAuthentication(auth);
 
             GHMyself self = auth.getMyself();
@@ -409,7 +419,6 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             Log.info("Github did not return an access token.");
         }
 
-        String referer = (String)request.getSession().getAttribute(REFERER_ATTRIBUTE);
         if (referer!=null)  return HttpResponses.redirectTo(referer);
         return HttpResponses.redirectToContextRoot();   // referer should be always there, but be defensive
     }
