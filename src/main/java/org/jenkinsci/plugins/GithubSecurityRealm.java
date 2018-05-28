@@ -79,6 +79,7 @@ import org.kohsuke.stapler.Header;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataRetrievalFailureException;
@@ -333,9 +334,18 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         return oauthScopes;
     }
 
-    public HttpResponse doCommenceLogin(StaplerRequest request, @Header("Referer") final String referer)
+    public HttpResponse doCommenceLogin(StaplerRequest request, @QueryParameter String from, @Header("Referer") final String referer)
             throws IOException {
-        request.getSession().setAttribute(REFERER_ATTRIBUTE,referer);
+        String redirectOnFinish;
+        if (from != null && Util.isSafeToRedirectTo(from)) {
+            redirectOnFinish = from;
+        } else if (referer != null && (referer.startsWith(Jenkins.getInstance().getRootUrl()) || Util.isSafeToRedirectTo(referer))) {
+            redirectOnFinish = referer;
+        } else {
+            redirectOnFinish = Jenkins.getInstance().getRootUrl();
+        }
+
+        request.getSession().setAttribute(REFERER_ATTRIBUTE, redirectOnFinish);
 
         Set<String> scopes = new HashSet<>();
         for (GitHubOAuthScope s : getJenkins().getExtensionList(GitHubOAuthScope.class)) {
