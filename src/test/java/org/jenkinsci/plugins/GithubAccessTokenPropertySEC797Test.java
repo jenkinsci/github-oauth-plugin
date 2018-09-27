@@ -64,7 +64,7 @@ import static org.junit.Assert.assertNotNull;
 
 //TODO merge with GithubAccessTokenPropertyTest after security release, just meant to ease the security merge
 // or with GithubSecurityRealmTest, but will require more refactor to move out the mock server
-public class GithubAccessTokenPropertyTest_SEC797 {
+public class GithubAccessTokenPropertySEC797Test {
     
     @Rule
     public JenkinsRule j = new JenkinsRule();
