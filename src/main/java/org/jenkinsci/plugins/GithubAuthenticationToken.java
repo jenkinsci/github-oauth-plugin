@@ -373,6 +373,17 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         }
     }
 
+    private boolean checkImpliedPermission(Permission expected, Permission toCheck) {
+      Permission currentPermission = toCheck;
+      while (currentPermission != null) {
+        if (currentPermission.equals(expected)) {
+          return true;
+        }
+        currentPermission = currentPermission.impliedBy;
+      }
+      return false;
+    }
+
     public boolean hasRepositoryPermission(String repositoryName, Permission permission) {
         LOGGER.log(Level.FINEST, "Checking for permission: " + permission + " on repo: " + repositoryName + " for user: " + this.userName);
         boolean isRepoOfMine = myRepositories().contains(repositoryName);
@@ -389,15 +400,15 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         if (repository.hasAdminAccess()) {
           return true;
         }
-        // WRITE or READ can Read/Build/View Workspace
-        if (permission.equals(Item.READ) || permission.equals(Item.BUILD) || permission.equals(Item.WORKSPACE)) {
+        // WRITE or READ can Read/Build/View Workspace/Discover
+        if (checkImpliedPermission(Permission.READ, permission) || checkImpliedPermission(Item.BUILD, permission)) {
           return repository.hasPullAccess() || repository.hasPushAccess();
         }
-        // WRITE can cancel builds or view config
-        if (permission.equals(Item.CANCEL) || permission.equals(Item.EXTENDED_READ)) {
+        // WRITE can cancel builds
+        if (checkImpliedPermission(Item.CANCEL, permission)) {
           return repository.hasPushAccess();
         }
-        // Need ADMIN rights to do rest: configure, create, delete, discover, wipeout
+        // Need ADMIN rights to do rest: view config, configure, create, delete, wipeout
         return false;
     }
 

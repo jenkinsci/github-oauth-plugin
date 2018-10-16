@@ -94,46 +94,33 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
                 return true;
             }
 
-            if (this.item != null) {
-                if (useRepositoryPermissions) {
-                    if(hasRepositoryPermission(authenticationToken, permission)) {
-                        log.finest("Granting Authenticated User " + permission.getId() +
-                            " permission on project " + item.getName() +
-                            "to user " + candidateName);
-                        return true;
-                    }
-                } else {
-                    if (authenticatedUserReadPermission) {
-                        if (checkReadPermission(permission)) {
-                            log.finest("Granting Authenticated User read permission " +
-                                "on project " + item.getName() +
-                                "to user " + candidateName);
-                            return true;
-                        }
-                    }
-                }
-            } else if (authenticatedUserReadPermission) {
-                if (checkReadPermission(permission)) {
-                    // if we support authenticated read and this is a read
-                    // request we allow it
-                    log.finest("Granting Authenticated User read permission to user "
-                            + candidateName);
+            // if we allow authenticated read and this is a read-related permission, allow it
+            if (authenticatedUserReadPermission && checkReadPermission(permission)) {
+                log.finest("Granting Authenticated User read permission to user "
+                    + candidateName);
                 return true;
-                }
             }
 
+            // If we allow authenticated create permissions and this is CREATE, allow it
             if (authenticatedUserCreateJobPermission && permission.equals(Item.CREATE)) {
                 return true;
             }
 
+            // If we're asked to use repository permissions and there's an associated repository,
+            // check it for permissions
+            if (this.item != null
+              && useRepositoryPermissions
+              && hasRepositoryPermission(authenticationToken, permission)) {
+                log.finest("Granting Authenticated User " + permission.getId() +
+                    " permission on project " + item.getName() +
+                    "to user " + candidateName);
+                return true;
+            }
+
+            // Otherwise, if a user is a member of a whitelisted org, they can have BUILD and READ permissions
             for (String organizationName : this.organizationNameList) {
                 if (authenticationToken.hasOrganizationPermission(
                         candidateName, organizationName)) {
-
-                    String[] parts = permission.getId().split("\\.");
-
-                    String test = parts[parts.length - 1].toLowerCase();
-
                     if (checkReadPermission(permission)
                             || testBuildPermission(permission)) {
                         // check the permission
@@ -160,8 +147,14 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
                 return true;
             }
 
+            if (adminUserNameList.contains(authenticatedUserName)) {
+                // if they are an admin then they have all permissions
+                log.finest("Granting Admin rights to user " + a.getName());
+                return true;
+            }
+
             if (authenticatedUserName.equals("anonymous")) {
-                if(checkJobStatusPermission(permission) && allowAnonymousJobStatusPermission) {
+                if (checkJobStatusPermission(permission) && allowAnonymousJobStatusPermission) {
                     return true;
                 }
 
@@ -182,12 +175,6 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
                     log.finer("Denying anonymous READ permission to url: " + requestURI());
                 }
                 return false;
-            }
-
-            if (adminUserNameList.contains(authenticatedUserName)) {
-                // if they are an admin then they have all permissions
-                log.finest("Granting Admin rights to user " + a.getName());
-                return true;
             }
 
             // else:
@@ -230,22 +217,22 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
     }
 
     private boolean testBuildPermission(Permission permission) {
-        if (permission.getId().equals("hudson.model.Hudson.Build")
-                || permission.getId().equals("hudson.model.Item.Build")) {
-            return true;
-        } else {
-            return false;
+      return checkImpliedPermission(Item.BUILD, permission);
+    }
+
+    private boolean checkImpliedPermission(Permission expected, Permission toCheck) {
+      Permission currentPermission = toCheck;
+      while (currentPermission != null) {
+        if (currentPermission.equals(expected)) {
+          return true;
         }
+        currentPermission = currentPermission.impliedBy;
+      }
+      return false;
     }
 
     private boolean checkReadPermission(Permission permission) {
-        if (permission.getId().equals("hudson.model.Hudson.Read")
-                || permission.getId().equals("hudson.model.Item.Workspace")
-                || permission.getId().equals("hudson.model.Item.Read")) {
-            return true;
-        } else {
-            return false;
-        }
+      return checkImpliedPermission(Permission.READ, permission);
     }
 
     private boolean checkJobStatusPermission(Permission permission) {
@@ -256,25 +243,15 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
         String repositoryName = getRepositoryName();
 
         if (repositoryName == null) {
-            if (authenticatedUserCreateJobPermission) {
-                if (permission.equals(Item.READ) ||
-                        permission.equals(Item.CONFIGURE) ||
-                        permission.equals(Item.DELETE) ||
-                        permission.equals(Item.EXTENDED_READ) ||
-                        permission.equals(Item.CANCEL)) {
-                    return true;
-                } else {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        } else if (checkReadPermission(permission) &&
+            return authenticatedUserCreateJobPermission && checkImpliedPermission(Permission.CREATE, permission);
+        }
+
+        if (checkReadPermission(permission) &&
                 authenticationToken.isPublicRepository(repositoryName)) {
             return true;
-        } else {
-            return authenticationToken.hasRepositoryPermission(repositoryName, permission);
         }
+
+        return authenticationToken.hasRepositoryPermission(repositoryName, permission);
     }
 
     private String getRepositoryName() {
