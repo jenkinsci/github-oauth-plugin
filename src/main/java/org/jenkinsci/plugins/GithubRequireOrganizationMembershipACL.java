@@ -44,6 +44,7 @@ import hudson.model.AbstractItem;
 import hudson.model.AbstractProject;
 import hudson.model.Describable;
 import hudson.model.Item;
+import hudson.model.View;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.UserRemoteConfig;
 import hudson.security.ACL;
@@ -154,6 +155,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
             }
 
             if (authenticatedUserName.equals("anonymous")) {
+                log.finest("Checking anoynmous user permission: " + permission.getId() + ", for url: " + requestURI());
                 if (checkJobStatusPermission(permission) && allowAnonymousJobStatusPermission) {
                     return true;
                 }
@@ -232,7 +234,10 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
     }
 
     private boolean checkReadPermission(Permission permission) {
-      return checkImpliedPermission(Permission.READ, permission);
+      return (checkImpliedPermission(Item.READ, permission)
+        || checkImpliedPermission(Item.WORKSPACE, permission)
+        || checkImpliedPermission(View.READ, permission)
+        || permission.equals(Jenkins.READ));
     }
 
     private boolean checkJobStatusPermission(Permission permission) {
@@ -243,7 +248,10 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
         String repositoryName = getRepositoryName();
 
         if (repositoryName == null) {
-            return authenticatedUserCreateJobPermission && checkImpliedPermission(Permission.CREATE, permission);
+            // Should authenticated users who can create also be able to DELETE/CONFIGURE/EXTENDED_READ (view configuration)?
+            return authenticatedUserCreateJobPermission
+              && (checkReadPermission(permission)
+                || checkImpliedPermission(Item.CREATE, permission));
         }
 
         if (checkReadPermission(permission) &&

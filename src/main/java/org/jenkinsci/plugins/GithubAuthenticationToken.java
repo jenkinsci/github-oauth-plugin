@@ -401,7 +401,9 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
           return true;
         }
         // WRITE or READ can Read/Build/View Workspace/Discover
-        if (checkImpliedPermission(Permission.READ, permission) || checkImpliedPermission(Item.BUILD, permission)) {
+        if (checkImpliedPermission(Item.READ, permission)
+          || checkImpliedPermission(Item.BUILD, permission)
+          || checkImpliedPermission(Item.WORKSPACE, permission)) {
           return repository.hasPullAccess() || repository.hasPushAccess();
         }
         // WRITE can cancel builds
