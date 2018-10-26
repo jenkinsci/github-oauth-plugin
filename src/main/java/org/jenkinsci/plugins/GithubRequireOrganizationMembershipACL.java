@@ -241,6 +241,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
     private boolean checkReadPermission(Permission permission) {
         if (permission.getId().equals("hudson.model.Hudson.Read")
                 || permission.getId().equals("hudson.model.Item.Workspace")
+                || permission.getId().equals("hudson.model.Item.Discover")
                 || permission.getId().equals("hudson.model.Item.Read")) {
             return true;
         } else {
@@ -257,7 +258,8 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
         if (repositoryName == null) {
             if (authenticatedUserCreateJobPermission) {
-                if (permission.equals(Item.READ) ||
+                if (permission.equals(Item.DISCOVER) ||
+                        permission.equals(Item.READ) ||
                         permission.equals(Item.CONFIGURE) ||
                         permission.equals(Item.DELETE) ||
                         permission.equals(Item.EXTENDED_READ) ||
