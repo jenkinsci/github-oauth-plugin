@@ -193,20 +193,9 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     private void mockReposFor(GHPerson person, List<String> repositoryNames) throws IOException {
         List<GHRepository> repositories = repositoryListOf(repositoryNames);
         PagedIterable<GHRepository> pagedRepositories = PowerMockito.mock(PagedIterable.class);
-        PowerMockito.when(person.listRepositories()).thenReturn(pagedRepositories);
+        PowerMockito.when(person.listRepositories(100)).thenReturn(pagedRepositories);
         PowerMockito.when(pagedRepositories.asList()).thenReturn(repositories);
     };
-
-    private void mockOrgRepos(GHMyself me, Map<String, List<String>> orgsAndRepoNames) throws IOException {
-        Set<GHOrganization> organizations = new HashSet();
-        Set<String> organizationNames = orgsAndRepoNames.keySet();
-        for (String organizationName : organizationNames) {
-            List<String> repositories = orgsAndRepoNames.get(organizationName);
-            organizations.add(mockGHOrganization(organizationName, repositories));
-        }
-        GHPersonSet organizationSet = new GHPersonSet(organizations);
-        PowerMockito.when(me.getAllOrganizations()).thenReturn(organizationSet);
-    }
 
     private List<GHRepository> repositoryListOf(List<String> repositoryNames) throws IOException {
         List<GHRepository> repositoriesSet = new ArrayList<GHRepository>();
@@ -222,6 +211,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         GHRepository ghRepository = PowerMockito.mock(GHRepository.class);
         GHUser ghUser = PowerMockito.mock(GHUser.class);
         PowerMockito.when(ghUser.getLogin()).thenReturn(ownerName);
+        PowerMockito.when(ghRepository.getFullName()).thenReturn(ownerName + "/" + name);
         PowerMockito.when(ghRepository.getOwner()).thenReturn(ghUser);
         PowerMockito.when(ghRepository.getName()).thenReturn(name);
         return ghRepository;
@@ -271,8 +261,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     @Test
     public void testCanReadAndBuildOneOfMyRepositories() throws IOException {
         GHMyself me = mockGHMyselfAs("Me");
-        mockReposFor(me, Arrays.asList("me/a-repo"));
-        mockOrgRepos(me, ImmutableMap.of("some-org", Arrays.asList("some-org/a-public-repo")));
+        mockReposFor(me, Arrays.asList("me/a-repo", "some-org/a-public-repo"));
         String repoUrl = "https://github.com/me/a-repo.git";
         Project mockProject = mockProject(repoUrl);
         MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
@@ -303,8 +292,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     @Test
     public void testCanReadAndBuildOrgRepositoryICollaborateOn() throws IOException {
         GHMyself me = mockGHMyselfAs("Me");
-        mockReposFor(me, Arrays.asList("me/a-repo"));
-        mockOrgRepos(me, ImmutableMap.of("some-org", Arrays.asList("some-org/a-private-repo")));
+        mockReposFor(me, Arrays.asList("me/a-repo", "some-org/a-private-repo"));
         String repoUrl = "https://github.com/some-org/a-private-repo.git";
         Project mockProject = mockProject(repoUrl);
         MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
@@ -329,8 +317,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     @Test
     public void testCanReadAndBuildOtherOrgPrivateRepositoryICollaborateOn() throws IOException {
         GHMyself me = mockGHMyselfAs("Me");
-        mockReposFor(me, Arrays.asList("me/a-repo"));
-        mockOrgRepos(me, ImmutableMap.of("some-org", Arrays.asList("some-org/a-private-repo")));
+        mockReposFor(me, Arrays.asList("me/a-repo", "some-org/a-private-repo"));
         GHRepository ghRepository = PowerMockito.mock(GHRepository.class);
         PowerMockito.when(gh.getRepository("org-i-dont-belong-to/a-private-repo-i-collaborate-on")).thenReturn(ghRepository);
         PowerMockito.when(ghRepository.isPrivate()).thenReturn(true);
@@ -363,8 +350,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     @Test
     public void testCanNotReadOrBuildRepositoryIDoNotCollaborateOn() throws IOException {
         GHMyself me = mockGHMyselfAs("Me");
-        mockReposFor(me, Arrays.asList("me/a-repo"));
-        mockOrgRepos(me, ImmutableMap.of("some-org", Arrays.asList("some-org/a-private-repo")));
+        mockReposFor(me, Arrays.asList("me/a-repo", "some-org/a-private-repo"));
         String repoUrl = "https://github.com/some-org/another-private-repo.git";
         Project mockProject = mockProject(repoUrl);
         MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
@@ -537,8 +523,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     @Test
     public void testCannotReadRepositoryWithInvalidRepoUrl() throws IOException {
         GHMyself me = mockGHMyselfAs("Me");
-        mockReposFor(me, Arrays.asList("me/a-repo"));
-        mockOrgRepos(me, ImmutableMap.of("some-org", Arrays.asList("some-org/a-repo")));
+        mockReposFor(me, Arrays.asList("me/a-repo", "some-org/a-repo"));
         String invalidRepoUrl = "git@github.com//some-org/a-repo.git";
         Project mockProject = mockProject(invalidRepoUrl);
         GithubRequireOrganizationMembershipACL acl = aclForProject(mockProject);

@@ -410,15 +410,10 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
                 new Callable<Set<String>>() {
                     @Override
                     public Set<String> call() throws Exception {
-                        List<GHRepository> userRepositoryList = getMyself().listRepositories().asList();
-                        Set<String> repositoryNames = listToNames(userRepositoryList);
-                        GHPersonSet<GHOrganization> organizations = getMyself().getAllOrganizations();
-                        for (GHOrganization organization : organizations) {
-                            List<GHRepository> orgRepositoryList = organization.listRepositories().asList();
-                            Set<String> orgRepositoryNames = listToNames(orgRepositoryList);
-                            repositoryNames.addAll(orgRepositoryNames);
-                        }
-                        return repositoryNames;
+                        // listRepositories returns all repos owned by user, where they are a collaborator,
+                        //  and any user has access through org membership
+                        List<GHRepository> userRepositoryList = getMyself().listRepositories(100).asList(); // use max page size of 100 to limit API calls
+                        return listToNames(userRepositoryList);
                     }
                 }
             );
@@ -432,9 +427,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     public Set<String> listToNames(Collection<GHRepository> respositories) throws IOException {
         Set<String> names = new HashSet<String>();
         for (GHRepository repository : respositories) {
-            String ownerName = repository.getOwner().getLogin();
-            String repoName = repository.getName();
-            names.add(ownerName + "/" + repoName);
+            names.add(repository.getFullName());
         }
         return names;
     }
