@@ -1,7 +1,8 @@
 # Version 0.31 (Released Dec 6, 2018)
 
-- Bugfix GitHub Committer Authorization Strategy bug introduced by 0.30 release.
-  (pull request [#103][#103])
+- Bugfix GitHub Committer Authorization Strategy bug introduced by Jenkins 2.146
+  security release tracked by [JENKINS-54031][JENKINS-54031].  (pull request
+  [#103][#103])
 - Enabled Cache for User Teams. (pull request [#100][#100])
 - Authenticated team members have read/build permissions when using GitHub
   Committer Authorization Strategy tracked by [JENKINS-42509][JENKINS-42509].
@@ -11,6 +12,7 @@
 [#103]: https://github.com/jenkinsci/github-oauth-plugin/pull/103
 [#91]: https://github.com/jenkinsci/github-oauth-plugin/pull/91
 [JENKINS-42509]: https://issues.jenkins-ci.org/browse/JENKINS-42509
+[JENKINS-54031]: https://issues.jenkins-ci.org/browse/JENKINS-42509
 
 # Version 0.30
 
