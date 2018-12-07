@@ -390,7 +390,10 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
           return true;
         }
         // WRITE or READ can Read/Build/View Workspace
-        if (permission.equals(Item.READ) || permission.equals(Item.BUILD) || permission.equals(Item.WORKSPACE)) {
+        if (permission.equals(Item.DISCOVER) ||
+                permission.equals(Item.READ) ||
+                permission.equals(Item.BUILD) ||
+                permission.equals(Item.WORKSPACE)) {
           return repository.hasPullAccess() || repository.hasPushAccess();
         }
         // WRITE can cancel builds or view config

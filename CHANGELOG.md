@@ -1,6 +1,27 @@
+# Version 0.31 (Released Dec 6, 2018)
+
+- Bugfix GitHub Committer Authorization Strategy bug introduced by 0.30 release.
+  (pull request [#103][#103])
+- Enabled Cache for User Teams. (pull request [#100][#100])
+- Authenticated team members have read/build permissions when using GitHub
+  Committer Authorization Strategy tracked by [JENKINS-42509][JENKINS-42509].
+  (pull request [#91][#91])
+
+[#100]: https://github.com/jenkinsci/github-oauth-plugin/pull/100
+[#103]: https://github.com/jenkinsci/github-oauth-plugin/pull/103
+[#91]: https://github.com/jenkinsci/github-oauth-plugin/pull/91
+[JENKINS-42509]: https://issues.jenkins-ci.org/browse/JENKINS-42509
+
 # Version 0.30
 
-- Enabled Cache for User Teams. (pull request [#100])
+- [SECURITY-602] Mask client secret in UI - the round-trip is now done in
+  encrypted format
+- [SECURITY-797] Prevent session fixation - by the invalidation of the session
+  after a successful login
+- [SECURITY-798] Prevent open redirect.  Use the "from" in priority as it is
+  managed directly inside the main layout.  Otherwise, fallback to the referer
+  header value.  In all cases, check the URL is either relative or inside
+  Jenkins.
 
 # Version 0.29 (Released Jan 22, 2018)
 

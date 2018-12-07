@@ -282,10 +282,13 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         GithubRequireOrganizationMembershipACL projectAcl = aclForProject(mockProject);
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
+        assertTrue(projectAcl.hasPermission(authenticationToken, Item.DISCOVER));
         assertTrue(projectAcl.hasPermission(authenticationToken, Item.READ));
         assertTrue(projectAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.DISCOVER));
         assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.READ));
         assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.DISCOVER));
         assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.READ));
         assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.BUILD));
     }
@@ -312,10 +315,13 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
+        assertTrue(projectAcl.hasPermission(authenticationToken, Item.DISCOVER));
         assertTrue(projectAcl.hasPermission(authenticationToken, Item.READ));
         assertTrue(projectAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.DISCOVER));
         assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.READ));
         assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.DISCOVER));
         assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.READ));
         assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.BUILD));
     }
@@ -343,10 +349,13 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
+        assertTrue(projectAcl.hasPermission(authenticationToken, Item.DISCOVER));
         assertTrue(projectAcl.hasPermission(authenticationToken, Item.READ));
         assertTrue(projectAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.DISCOVER));
         assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.READ));
         assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.DISCOVER));
         assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.READ));
         assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.BUILD));
     }
@@ -366,10 +375,13 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
+        assertFalse(projectAcl.hasPermission(authenticationToken, Item.DISCOVER));
         assertFalse(projectAcl.hasPermission(authenticationToken, Item.READ));
         assertFalse(projectAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertFalse(multiBranchProjectAcl.hasPermission(authenticationToken, Item.DISCOVER));
         assertFalse(multiBranchProjectAcl.hasPermission(authenticationToken, Item.READ));
         assertFalse(multiBranchProjectAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertFalse(workflowJobAcl.hasPermission(authenticationToken, Item.DISCOVER));
         assertFalse(workflowJobAcl.hasPermission(authenticationToken, Item.READ));
         assertFalse(workflowJobAcl.hasPermission(authenticationToken, Item.BUILD));
     }
@@ -384,6 +396,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
+        assertFalse(acl.hasPermission(authenticationToken, Item.DISCOVER));
         assertFalse(acl.hasPermission(authenticationToken, Item.READ));
     }
 
@@ -395,6 +408,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
+        assertFalse(acl.hasPermission(authenticationToken, Item.DISCOVER));
         assertFalse(acl.hasPermission(authenticationToken, Item.READ));
     }
 
@@ -412,6 +426,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
+        assertFalse(acl.hasPermission(authenticationToken, Item.DISCOVER));
         assertFalse(acl.hasPermission(authenticationToken, Item.READ));
     }
 
@@ -439,6 +454,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
+        assertTrue(acl.hasPermission(authenticationToken, Item.DISCOVER));
         assertTrue(acl.hasPermission(authenticationToken, Item.READ));
     }
 
@@ -452,6 +468,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
+        assertFalse(acl.hasPermission(authenticationToken, Item.DISCOVER));
         assertFalse(acl.hasPermission(authenticationToken, Item.READ));
     }
 
@@ -490,6 +507,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         GithubRequireOrganizationMembershipACL acl = globalAcl.cloneForProject(mockProject);
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
+        assertTrue(acl.hasPermission(authenticationToken, Item.DISCOVER));
         assertTrue(acl.hasPermission(authenticationToken, Item.READ));
         assertTrue(acl.hasPermission(authenticationToken, Item.CONFIGURE));
         assertTrue(acl.hasPermission(authenticationToken, Item.DELETE));
@@ -508,6 +526,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         GithubRequireOrganizationMembershipACL acl = globalAcl.cloneForProject(mockProject);
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
+        assertFalse(acl.hasPermission(authenticationToken, Item.DISCOVER));
         assertFalse(acl.hasPermission(authenticationToken, Item.READ));
         assertFalse(acl.hasPermission(authenticationToken, Item.CONFIGURE));
         assertFalse(acl.hasPermission(authenticationToken, Item.DELETE));
@@ -526,6 +545,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
+        assertFalse(acl.hasPermission(authenticationToken, Item.DISCOVER));
         assertFalse(acl.hasPermission(authenticationToken, Item.READ));
     }
 
