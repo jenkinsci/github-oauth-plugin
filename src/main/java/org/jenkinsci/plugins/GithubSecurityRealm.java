@@ -79,6 +79,7 @@ import org.kohsuke.stapler.Header;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataRetrievalFailureException;
@@ -93,6 +94,7 @@ import java.util.Set;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.servlet.http.HttpSession;
 
 /**
  *
@@ -333,9 +335,18 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         return oauthScopes;
     }
 
-    public HttpResponse doCommenceLogin(StaplerRequest request, @Header("Referer") final String referer)
+    public HttpResponse doCommenceLogin(StaplerRequest request, @QueryParameter String from, @Header("Referer") final String referer)
             throws IOException {
-        request.getSession().setAttribute(REFERER_ATTRIBUTE,referer);
+        String redirectOnFinish;
+        if (from != null && Util.isSafeToRedirectTo(from)) {
+            redirectOnFinish = from;
+        } else if (referer != null && (referer.startsWith(Jenkins.getInstance().getRootUrl()) || Util.isSafeToRedirectTo(referer))) {
+            redirectOnFinish = referer;
+        } else {
+            redirectOnFinish = Jenkins.getInstance().getRootUrl();
+        }
+
+        request.getSession().setAttribute(REFERER_ATTRIBUTE, redirectOnFinish);
 
         Set<String> scopes = new HashSet<>();
         for (GitHubOAuthScope s : getJenkins().getExtensionList(GitHubOAuthScope.class)) {
@@ -361,6 +372,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     public HttpResponse doFinishLogin(StaplerRequest request)
             throws IOException {
         String code = request.getParameter("code");
+        String referer = (String)request.getSession().getAttribute(REFERER_ATTRIBUTE);
 
         if (code == null || code.trim().length() == 0) {
             Log.info("doFinishLogin: missing code.");
@@ -372,6 +384,14 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         if (accessToken != null && accessToken.trim().length() > 0) {
             // only set the access token if it exists.
             GithubAuthenticationToken auth = new GithubAuthenticationToken(accessToken, getGithubApiUri());
+
+            HttpSession session = request.getSession(false);
+            if(session != null){
+                // avoid session fixation
+                session.invalidate();
+            }
+            request.getSession(true);
+
             SecurityContextHolder.getContext().setAuthentication(auth);
 
             GHMyself self = auth.getMyself();
@@ -409,7 +429,6 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             Log.info("Github did not return an access token.");
         }
 
-        String referer = (String)request.getSession().getAttribute(REFERER_ATTRIBUTE);
         if (referer!=null)  return HttpResponses.redirectTo(referer);
         return HttpResponses.redirectToContextRoot();   // referer should be always there, but be defensive
     }
