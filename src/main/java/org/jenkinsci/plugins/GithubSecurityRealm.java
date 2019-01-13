@@ -88,7 +88,9 @@ import java.io.Console;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
+import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -337,6 +339,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
 
     public HttpResponse doCommenceLogin(StaplerRequest request, @QueryParameter String from, @Header("Referer") final String referer)
             throws IOException {
+        final String state = getSecureRandomString();
         String redirectOnFinish;
         if (from != null && Util.isSafeToRedirectTo(from)) {
             redirectOnFinish = from;
@@ -347,6 +350,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         }
 
         request.getSession().setAttribute(REFERER_ATTRIBUTE, redirectOnFinish);
+        request.getSession().setAttribute(STATE_ATTRIBUTE, state);
 
         Set<String> scopes = new HashSet<>();
         for (GitHubOAuthScope s : getJenkins().getExtensionList(GitHubOAuthScope.class)) {
@@ -354,11 +358,11 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         }
         String suffix="";
         if (!scopes.isEmpty()) {
-            suffix = "&scope="+Util.join(scopes,",");
+            suffix = "&scope="+Util.join(scopes,",")+"&state="+state;
         } else {
             // We need repo scope in order to access private repos
             // See https://developer.github.com/v3/oauth/#scopes
-            suffix = "&scope=" + oauthScopes;
+            suffix = "&scope=" + oauthScopes +"&state="+state;
         }
 
         return new HttpRedirect(githubWebUri + "/login/oauth/authorize?client_id="
@@ -372,12 +376,26 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     public HttpResponse doFinishLogin(StaplerRequest request)
             throws IOException {
         String code = request.getParameter("code");
+        String state = request.getParameter(STATE_ATTRIBUTE);
         String referer = (String)request.getSession().getAttribute(REFERER_ATTRIBUTE);
+        String expectedState = (String)request.getSession().getAttribute(STATE_ATTRIBUTE);
 
         if (code == null || code.trim().length() == 0) {
             Log.info("doFinishLogin: missing code.");
             return HttpResponses.redirectToContextRoot();
         }
+
+        if (state == null){
+            Log.info("doFinishLogin: missing state parameter from Github response.");
+            return HttpResponses.redirectToContextRoot();
+        } else if (expectedState == null){
+            Log.info("doFinishLogin: missing state parameter from user's session.");
+            return HttpResponses.redirectToContextRoot();
+        } else if (!state.equals(expectedState)){
+            Log.info("state parameter value ["+state+"] does not match the expected one ["+expectedState+"]");
+            return HttpResponses.redirectToContextRoot();
+        }
+
 
         String accessToken = getAccessToken(code);
 
@@ -460,6 +478,16 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         return null;
     }
 
+    /**
+     * Generates a random 20 byte String that conforms to the <a href="https://tools.ietf.org/html/rfc6749#section-10.10">specification</a>
+     * requirements
+     * @return a string that can be used as a state parameter
+     */
+    private String getSecureRandomString() {
+        final byte[] bytes = new byte[20];
+        SECURE_RANDOM.nextBytes(bytes);
+        return BASE64_ENCODER.encodeToString(bytes);
+    }
     /**
      * Returns the proxy to be used when connecting to the given URI.
      */
@@ -789,6 +817,11 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     private static final Logger LOGGER = Logger.getLogger(GithubSecurityRealm.class.getName());
 
     private static final String REFERER_ATTRIBUTE = GithubSecurityRealm.class.getName()+".referer";
+    private static final String STATE_ATTRIBUTE = "state";
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+    private static final Base64.Encoder BASE64_ENCODER = Base64.getUrlEncoder().withoutPadding();
 
     /**
      * Asks for the password.
