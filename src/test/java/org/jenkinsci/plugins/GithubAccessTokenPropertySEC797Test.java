@@ -249,7 +249,8 @@ public class GithubAccessTokenPropertySEC797Test {
         
         private void onLoginOAuthAuthorize(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             String code = "test";
-            resp.sendRedirect(jenkinsRule.getURL() + "securityRealm/finishLogin?code=" + code);
+            String state = req.getParameter("state");
+            resp.sendRedirect(jenkinsRule.getURL() + "securityRealm/finishLogin?code=" + code + "&state=" + state);
         }
         
         private void onLoginOAuthAccessToken(HttpServletRequest req, HttpServletResponse resp) throws IOException {
