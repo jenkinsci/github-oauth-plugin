@@ -90,7 +90,6 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.security.SecureRandom;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -339,7 +338,9 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
 
     public HttpResponse doCommenceLogin(StaplerRequest request, @QueryParameter String from, @Header("Referer") final String referer)
             throws IOException {
-        final String state = getSecureRandomString();
+        // https://tools.ietf.org/html/rfc6749#section-10.10 dictates that probability that an attacker guesses the string
+        // SHOULD be less than or equal to 2^(-160) and our Strings consist of 65 chars. (65^27 ~= 2^160)
+        final String state = getSecureRandomString(27);
         String redirectOnFinish;
         if (from != null && Util.isSafeToRedirectTo(from)) {
             redirectOnFinish = from;
@@ -479,14 +480,19 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     }
 
     /**
-     * Generates a random 20 byte String that conforms to the <a href="https://tools.ietf.org/html/rfc6749#section-10.10">specification</a>
-     * requirements
-     * @return a string that can be used as a state parameter
+     * Generates a random URL Safe String of n characters
      */
-    private String getSecureRandomString() {
-        final byte[] bytes = new byte[20];
-        SECURE_RANDOM.nextBytes(bytes);
-        return BASE64_ENCODER.encodeToString(bytes);
+    private String getSecureRandomString(int n) {
+        if (n < 0){
+            throw new IllegalArgumentException("Length must be a positive integer");
+        }
+        // See RFC3986
+        final String urlSafeChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_";
+        final StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < n ; i++){
+            sb.append(urlSafeChars.charAt(SECURE_RANDOM.nextInt(urlSafeChars.length())));
+        }
+        return sb.toString();
     }
     /**
      * Returns the proxy to be used when connecting to the given URI.
@@ -820,8 +826,6 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     private static final String STATE_ATTRIBUTE = "state";
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-
-    private static final Base64.Encoder BASE64_ENCODER = Base64.getUrlEncoder().withoutPadding();
 
     /**
      * Asks for the password.
