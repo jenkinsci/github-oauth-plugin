@@ -659,7 +659,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
 
         Authentication token = SecurityContextHolder.getContext().getAuthentication();
 
-        if (token == null || username != token.getPrincipal()) {
+        if (token == null || !username.equals(token.getPrincipal())) {
             if(localUser != null && GithubSecretStorage.contains(localUser)){
                 String accessToken = GithubSecretStorage.retrieve(localUser);
                 try {
