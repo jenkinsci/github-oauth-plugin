@@ -182,68 +182,98 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         }
     }
 
+    private Set<String> getUserOrgs() throws ExecutionException {
+        return userOrganizationCache.get(getName(), new Callable<Set<String>>() {
+            @Override
+            public Set<String> call() throws Exception {
+                return getGitHub().getMyOrganizations().keySet();
+            }
+        });
+    }
+
     public GithubAuthenticationToken(final String accessToken, final String githubServer) throws IOException {
         super(new GrantedAuthority[] {});
 
         this.accessToken = accessToken;
         this.githubServer = githubServer;
 
-        this.me = loadMyself(accessToken);
-
-        assert this.me!=null;
-
-        setAuthenticated(true);
-
-        this.userName = this.me.getLogin();
-
-        authorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
         Jenkins jenkins = Jenkins.getInstance();
         if (jenkins == null) {
             throw new IllegalStateException("Jenkins not started");
         }
-        if(jenkins.getSecurityRealm() instanceof GithubSecurityRealm) {
-            if(myRealm == null) {
-                myRealm = (GithubSecurityRealm) jenkins.getSecurityRealm();
-            }
-            //Search for scopes that allow fetching team membership.  This is documented online.
-            //https://developer.github.com/v3/orgs/#list-your-organizations
-            //https://developer.github.com/v3/orgs/teams/#list-user-teams
-            if(myRealm.hasScope("read:org") || myRealm.hasScope("admin:org") || myRealm.hasScope("user") || myRealm.hasScope("repo")) {
-                try{
-                    Set<String> myOrgs = userOrganizationCache.get(getName(), new Callable<Set<String>>() {
-                        @Override
-                        public Set<String> call() throws Exception {
-                            return getGitHub().getMyOrganizations().keySet();
-                        }
-                    });
 
-                    Map<String, Set<GHTeam>> myTeams = userTeamsCache.get(getName(), new Callable<Map<String, Set<GHTeam>>>() {
+        this.me = loadMyself(accessToken);
+        assert this.me != null;
+
+        this.userName = this.me.getLogin();
+
+        if(myRealm == null) {
+            SecurityRealm realm = jenkins.getSecurityRealm();
+            if (realm instanceof GithubSecurityRealm) {
+                myRealm = (GithubSecurityRealm) jenkins.getSecurityRealm();
+            } else {
+                return;
+            }
+        }
+
+        Set<String> authorizedOrgs = myRealm.getAuthorizedOrganizations();
+        if (authorizedOrgs.size() > 0) {
+            boolean canReadOrgs = myRealm.hasScope("user") || myRealm.hasScope("read:user");
+            if (!canReadOrgs) {
+                return;
+            }
+            Set<String> myOrgs;
+            try {
+                myOrgs = getUserOrgs();
+            } catch (ExecutionException e) {
+                throw new RuntimeException("authorization failed for user = "
+                                           + getName(), e);
+            }
+
+            // Check if user has some intersection with authorized orgs
+            Set<String> orgsIntersection = new HashSet<>(authorizedOrgs);
+            orgsIntersection.retainAll(myOrgs);
+            if(orgsIntersection.size() == 0){
+                return;
+            }
+        }
+
+        setAuthenticated(true);
+        authorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
+
+        //Search for scopes that allow fetching team membership.  This is documented online.
+        //https://developer.github.com/v3/orgs/#list-your-organizations
+        //https://developer.github.com/v3/orgs/teams/#list-user-teams
+        if(myRealm.hasScope("read:org") || myRealm.hasScope("admin:org") || myRealm.hasScope("user") || myRealm.hasScope("repo")) {
+            try{
+                Set<String> myOrgs = getUserOrgs();
+
+                Map<String, Set<GHTeam>> myTeams = userTeamsCache.get(getName(), new Callable<Map<String, Set<GHTeam>>>() {
                         @Override
                         public Map<String, Set<GHTeam>> call() throws Exception {
                             return getGitHub().getMyTeams();
                         }
                     });
 
-                    //fetch organization-only memberships (i.e.: groups without teams)
-                    for(String orgLogin : myOrgs){
-                        if(!myTeams.containsKey(orgLogin)){
-                            myTeams.put(orgLogin, Collections.<GHTeam>emptySet());
-                        }
+                //fetch organization-only memberships (i.e.: groups without teams)
+                for(String orgLogin : myOrgs){
+                    if(!myTeams.containsKey(orgLogin)){
+                        myTeams.put(orgLogin, Collections.<GHTeam>emptySet());
                     }
-
-                    for (Map.Entry<String, Set<GHTeam>> teamEntry : myTeams.entrySet()) {
-                        String orgLogin = teamEntry.getKey();
-                        LOGGER.log(Level.FINE, "Fetch teams for user " + userName + " in organization " + orgLogin);
-                        authorities.add(new GrantedAuthorityImpl(orgLogin));
-                        for (GHTeam team : teamEntry.getValue()) {
-                            authorities.add(new GrantedAuthorityImpl(orgLogin + GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR
-                                    + team.getName()));
-                        }
-                    }
-                } catch (ExecutionException e) {
-                    throw new RuntimeException("authorization failed for user = "
-                            + getName(), e);
                 }
+
+                for (Map.Entry<String, Set<GHTeam>> teamEntry : myTeams.entrySet()) {
+                    String orgLogin = teamEntry.getKey();
+                    LOGGER.log(Level.FINE, "Fetch teams for user " + userName + " in organization " + orgLogin);
+                    authorities.add(new GrantedAuthorityImpl(orgLogin));
+                    for (GHTeam team : teamEntry.getValue()) {
+                        authorities.add(new GrantedAuthorityImpl(orgLogin + GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR
+                                                                 + team.getName()));
+                    }
+                }
+            } catch (ExecutionException e) {
+                throw new RuntimeException("authorization failed for user = "
+                                           + getName(), e);
             }
         }
     }

@@ -23,5 +23,9 @@
         <f:entry title="OAuth Scope(s)" field="oauthScopes" help="/plugin/github-oauth/help/realm/oauth-scopes-help.html">
             <f:textbox default="${descriptor.getDefaultOauthScopes()}" />
         </f:entry>
+
+        <f:entry title="Authorized organizations" field="authorizedOrganizationsString" help="/plugin/github-oauth/help/realm/authorized-organizations.html">
+            <f:textbox default="${descriptor.getDefaultAuthorizedOrganizationString()}" />
+        </f:entry>
     </f:section>
 </j:jelly>

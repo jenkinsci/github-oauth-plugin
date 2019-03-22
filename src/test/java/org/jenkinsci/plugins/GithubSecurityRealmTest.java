@@ -29,6 +29,9 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
+import java.util.Arrays;
+
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -40,22 +43,22 @@ public class GithubSecurityRealmTest {
 
     @Test
     public void testEquals_true() {
-        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
-        GithubSecurityRealm b = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
+        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org", "");
+        GithubSecurityRealm b = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org", "");
         assertTrue(a.equals(b));
     }
 
     @Test
     public void testEquals_false() {
-        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
-        GithubSecurityRealm b = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,repo");
+        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org", "");
+        GithubSecurityRealm b = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,repo", "");
         assertFalse(a.equals(b));
         assertFalse(a.equals(""));
     }
 
     @Test
     public void testHasScope_true() {
-        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,user,user:email");
+        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,user,user:email", "");
         assertTrue(a.hasScope("user"));
         assertTrue(a.hasScope("read:org"));
         assertTrue(a.hasScope("user:email"));
@@ -63,8 +66,30 @@ public class GithubSecurityRealmTest {
 
     @Test
     public void testHasScope_false() {
-        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,user,user:email");
+        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,user,user:email", "");
         assertFalse(a.hasScope("somescope"));
+    }
+
+    @Test
+    public void testAuthorizedOrganizations_empty() {
+        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,user,user:email", "");
+        assertEquals(0, a.getAuthorizedOrganizations().size());
+    }
+
+    @Test
+    public void testAuthorizedOrganizations_single() {
+        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,user,user:email", "org-a");
+        Object[] orgs = a.getAuthorizedOrganizations().toArray();
+        Arrays.sort(orgs);
+        assertEquals(new Object[]{"org-a"}, orgs);
+    }
+
+    @Test
+    public void testAuthorizedOrganizations_multiple() {
+        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,user,user:email", "org-a,orgB");
+        Object[] orgs = a.getAuthorizedOrganizations().toArray();
+        Arrays.sort(orgs);
+        assertEquals(new Object[]{"org-a", "orgB"}, orgs);
     }
 
     @Test
