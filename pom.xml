@@ -164,7 +164,7 @@
                 <version>1.109</version>
                 <extensions>true</extensions>
                 <configuration>
-                    <compatibleSinceVersion>1.93</compatibleSinceVersion>
+                    <compatibleSinceVersion>0.3</compatibleSinceVersion>
                 </configuration>
             </plugin>
             <plugin>
