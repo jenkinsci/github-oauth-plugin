@@ -271,13 +271,15 @@ public class GithubAccessTokenPropertySEC797Test {
         String clientID = "xxx";
         String clientSecret = "yyy";
         String oauthScopes = "read:org";
+        String redirectUri = "";
         
         GithubSecurityRealm githubSecurityRealm = new GithubSecurityRealm(
                 githubWebUri,
                 githubApiUri,
                 clientID,
                 clientSecret,
-                oauthScopes
+                oauthScopes,
+                redirectUri
         );
         
         j.jenkins.setSecurityRealm(githubSecurityRealm);

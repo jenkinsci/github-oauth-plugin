@@ -108,6 +108,7 @@ import javax.servlet.http.HttpSession;
 public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm implements UserDetailsService {
     private static final String DEFAULT_WEB_URI = "https://github.com";
     private static final String DEFAULT_API_URI = "https://api.github.com";
+    private static final String DEFAULT_REDIRECT_URI = "";
     private static final String DEFAULT_ENTERPRISE_API_SUFFIX = "/api/v3";
     private static final String DEFAULT_OAUTH_SCOPES = "read:org,user:email,repo";
 
@@ -117,6 +118,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     private Secret clientSecret;
     private String oauthScopes;
     private String[] myScopes;
+    private String redirectUri;
 
     /**
      * @param githubWebUri The URI to the root of the web UI for GitHub or GitHub Enterprise,
@@ -126,13 +128,15 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
      * @param clientID The client ID for the created OAuth Application.
      * @param clientSecret The client secret for the created GitHub OAuth Application.
      * @param oauthScopes A comma separated list of OAuth Scopes to request access to.
+     * @param redirectUri An optional redirect URI to be used by GitHub.
      */
     @DataBoundConstructor
     public GithubSecurityRealm(String githubWebUri,
             String githubApiUri,
             String clientID,
             String clientSecret,
-            String oauthScopes) {
+            String oauthScopes,
+            String redirectUri) {
         super();
 
         this.githubWebUri = Util.fixEmptyAndTrim(githubWebUri);
@@ -140,6 +144,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         this.clientID     = Util.fixEmptyAndTrim(clientID);
         setClientSecret(Util.fixEmptyAndTrim(clientSecret));
         this.oauthScopes  = Util.fixEmptyAndTrim(oauthScopes);
+        this.redirectUri  = Util.fixEmptyAndTrim(redirectUri);
     }
 
     private GithubSecurityRealm() {    }
@@ -187,6 +192,13 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
      */
     private void setOauthScopes(String oauthScopes) {
         this.oauthScopes = oauthScopes;
+    }
+
+    /**
+     * @param redirectUri the redirectUri to set
+     */
+    private void setRedirectUri(String redirectUri) {
+        this.redirectUri = redirectUri;
     }
 
     /**
@@ -247,6 +259,13 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             writer.setValue(realm.getOauthScopes());
             writer.endNode();
 
+            writer.startNode("redirectUri");
+            String redirectUriValue = DEFAULT_REDIRECT_URI;
+            if (null != realm.getRedirectUri()) {
+            		redirectUriValue = realm.getRedirectUri();
+            	}
+			writer.setValue(redirectUriValue);
+            writer.endNode();
         }
 
         public Object unmarshal(HierarchicalStreamReader reader,
@@ -273,6 +292,10 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                 realm.setGithubApiUri(DEFAULT_API_URI);
             }
 
+            if (realm.getRedirectUri() == null) {
+            		realm.setRedirectUri(DEFAULT_REDIRECT_URI);
+            }
+
             return realm;
         }
 
@@ -292,6 +315,8 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                 realm.setGithubApiUri(value);
             } else if (node.toLowerCase().equals("oauthscopes")) {
                 realm.setOauthScopes(value);
+            } else if (node.toLowerCase().equals("redirecturi")) {
+            		realm.setRedirectUri(value);
             } else {
                 throw new ConversionException("Invalid node value = " + node);
             }
@@ -336,6 +361,13 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         return oauthScopes;
     }
 
+    /**
+     * @return the redirectUri
+     */
+    public String getRedirectUri() {
+        return redirectUri;
+    }
+
     public HttpResponse doCommenceLogin(StaplerRequest request, @QueryParameter String from, @Header("Referer") final String referer)
             throws IOException {
         // https://tools.ietf.org/html/rfc6749#section-10.10 dictates that probability that an attacker guesses the string
@@ -364,6 +396,10 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             // We need repo scope in order to access private repos
             // See https://developer.github.com/v3/oauth/#scopes
             suffix = "&scope=" + oauthScopes +"&state="+state;
+        }
+
+        if (null != redirectUri && !redirectUri.isEmpty()) {
+        		suffix += "&redirect_uri=" + redirectUri;
         }
 
         return new HttpRedirect(githubWebUri + "/login/oauth/authorize?client_id="
@@ -749,11 +785,20 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     public boolean equals(Object object){
         if(object instanceof GithubSecurityRealm) {
             GithubSecurityRealm obj = (GithubSecurityRealm) object;
-            return this.getGithubWebUri().equals(obj.getGithubWebUri()) &&
+            String redirectUri2 = this.getRedirectUri();
+            if (null == redirectUri2) {
+            		redirectUri2 = DEFAULT_REDIRECT_URI;
+            }
+			String redirectUri3 = obj.getRedirectUri();
+			if (null == redirectUri3) {
+				redirectUri3 = DEFAULT_REDIRECT_URI;
+			}
+			return this.getGithubWebUri().equals(obj.getGithubWebUri()) &&
                 this.getGithubApiUri().equals(obj.getGithubApiUri()) &&
                 this.getClientID().equals(obj.getClientID()) &&
                 this.getClientSecret().equals(obj.getClientSecret()) &&
-                this.getOauthScopes().equals(obj.getOauthScopes());
+                this.getOauthScopes().equals(obj.getOauthScopes()) &&
+                	redirectUri2.equals(redirectUri3);
         } else {
             return false;
         }
@@ -767,6 +812,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                 .append(this.getClientID())
                 .append(this.getClientSecret())
                 .append(this.getOauthScopes())
+                .append(this.getRedirectUri())
                 .toHashCode();
     }
 

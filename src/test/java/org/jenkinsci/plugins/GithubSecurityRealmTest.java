@@ -30,6 +30,7 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 
@@ -40,22 +41,31 @@ public class GithubSecurityRealmTest {
 
     @Test
     public void testEquals_true() {
-        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
-        GithubSecurityRealm b = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
+        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org", "https://build-dev.intuit.com/test/securityRealm/finishLogin");
+        GithubSecurityRealm b = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org", "https://build-dev.intuit.com/test/securityRealm/finishLogin");
         assertTrue(a.equals(b));
     }
 
     @Test
     public void testEquals_false() {
-        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
-        GithubSecurityRealm b = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,repo");
+        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org", "");
+        GithubSecurityRealm b = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,repo", "");
+        assertFalse(a.equals(b));
+        assertFalse(a.equals(""));
+    }
+    
+    @Test
+    public void testEqualsRedirectUri_false() {
+        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org", "");
+        GithubSecurityRealm b = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org", "https://build-dev.intuit.com/test/securityRealm/finishLogin");
         assertFalse(a.equals(b));
         assertFalse(a.equals(""));
     }
 
+
     @Test
     public void testHasScope_true() {
-        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,user,user:email");
+        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,user,user:email", "");
         assertTrue(a.hasScope("user"));
         assertTrue(a.hasScope("read:org"));
         assertTrue(a.hasScope("user:email"));
@@ -63,7 +73,7 @@ public class GithubSecurityRealmTest {
 
     @Test
     public void testHasScope_false() {
-        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,user,user:email");
+        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,user,user:email", "");
         assertFalse(a.hasScope("somescope"));
     }
 
@@ -83,5 +93,11 @@ public class GithubSecurityRealmTest {
     public void testDescriptorImplGetDefaultOauthScopes() {
         DescriptorImpl descriptor = new DescriptorImpl();
         assertTrue("read:org,user:email,repo".equals(descriptor.getDefaultOauthScopes()));
+    }
+
+    @Test
+    public void testHashCode() {
+        GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org", "https://build-dev.intuit.com/test/securityRealm/finishLogin");
+        assertNotNull(a.hashCode());
     }
 }
