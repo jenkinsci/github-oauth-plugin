@@ -528,8 +528,8 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
               );
           }
       } catch (Exception e) {
-          LOGGER.log(Level.SEVERE, "an exception was thrown", e);
-          LOGGER.log(Level.WARNING,
+          LOGGER.log(Level.FINEST, "an exception was thrown", e);
+          LOGGER.log(Level.FINEST,
               "Looks like a bad GitHub URL OR the Jenkins user {0} does not have access to the repository {1}. May need to add 'repo' or 'public_repo' to the list of oauth scopes requested.",
               new Object[] { this.userName, repositoryName });
       }
