@@ -39,7 +39,7 @@
 
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>github-oauth</artifactId>
-    <version>0.32-SNAPSHOT</version>
+    <version>0.33-SNAPSHOT</version>
     <name>GitHub Authentication plugin</name>
     <description>A Jenkins authentication plugin that delegates to GitHub.  We also implement an Authorization Strategy that uses the acquired OAuth token to interact with the GitHub API to determine a user's level of access to Jenkins.</description>
     <packaging>hpi</packaging>
@@ -164,7 +164,7 @@
                 <version>1.109</version>
                 <extensions>true</extensions>
                 <configuration>
-                    <compatibleSinceVersion>1.93</compatibleSinceVersion>
+                    <compatibleSinceVersion>0.3</compatibleSinceVersion>
                 </configuration>
             </plugin>
             <plugin>

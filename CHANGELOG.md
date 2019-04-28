@@ -1,3 +1,15 @@
+# Version 0.32 (Released Apr 12, 2019)
+
+- Refactored to make fewer GitHub v3 API calls. (pull request [#106][#106])
+- CSRF protection bugfix by using state parameter (pull request [#107][#107])
+- Use the correct access token when impersonating a user (pull request
+  [#109][#109])
+
+[#106]: https://github.com/jenkinsci/github-oauth-plugin/pull/106
+[#107]: https://github.com/jenkinsci/github-oauth-plugin/pull/107
+[#108]: https://github.com/jenkinsci/github-oauth-plugin/pull/108
+[#109]: https://github.com/jenkinsci/github-oauth-plugin/pull/109
+
 # Version 0.31 (Released Dec 6, 2018)
 
 - Bugfix GitHub Committer Authorization Strategy bug introduced by Jenkins 2.146
