@@ -91,6 +91,7 @@ import java.net.Proxy;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
@@ -117,6 +118,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     private Secret clientSecret;
     private String oauthScopes;
     private String[] myScopes;
+    private String authorizedOrganizationsString;
 
     /**
      * @param githubWebUri The URI to the root of the web UI for GitHub or GitHub Enterprise,
@@ -126,13 +128,16 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
      * @param clientID The client ID for the created OAuth Application.
      * @param clientSecret The client secret for the created GitHub OAuth Application.
      * @param oauthScopes A comma separated list of OAuth Scopes to request access to.
+     * @param authorizedOrganizationsString A comma separated list of organizations to check membership.
      */
     @DataBoundConstructor
     public GithubSecurityRealm(String githubWebUri,
             String githubApiUri,
             String clientID,
             String clientSecret,
-            String oauthScopes) {
+            String oauthScopes,
+            String authorizedOrganizationsString
+            ) {
         super();
 
         this.githubWebUri = Util.fixEmptyAndTrim(githubWebUri);
@@ -140,6 +145,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         this.clientID     = Util.fixEmptyAndTrim(clientID);
         setClientSecret(Util.fixEmptyAndTrim(clientSecret));
         this.oauthScopes  = Util.fixEmptyAndTrim(oauthScopes);
+        setAuthorizedOrganizationsString(authorizedOrganizationsString);
     }
 
     private GithubSecurityRealm() {    }
@@ -183,6 +189,13 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     }
 
     /**
+     * @param authorizedOrganizationsString the organizations to check membership of
+     */
+    private void setAuthorizedOrganizationsString(String authorizedOrganizationsString) {
+        this.authorizedOrganizationsString = authorizedOrganizationsString.trim();
+    }
+
+    /**
      * @param oauthScopes the oauthScopes to set
      */
     private void setOauthScopes(String oauthScopes) {
@@ -211,6 +224,17 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     }
 
     /**
+     * @return The set of authorized organizations, empty if all organizations are authorized
+     */
+    public Set<String> getAuthorizedOrganizations() {
+        if (this.authorizedOrganizationsString.equals("")) {
+            return new HashSet<>();
+        } else {
+            return new HashSet<>(Arrays.asList(authorizedOrganizationsString.split(",")));
+        }
+    }
+
+    /**
      * @param githubApiUri the URI to the API root of GitHub or GitHub Enterprise.
      */
     private void setGithubApiUri(String githubApiUri) {
@@ -218,7 +242,10 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     }
 
     public static final class ConverterImpl implements Converter {
-
+        private static final String authorizedOrganizationsStringNode =
+            "authorizedOrganizationsString";
+        private static final String authorizedOrganizationsStringNodeCompare =
+            authorizedOrganizationsStringNode.toLowerCase();
         public boolean canConvert(Class type) {
             return type == GithubSecurityRealm.class;
         }
@@ -247,6 +274,9 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             writer.setValue(realm.getOauthScopes());
             writer.endNode();
 
+            writer.startNode(authorizedOrganizationsStringNode);
+            writer.setValue(realm.getAuthorizedOrganizationsString());
+            writer.endNode();
         }
 
         public Object unmarshal(HierarchicalStreamReader reader,
@@ -292,6 +322,8 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                 realm.setGithubApiUri(value);
             } else if (node.toLowerCase().equals("oauthscopes")) {
                 realm.setOauthScopes(value);
+            } else if (node.toLowerCase().equals(authorizedOrganizationsStringNodeCompare)) {
+                realm.setAuthorizedOrganizationsString(value);
             } else {
                 throw new ConversionException("Invalid node value = " + node);
             }
@@ -334,6 +366,13 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
      */
     public String getOauthScopes() {
         return oauthScopes;
+    }
+
+    /**
+     * @return the authorizedOrganizationsString
+     */
+    public String getAuthorizedOrganizationsString() {
+        return this.authorizedOrganizationsString;
     }
 
     public HttpResponse doCommenceLogin(StaplerRequest request, @QueryParameter String from, @Header("Referer") final String referer)
@@ -404,46 +443,52 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             // only set the access token if it exists.
             GithubAuthenticationToken auth = new GithubAuthenticationToken(accessToken, getGithubApiUri());
 
-            HttpSession session = request.getSession(false);
-            if(session != null){
-                // avoid session fixation
-                session.invalidate();
-            }
-            request.getSession(true);
-
-            SecurityContextHolder.getContext().setAuthentication(auth);
-
             GHMyself self = auth.getMyself();
-            User u = User.current();
-            if (u == null) {
-                throw new IllegalStateException("Can't find user");
-            }
-
-            GithubSecretStorage.put(u, accessToken);
-
-            u.setFullName(self.getName());
-            // Set email from github only if empty
-            if (!u.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
-                if(hasScope("user") || hasScope("user:email")) {
-                    String primary_email = null;
-                    for(GHEmail e : self.getEmails2()) {
-                        if(e.isPrimary()) {
-                            primary_email = e.getEmail();
-                        }
-                    }
-                    if(primary_email != null) {
-                        u.addProperty(new Mailer.UserProperty(primary_email));
-                    }
-                } else {
-                    u.addProperty(new Mailer.UserProperty(auth.getGitHub().getMyself().getEmail()));
+            if (!auth.isAuthenticated()) {
+                SecurityContextHolder.getContext().setAuthentication(Jenkins.ANONYMOUS);
+                SecurityListener.fireFailedToAuthenticate(self.getLogin());
+                return HttpResponses.redirectTo(request.getContextPath()+ "/" + GithubUnauthorizedAction.UNAUTHORIZED_URL);
+            } else {
+                HttpSession session = request.getSession(false);
+                if(session != null){
+                    // avoid session fixation
+                    session.invalidate();
                 }
+                request.getSession(true);
+
+                SecurityContextHolder.getContext().setAuthentication(auth);
+
+                User u = User.current();
+                if (u == null) {
+                    throw new IllegalStateException("Can't find user");
+                }
+
+                GithubSecretStorage.put(u, accessToken);
+
+                u.setFullName(self.getName());
+                // Set email from github only if empty
+                if (!u.getProperty(Mailer.UserProperty.class).hasExplicitlyConfiguredAddress()) {
+                    if(hasScope("user") || hasScope("user:email")) {
+                        String primary_email = null;
+                        for(GHEmail e : self.getEmails2()) {
+                            if(e.isPrimary()) {
+                                primary_email = e.getEmail();
+                            }
+                        }
+                        if(primary_email != null) {
+                            u.addProperty(new Mailer.UserProperty(primary_email));
+                        }
+                    } else {
+                        u.addProperty(new Mailer.UserProperty(auth.getGitHub().getMyself().getEmail()));
+                    }
+                }
+
+                SecurityListener.fireAuthenticated(new GithubOAuthUserDetails(self.getLogin(), auth.getAuthorities()));
+
+                // While LastGrantedAuthorities are triggered by that event, we cannot trigger it there
+                // or modifications in organizations will be not reflected when using API Token, due to that caching
+                // SecurityListener.fireLoggedIn(self.getLogin());
             }
-
-            SecurityListener.fireAuthenticated(new GithubOAuthUserDetails(self.getLogin(), auth.getAuthorities()));
-
-            // While LastGrantedAuthorities are triggered by that event, we cannot trigger it there
-            // or modifications in organizations will be not reflected when using API Token, due to that caching
-            // SecurityListener.fireLoggedIn(self.getLogin());
         } else {
             Log.info("Github did not return an access token.");
         }
@@ -653,6 +698,10 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             return DEFAULT_OAUTH_SCOPES;
         }
 
+        public String getDefaultAuthorizedOrganizationsString() {
+            return "";
+        }
+
         public DescriptorImpl() {
             super();
             // TODO Auto-generated constructor stub
@@ -753,7 +802,8 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                 this.getGithubApiUri().equals(obj.getGithubApiUri()) &&
                 this.getClientID().equals(obj.getClientID()) &&
                 this.getClientSecret().equals(obj.getClientSecret()) &&
-                this.getOauthScopes().equals(obj.getOauthScopes());
+                this.getOauthScopes().equals(obj.getOauthScopes()) &&
+                this.getAuthorizedOrganizationsString().equals(obj.getAuthorizedOrganizationsString());
         } else {
             return false;
         }
@@ -767,6 +817,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                 .append(this.getClientID())
                 .append(this.getClientSecret())
                 .append(this.getOauthScopes())
+                .append(this.getAuthorizedOrganizationsString())
                 .toHashCode();
     }
 

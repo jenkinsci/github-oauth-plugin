@@ -267,13 +267,15 @@ public class GithubAccessTokenPropertyTest {
         String clientID = "xxx";
         String clientSecret = "yyy";
         String oauthScopes = "read:org";
+        String authorizedOrgs = "";
 
         GithubSecurityRealm githubSecurityRealm = new GithubSecurityRealm(
                 githubWebUri,
                 githubApiUri,
                 clientID,
                 clientSecret,
-                oauthScopes
+                oauthScopes,
+                authorizedOrgs
         );
 
         j.jenkins.setSecurityRealm(githubSecurityRealm);
