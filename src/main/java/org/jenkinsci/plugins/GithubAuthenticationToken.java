@@ -219,22 +219,8 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
         Set<String> authorizedOrgs = myRealm.getAuthorizedOrganizations();
         if (authorizedOrgs.size() > 0) {
-            boolean canReadOrgs = myRealm.hasScope("user") || myRealm.hasScope("read:user");
-            if (!canReadOrgs) {
-                return;
-            }
-            Set<String> myOrgs;
-            try {
-                myOrgs = getUserOrgs();
-            } catch (ExecutionException e) {
-                throw new RuntimeException("authorization failed for user = "
-                                           + getName(), e);
-            }
-
             // Check if user has some intersection with authorized orgs
-            Set<String> orgsIntersection = new HashSet<>(authorizedOrgs);
-            orgsIntersection.retainAll(myOrgs);
-            if(orgsIntersection.size() == 0){
+            if (!isMemberOfAnyOrganizationInList(authorizedOrgs)) {
                 return;
             }
         }
