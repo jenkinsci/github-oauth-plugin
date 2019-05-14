@@ -28,6 +28,7 @@ package org.jenkinsci.plugins;
 
 import com.google.common.collect.ImmutableMap;
 
+import hudson.scm.SCM;
 import junit.framework.TestCase;
 
 import org.acegisecurity.Authentication;
@@ -61,13 +62,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import hudson.model.Hudson;
 import hudson.model.Item;
@@ -217,13 +212,15 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     private WorkflowJob mockWorkflowJob(String url) {
         WorkflowJob project = PowerMockito.mock(WorkflowJob.class);
         GitSCM gitSCM = PowerMockito.mock(GitSCM.class);
-        Branch branch = PowerMockito.mock(Branch.class);
-        BranchJobProperty branchJobProperty = PowerMockito.mock(BranchJobProperty.class);
+        Collection scm = PowerMockito.mock(Collection.class);
+        Iterator it = PowerMockito.mock(Iterator.class);
         UserRemoteConfig userRemoteConfig = PowerMockito.mock(UserRemoteConfig.class);
         List<UserRemoteConfig> userRemoteConfigs = Arrays.asList(userRemoteConfig);
-        PowerMockito.when(project.getProperty(BranchJobProperty.class)).thenReturn(branchJobProperty);
-        PowerMockito.when(branchJobProperty.getBranch()).thenReturn(branch);
-        PowerMockito.when(branch.getScm()).thenReturn(gitSCM);
+
+        PowerMockito.when(project.getSCMs()).thenReturn(scm);
+        PowerMockito.when(scm.isEmpty()).thenReturn(false);
+        PowerMockito.when(scm.iterator()).thenReturn(it);
+        PowerMockito.when(it.next()).thenReturn(gitSCM);
         PowerMockito.when(gitSCM.getUserRemoteConfigs()).thenReturn(userRemoteConfigs);
         PowerMockito.when(userRemoteConfig.getUrl()).thenReturn(url);
         return project;
