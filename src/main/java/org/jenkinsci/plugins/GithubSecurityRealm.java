@@ -68,7 +68,6 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.jfree.util.Log;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.github.GHEmail;
 import org.kohsuke.github.GHMyself;
@@ -92,6 +91,7 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -382,18 +382,18 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         String expectedState = (String)request.getSession().getAttribute(STATE_ATTRIBUTE);
 
         if (code == null || code.trim().length() == 0) {
-            Log.info("doFinishLogin: missing code.");
+            LOGGER.info("doFinishLogin: missing code.");
             return HttpResponses.redirectToContextRoot();
         }
 
         if (state == null){
-            Log.info("doFinishLogin: missing state parameter from Github response.");
+            LOGGER.info("doFinishLogin: missing state parameter from Github response.");
             return HttpResponses.redirectToContextRoot();
         } else if (expectedState == null){
-            Log.info("doFinishLogin: missing state parameter from user's session.");
+            LOGGER.info("doFinishLogin: missing state parameter from user's session.");
             return HttpResponses.redirectToContextRoot();
         } else if (!state.equals(expectedState)){
-            Log.info("state parameter value ["+state+"] does not match the expected one ["+expectedState+"]");
+            LOGGER.info("state parameter value ["+state+"] does not match the expected one ["+expectedState+"]");
             return HttpResponses.redirectToContextRoot();
         }
 
@@ -445,7 +445,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             // or modifications in organizations will be not reflected when using API Token, due to that caching
             // SecurityListener.fireLoggedIn(self.getLogin());
         } else {
-            Log.info("Github did not return an access token.");
+            LOGGER.info("Github did not return an access token.");
         }
 
         if (referer!=null)  return HttpResponses.redirectTo(referer);
@@ -458,7 +458,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPost httpost = new HttpPost(githubWebUri
                     + "/login/oauth/access_token?" + "client_id=" + clientID + "&"
-                    + "client_secret=" + clientSecret + "&" + "code=" + code);
+                    + "client_secret=" + clientSecret.getPlainText() + "&" + "code=" + code);
             HttpHost proxy = getProxy(httpost);
             if (proxy != null) {
                 RequestConfig requestConfig = RequestConfig.custom().setProxy(proxy).build();
@@ -693,17 +693,17 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
 
         Authentication token = SecurityContextHolder.getContext().getAuthentication();
 
-        if (token == null || !username.equals(token.getPrincipal())) {
-            if(localUser != null && GithubSecretStorage.contains(localUser)){
+        try {
+            if(localUser != null && GithubSecretStorage.contains(localUser)) {
                 String accessToken = GithubSecretStorage.retrieve(localUser);
-                try {
-                    token = new GithubAuthenticationToken(accessToken, getGithubApiUri());
-                } catch (IOException e) {
-                    throw new UserMayOrMayNotExistException("Could not connect to GitHub API server, target URL = " + getGithubApiUri(), e);
-                }
-                SecurityContextHolder.getContext().setAuthentication(token);
-            }else{
-                throw new UserMayOrMayNotExistException("Could not get auth token.");
+                token = new GithubAuthenticationToken(accessToken, getGithubApiUri());
+            }
+        } catch(IOException | UsernameNotFoundException e) {
+            if(e instanceof IOException) {
+                throw new UserMayOrMayNotExistException("Could not connect to GitHub API server, target URL = " + getGithubApiUri(), e);
+            } else {
+                // user not found so continuing normally re-using the current context holder
+                LOGGER.log(Level.FINE, "Attempted to impersonate " + username + " but token in user property was invalid.");
             }
         }
 
@@ -725,8 +725,9 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
 
         try {
             GithubOAuthUserDetails userDetails = authToken.getUserDetails(username);
-            if (userDetails == null)
+            if (userDetails == null) {
                 throw new UsernameNotFoundException("Unknown user: " + username);
+            }
 
             // Check the username is not an homonym of an organization
             GHOrganization ghOrg = authToken.loadOrganization(username);
