@@ -1,3 +1,15 @@
+# Version 0.33 (Released Aug 5, 2019)
+
+- Bugfix configureSecurity HTTP 403 errors and CSRF crumb form validation issues
+  tracked by [JENKINS-57154][JENKINS-57154]. (pull request [#115][#115])
+- Bugfix Reference GitHub teams by slug tracked by
+  [JENKINS-34835][JENKINS-34835]. (pull request [#116][#116])
+
+[#115]: https://github.com/jenkinsci/github-oauth-plugin/pull/115
+[#116]: https://github.com/jenkinsci/github-oauth-plugin/pull/116
+[JENKINS-34835]: https://issues.jenkins-ci.org/browse/JENKINS-34835
+[JENKINS-57154]: https://issues.jenkins-ci.org/browse/JENKINS-57154
+
 # Version 0.32 (Released Apr 12, 2019)
 
 - Refactored to make fewer GitHub v3 API calls. (pull request [#106][#106])
