@@ -541,7 +541,15 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         try {
             GHOrganization org = loadOrganization(organization);
             if (org != null) {
-                return org.getTeamByName(team);
+
+                // JENKINS-34835 favor getting by slug but fall back to getting
+                // by name for compatibility since most Jenkins setups older
+                // than github-oauth 0.33 will be using team name
+                if(org.getTeamBySlug(team) != null) {
+                    return org.getTeamBySlug(team);
+                } else {
+                    return org.getTeamByName(team);
+                }
             }
         } catch (IOException e) {
             LOGGER.log(Level.FINEST, e.getMessage(), e);
