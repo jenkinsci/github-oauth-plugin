@@ -32,13 +32,14 @@ import com.google.common.cache.CacheBuilder;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.OkUrlFactory;
 
+import hudson.model.Item;
 import hudson.security.Permission;
 import hudson.security.SecurityRealm;
-import hudson.model.Item;
 import jenkins.model.Jenkins;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.providers.AbstractAuthenticationToken;
+import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHPersonSet;
@@ -198,7 +199,9 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
         this.me = loadMyself(accessToken);
 
-        assert this.me!=null;
+        if(this.me == null) {
+            throw new UsernameNotFoundException("Token not valid");
+        }
 
         setAuthenticated(true);
 
