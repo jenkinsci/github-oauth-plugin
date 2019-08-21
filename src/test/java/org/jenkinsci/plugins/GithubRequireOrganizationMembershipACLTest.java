@@ -28,6 +28,7 @@ package org.jenkinsci.plugins;
 
 import com.google.common.collect.ImmutableMap;
 
+import hudson.scm.SCM;
 import junit.framework.TestCase;
 
 import org.acegisecurity.Authentication;
@@ -63,11 +64,10 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import hudson.model.Hudson;
 import hudson.model.Item;
@@ -167,16 +167,21 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         GitHubBuilder builder = PowerMockito.mock(GitHubBuilder.class);
         PowerMockito.mockStatic(GitHub.class);
         PowerMockito.mockStatic(GitHubBuilder.class);
+
         PowerMockito.when(GitHubBuilder.fromEnvironment()).thenReturn(builder);
         PowerMockito.when(builder.withEndpoint("https://api.github.com")).thenReturn(builder);
         PowerMockito.when(builder.withOAuthToken("accessToken")).thenReturn(builder);
         PowerMockito.when(builder.withRateLimitHandler(RateLimitHandler.FAIL)).thenReturn(builder);
         PowerMockito.when(builder.withConnector(Mockito.any(OkHttpConnector.class))).thenReturn(builder);
         PowerMockito.when(builder.build()).thenReturn(gh);
+
         GHMyself me = PowerMockito.mock(GHMyself.class);
+
         PowerMockito.when(gh.getMyself()).thenReturn((GHMyself) me);
         PowerMockito.when(me.getLogin()).thenReturn(username);
+
         mockReposFor(me, Collections.<GHRepository>emptyList());
+
         return me;
     }
 
@@ -190,12 +195,14 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
     private GHRepository mockRepository(String repositoryName, boolean isPublic, boolean admin, boolean push, boolean pull) throws IOException {
       GHRepository ghRepository = PowerMockito.mock(GHRepository.class);
+
       PowerMockito.when(gh.getRepository(repositoryName)).thenReturn(ghRepository);
       PowerMockito.when(ghRepository.isPrivate()).thenReturn(!isPublic);
       PowerMockito.when(ghRepository.hasAdminAccess()).thenReturn(admin);
       PowerMockito.when(ghRepository.hasPushAccess()).thenReturn(push);
       PowerMockito.when(ghRepository.hasPullAccess()).thenReturn(pull);
       PowerMockito.when(ghRepository.getFullName()).thenReturn(repositoryName);
+
       return ghRepository;
     }
 
@@ -208,7 +215,27 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         GitSCM gitSCM = PowerMockito.mock(GitSCM.class);
         UserRemoteConfig userRemoteConfig = PowerMockito.mock(UserRemoteConfig.class);
         List<UserRemoteConfig> userRemoteConfigs = Arrays.asList(userRemoteConfig);
+
         PowerMockito.when(project.getScm()).thenReturn(gitSCM);
+        PowerMockito.when(gitSCM.getUserRemoteConfigs()).thenReturn(userRemoteConfigs);
+        PowerMockito.when(userRemoteConfig.getUrl()).thenReturn(url);
+
+        return project;
+    }
+
+    private WorkflowJob mockWorkflowJobFromMultiBranch(String url) {
+        WorkflowJob project = PowerMockito.mock(WorkflowJob.class);
+
+        Branch branch = PowerMockito.mock(Branch.class);
+        BranchJobProperty branchJobProperty = PowerMockito.mock(BranchJobProperty.class);
+        GitSCM gitSCM = PowerMockito.mock(GitSCM.class);
+        UserRemoteConfig userRemoteConfig = PowerMockito.mock(UserRemoteConfig.class);
+        List<UserRemoteConfig> userRemoteConfigs = Arrays.asList(userRemoteConfig);
+
+        PowerMockito.when(project.getProperty(BranchJobProperty.class)).thenReturn(branchJobProperty);
+        PowerMockito.when(branchJobProperty.getBranch()).thenReturn(branch);
+        PowerMockito.when(branch.getScm()).thenReturn(gitSCM);
+
         PowerMockito.when(gitSCM.getUserRemoteConfigs()).thenReturn(userRemoteConfigs);
         PowerMockito.when(userRemoteConfig.getUrl()).thenReturn(url);
         return project;
@@ -216,26 +243,34 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
     private WorkflowJob mockWorkflowJob(String url) {
         WorkflowJob project = PowerMockito.mock(WorkflowJob.class);
+
         GitSCM gitSCM = PowerMockito.mock(GitSCM.class);
-        Branch branch = PowerMockito.mock(Branch.class);
-        BranchJobProperty branchJobProperty = PowerMockito.mock(BranchJobProperty.class);
+        Collection scm = PowerMockito.mock(Collection.class);
+        Iterator it = PowerMockito.mock(Iterator.class);
         UserRemoteConfig userRemoteConfig = PowerMockito.mock(UserRemoteConfig.class);
         List<UserRemoteConfig> userRemoteConfigs = Arrays.asList(userRemoteConfig);
-        PowerMockito.when(project.getProperty(BranchJobProperty.class)).thenReturn(branchJobProperty);
-        PowerMockito.when(branchJobProperty.getBranch()).thenReturn(branch);
-        PowerMockito.when(branch.getScm()).thenReturn(gitSCM);
+
+        PowerMockito.when(project.getSCMs()).thenReturn(scm);
+        PowerMockito.when(scm.isEmpty()).thenReturn(false);
+        PowerMockito.when(scm.iterator()).thenReturn(it);
+        PowerMockito.when(it.next()).thenReturn(gitSCM);
+
         PowerMockito.when(gitSCM.getUserRemoteConfigs()).thenReturn(userRemoteConfigs);
         PowerMockito.when(userRemoteConfig.getUrl()).thenReturn(url);
+
         return project;
     }
+
 
     private MultiBranchProject mockMultiBranchProject(String url) {
         WorkflowMultiBranchProject multiBranchProject = PowerMockito.mock(WorkflowMultiBranchProject.class);
         GitHubSCMSource gitHubSCM = PowerMockito.mock(GitHubSCMSource.class);
         ArrayList<SCMSource> scmSources = new ArrayList<SCMSource>();
         scmSources.add(gitHubSCM);
+
         PowerMockito.when(multiBranchProject.getSCMSources()).thenReturn(scmSources);
         PowerMockito.when(gitHubSCM.getRemote()).thenReturn(url);
+
         return multiBranchProject;
     }
 
@@ -247,104 +282,203 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testCanReadAndBuildOneOfMyPrivateRepositories() throws IOException {
+    public void testCanReadAndBuildandCancelOneOfMyPrivateRepositories() throws IOException {
         GHMyself me = mockGHMyselfAs("Me");
         GHRepository repo = mockRepository("me/a-repo", false, true, true, true); // private; admin, push, and pull rights
         mockReposFor(me, Arrays.asList(repo)); // hook to my listing
         String repoUrl = "https://github.com/me/a-repo.git";
+
         Project mockProject = mockProject(repoUrl);
-        MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
         WorkflowJob mockWorkflowJob = mockWorkflowJob(repoUrl);
-        GithubRequireOrganizationMembershipACL workflowJobAcl = aclForWorkflowJob(mockWorkflowJob);
-        GithubRequireOrganizationMembershipACL multiBranchProjectAcl = aclForMultiBranchProject(mockMultiBranchProject);
+        WorkflowJob mockWorkflowJobFromMultiBranch = mockWorkflowJobFromMultiBranch(repoUrl);
+        MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
+
         GithubRequireOrganizationMembershipACL projectAcl = aclForProject(mockProject);
+        GithubRequireOrganizationMembershipACL workflowJobAcl = aclForWorkflowJob(mockWorkflowJob);
+        GithubRequireOrganizationMembershipACL workflowJobFromMultiBranchAcl = aclForWorkflowJob(mockWorkflowJobFromMultiBranch);
+        GithubRequireOrganizationMembershipACL multiBranchProjectAcl = aclForMultiBranchProject(mockMultiBranchProject);
+
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
-        assertTrue(projectAcl.hasPermission(authenticationToken, Item.READ));
-        assertTrue(projectAcl.hasPermission(authenticationToken, Item.DISCOVER));
         assertTrue(projectAcl.hasPermission(authenticationToken, Item.BUILD));
-        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.READ));
-        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(projectAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertTrue(projectAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(projectAcl.hasPermission(authenticationToken, Item.READ));
+
         assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.BUILD));
-        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.READ));
-        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.READ));
+
+        assertTrue(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertTrue(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertTrue(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.READ));
+
         assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.READ));
     }
 
     @Test
-    public void testCanReadAndBuildAPublicRepository() throws IOException {
+    public void testCanReadAndBuildAndNotCancelAPublicRepository() throws IOException {
         GHMyself me = mockGHMyselfAs("Me");
         GHRepository repo = mockPublicRepository("node/node");
         String repoUrl = "https://github.com/node/node.git";
+
         Project mockProject = mockProject(repoUrl);
-        MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
         WorkflowJob mockWorkflowJob = mockWorkflowJob(repoUrl);
-        GithubRequireOrganizationMembershipACL workflowJobAcl = aclForWorkflowJob(mockWorkflowJob);
-        GithubRequireOrganizationMembershipACL multiBranchProjectAcl = aclForMultiBranchProject(mockMultiBranchProject);
+        WorkflowJob mockWorkflowJobFromMultiBranch = mockWorkflowJobFromMultiBranch(repoUrl);
+        MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
+
         GithubRequireOrganizationMembershipACL projectAcl = aclForProject(mockProject);
+        GithubRequireOrganizationMembershipACL workflowJobAcl = aclForWorkflowJob(mockWorkflowJob);
+        GithubRequireOrganizationMembershipACL workflowJobFromMultiBranchAcl = aclForWorkflowJob(mockWorkflowJobFromMultiBranch);
+        GithubRequireOrganizationMembershipACL multiBranchProjectAcl = aclForMultiBranchProject(mockMultiBranchProject);
+
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
-        assertTrue(projectAcl.hasPermission(authenticationToken, Item.READ));
-        assertTrue(projectAcl.hasPermission(authenticationToken, Item.DISCOVER));
         assertTrue(projectAcl.hasPermission(authenticationToken, Item.BUILD));
-        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.READ));
-        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertFalse(projectAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertTrue(projectAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(projectAcl.hasPermission(authenticationToken, Item.READ));
+
         assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.BUILD));
-        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.READ));
-        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertFalse(workflowJobAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.READ));
+
+        assertTrue(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertFalse(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertTrue(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.READ));
+
         assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertFalse(multiBranchProjectAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.READ));
     }
 
     @Test
-    public void testCanReadAndBuildPrivateRepositoryIHavePullRightsOn() throws IOException {
+    public void testCanReadAndBuildAndNotCancelPrivateRepositoryIHavePullRightsOn() throws IOException {
         GHMyself me = mockGHMyselfAs("Me");
         // private repo I have pull rights to
         GHRepository repo = mockRepository("some-org/a-private-repo", false, false, false, true);
         mockReposFor(me, Arrays.asList(repo));
         String repoUrl = "https://github.com/some-org/a-private-repo.git";
+
         Project mockProject = mockProject(repoUrl);
-        MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
         WorkflowJob mockWorkflowJob = mockWorkflowJob(repoUrl);
-        GithubRequireOrganizationMembershipACL workflowJobAcl = aclForWorkflowJob(mockWorkflowJob);
-        GithubRequireOrganizationMembershipACL multiBranchProjectAcl = aclForMultiBranchProject(mockMultiBranchProject);
+        WorkflowJob mockWorkflowJobFromMultiBranch = mockWorkflowJobFromMultiBranch(repoUrl);
+        MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
+
         GithubRequireOrganizationMembershipACL projectAcl = aclForProject(mockProject);
+        GithubRequireOrganizationMembershipACL workflowJobAcl = aclForWorkflowJob(mockWorkflowJob);
+        GithubRequireOrganizationMembershipACL workflowJobFromMultiBranchAcl = aclForWorkflowJob(mockWorkflowJobFromMultiBranch);
+        GithubRequireOrganizationMembershipACL multiBranchProjectAcl = aclForMultiBranchProject(mockMultiBranchProject);
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
-        assertTrue(projectAcl.hasPermission(authenticationToken, Item.READ));
-        assertTrue(projectAcl.hasPermission(authenticationToken, Item.DISCOVER));
         assertTrue(projectAcl.hasPermission(authenticationToken, Item.BUILD));
-        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.READ));
-        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertFalse(projectAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertTrue(projectAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(projectAcl.hasPermission(authenticationToken, Item.READ));
+
         assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.BUILD));
-        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.READ));
-        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertFalse(workflowJobAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.READ));
+
+        assertTrue(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertFalse(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertTrue(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.READ));
+
         assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertFalse(multiBranchProjectAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.READ));
     }
 
     @Test
-    public void testCanNotReadOrBuildRepositoryIDoNotCollaborateOn() throws IOException {
+    public void testCanReadAndBuildAndCancelPrivateRepositoryIHavePushRightsOn() throws IOException {
         GHMyself me = mockGHMyselfAs("Me");
+        // private repo I have pull rights to
+        GHRepository repo = mockRepository("some-org/a-private-repo", false, false, true, true);
+        mockReposFor(me, Arrays.asList(repo));
+        String repoUrl = "https://github.com/some-org/a-private-repo.git";
 
-        String repoUrl = "https://github.com/some-org/another-private-repo.git";
         Project mockProject = mockProject(repoUrl);
-        MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
         WorkflowJob mockWorkflowJob = mockWorkflowJob(repoUrl);
-        GithubRequireOrganizationMembershipACL workflowJobAcl = aclForWorkflowJob(mockWorkflowJob);
-        GithubRequireOrganizationMembershipACL multiBranchProjectAcl = aclForMultiBranchProject(mockMultiBranchProject);
+        WorkflowJob mockWorkflowJobFromMultiBranch = mockWorkflowJobFromMultiBranch(repoUrl);
+        MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
+
         GithubRequireOrganizationMembershipACL projectAcl = aclForProject(mockProject);
+        GithubRequireOrganizationMembershipACL workflowJobAcl = aclForWorkflowJob(mockWorkflowJob);
+        GithubRequireOrganizationMembershipACL workflowJobFromMultiBranchAcl = aclForWorkflowJob(mockWorkflowJobFromMultiBranch);
+        GithubRequireOrganizationMembershipACL multiBranchProjectAcl = aclForMultiBranchProject(mockMultiBranchProject);
 
         GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
-        assertFalse(projectAcl.hasPermission(authenticationToken, Item.READ));
-        assertFalse(projectAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(projectAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertTrue(projectAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertTrue(projectAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(projectAcl.hasPermission(authenticationToken, Item.READ));
+
+        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(workflowJobAcl.hasPermission(authenticationToken, Item.READ));
+
+        assertTrue(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertTrue(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertTrue(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.READ));
+
+        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertTrue(multiBranchProjectAcl.hasPermission(authenticationToken, Item.READ));
+    }
+
+    @Test
+    public void testCanNotReadOrBuildOrCancelRepositoryIDoNotCollaborateOn() throws IOException {
+        GHMyself me = mockGHMyselfAs("Me");
+
+        String repoUrl = "https://github.com/some-org/another-private-repo.git";
+
+        Project mockProject = mockProject(repoUrl);
+        WorkflowJob mockWorkflowJob = mockWorkflowJob(repoUrl);
+        WorkflowJob mockWorkflowJobFromMultiBranch = mockWorkflowJobFromMultiBranch(repoUrl);
+        MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
+
+        GithubRequireOrganizationMembershipACL projectAcl = aclForProject(mockProject);
+        GithubRequireOrganizationMembershipACL workflowJobAcl = aclForWorkflowJob(mockWorkflowJob);
+        GithubRequireOrganizationMembershipACL workflowJobFromMultiBranchAcl = aclForWorkflowJob(mockWorkflowJobFromMultiBranch);
+        GithubRequireOrganizationMembershipACL multiBranchProjectAcl = aclForMultiBranchProject(mockMultiBranchProject);
+
+        GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
+
         assertFalse(projectAcl.hasPermission(authenticationToken, Item.BUILD));
-        assertFalse(multiBranchProjectAcl.hasPermission(authenticationToken, Item.READ));
-        assertFalse(multiBranchProjectAcl.hasPermission(authenticationToken, Item.DISCOVER));
-        assertFalse(multiBranchProjectAcl.hasPermission(authenticationToken, Item.BUILD));
-        assertFalse(workflowJobAcl.hasPermission(authenticationToken, Item.READ));
-        assertFalse(workflowJobAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertFalse(projectAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertFalse(projectAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertFalse(projectAcl.hasPermission(authenticationToken, Item.READ));
+
         assertFalse(workflowJobAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertFalse(workflowJobAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertFalse(workflowJobAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertFalse(workflowJobAcl.hasPermission(authenticationToken, Item.READ));
+
+        assertFalse(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertFalse(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertFalse(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertFalse(workflowJobFromMultiBranchAcl.hasPermission(authenticationToken, Item.READ));
+
+        assertFalse(multiBranchProjectAcl.hasPermission(authenticationToken, Item.BUILD));
+        assertFalse(multiBranchProjectAcl.hasPermission(authenticationToken, Item.CANCEL));
+        assertFalse(multiBranchProjectAcl.hasPermission(authenticationToken, Item.DISCOVER));
+        assertFalse(multiBranchProjectAcl.hasPermission(authenticationToken, Item.READ));
     }
 
     @Test
