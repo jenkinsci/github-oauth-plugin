@@ -456,7 +456,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             String suffix = "&client_secret=" + clientSecret.getPlainText() + "&code=" + code;
             HttpPost httpPost = new HttpPost(githubWebUri
-                    + "/login/oauth/access_token?" + "client_id=" + clientID + suffix);
+                    + "/login/oauth/access_token?client_id=" + clientID + suffix);
             HttpHost proxy = getProxy(httpost);
             if (proxy != null) {
                 RequestConfig requestConfig = RequestConfig.custom().setProxy(proxy).build();
