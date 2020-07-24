@@ -4,21 +4,13 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <!--
-            Use Plugin Parent POM version
-            https://wiki.jenkins-ci.org/display/JENKINS/Choosing+Jenkins+version+to+build+against
-            https://github.com/jenkinsci/plugin-pom
-        -->
-        <version>2.17</version>
+        <version>4.4</version>
+        <relativePath/>
     </parent>
 
     <properties>
-        <!-- Baseline Jenkins version you use to build the plugin. Users must have this version or newer to run. -->
-        <jenkins.version>2.7.1</jenkins.version>
-        <!-- Java Level to use. Java 7 required when using core >= 1.612 -->
-        <java.level>7</java.level>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <jenkins.version>2.176.4</jenkins.version>
+        <java.level>8</java.level>
         <powermock.version>1.6.5</powermock.version>
     </properties>
     <profiles>
@@ -93,11 +85,22 @@
         </pluginRepository>
     </pluginRepositories>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.jenkins.tools.bom</groupId>
+                <artifactId>bom-2.176.x</artifactId>
+                <version>11</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>mailer</artifactId>
-            <version>1.18</version>
         </dependency>
 
         <dependency>
@@ -109,7 +112,6 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>matrix-project</artifactId>
-            <version>1.7</version>
         </dependency>
 
         <dependency>
@@ -121,11 +123,16 @@
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-branch-source</artifactId>
             <version>1.9</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-lang3</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>git</artifactId>
-            <version>3.0.0</version>
         </dependency>
 
         <!-- Test dependencies -->
@@ -134,17 +141,17 @@
             <artifactId>powermock-api-mockito</artifactId>
             <version>${powermock.version}</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.hamcrest</groupId>
+                    <artifactId>hamcrest-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.powermock</groupId>
             <artifactId>powermock-module-junit4</artifactId>
             <version>${powermock.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
             <scope>test</scope>
         </dependency>
         <!-- This is to fix JENKINS-36875 when using hpi:run -->
@@ -161,7 +168,6 @@
             <plugin>
                 <groupId>org.jenkins-ci.tools</groupId>
                 <artifactId>maven-hpi-plugin</artifactId>
-                <version>1.109</version>
                 <extensions>true</extensions>
                 <configuration>
                     <compatibleSinceVersion>0.3</compatibleSinceVersion>

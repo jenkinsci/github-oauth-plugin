@@ -33,21 +33,17 @@ import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Extension;
-import hudson.FilePath;
 import hudson.ProxyConfiguration;
 import hudson.Util;
-import hudson.cli.CLICommand;
 import hudson.model.Descriptor;
 import hudson.model.User;
 import hudson.security.AbstractPasswordBasedSecurityRealm;
-import hudson.security.CliAuthenticator;
 import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
 import hudson.security.UserMayOrMayNotExistException;
 import hudson.tasks.Mailer;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
-import jenkins.security.MasterToSlaveCallable;
 import jenkins.security.SecurityListener;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
@@ -68,7 +64,6 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.kohsuke.args4j.Option;
 import org.kohsuke.github.GHEmail;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
@@ -83,7 +78,6 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataRetrievalFailureException;
 
-import java.io.Console;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -575,43 +569,6 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     }
 
     @Override
-    public CliAuthenticator createCliAuthenticator(final CLICommand command) {
-        return new CliAuthenticator() {
-            @Option(name="--username",usage="GitHub username to authenticate yourself to Jenkins.")
-            public String userName;
-
-            @Option(name="--password",usage="GitHub personal access token. Note that passing a password in arguments is insecure.")
-            public String password;
-
-            @Option(name="--password-file",usage="File that contains the personal access token.")
-            public String passwordFile;
-
-            public Authentication authenticate() throws AuthenticationException, IOException, InterruptedException {
-                if(userName == null) {
-                    // no authentication parameter. fallback to the transport
-                    return command.getTransportAuthentication();
-                }
-                if(passwordFile != null) {
-                    try {
-                        password = new FilePath(command.channel, passwordFile).readToString().trim();
-                    } catch (IOException e) {
-                        throw new BadCredentialsException("Failed to read " + passwordFile, e);
-                    }
-                }
-                if(password == null) {
-                    password = command.channel.call(new InteractivelyAskForPassword());
-                }
-
-                if(password == null) {
-                    throw new BadCredentialsException("No GitHub personal access token specified.");
-                }
-                GithubSecurityRealm.this.authenticate(userName, password);
-                return new GithubAuthenticationToken(password, getGithubApiUri());
-            }
-        };
-    }
-
-    @Override
     public String getLoginUrl() {
         return "securityRealm/commenceLogin";
     }
@@ -828,21 +785,4 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
-    /**
-     * Asks for the password.
-     */
-    private static class InteractivelyAskForPassword extends MasterToSlaveCallable<String,IOException> {
-        public String call() throws IOException {
-            Console console = System.console();
-            if(console == null) {
-                return null;    // no terminal
-            }
-            char[] w = console.readPassword("GitHub Personal Access Token: ");
-            if(w==null) {
-                return null;
-            }
-            return new String(w);
-        }
-        private static final long serialVersionUID = 1L;
-    }
 }
