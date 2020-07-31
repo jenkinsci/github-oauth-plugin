@@ -452,6 +452,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     @Test
     public void testCanReadAProjectWithAuthenticatedUserReadPermission() throws IOException {
         this.authenticatedUserReadPermission = true;
+        this.useRepositoryPermissions = false;
 
         String nullProjectName = null;
         Project mockProject = mockProject(nullProjectName);

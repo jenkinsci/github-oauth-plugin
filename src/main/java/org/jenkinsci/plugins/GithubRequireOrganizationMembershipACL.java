@@ -102,6 +102,24 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
                 return true;
             }
 
+            // Regardless of what permissions they're seeking, use the repo
+            // permissions to determine if possible. This must be before the
+            // inWhitelistedOrgs and authenticatedUserReadPermission checks or
+            // users will be granted read on jobs that they don't have access to
+            // in github. Skip null item, because we can't use github perms to
+            // determine if a user should have overall read.
+            if (useRepositoryPermissions && this.item != null) {
+                String repositoryName = getRepositoryName();
+
+                if (repositoryName == null) {
+                    return false;
+                }
+
+                // best case 0 API calls (repo is public and that flag is cached, or user's repo listing is already cached with repo in it)
+                // worst case, 2+ API calls to gather user repos (1 call per 100 for batch load, 1 add'l call if public repo not in list)
+                return authenticationToken.hasRepositoryPermission(repositoryName, permission);
+            }
+
             // Are they trying to read?
             if (checkReadPermission(permission)) {
               // if we support authenticated read return early
@@ -124,19 +142,6 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
               log.finest("Granting BUILD rights to user "
                       + candidateName + " as a member of whitelisted organization");
               return true;
-            }
-
-            // regardless of what permissions they're seeking, use the repo permissions to determine if possible
-            if (useRepositoryPermissions && this.item != null) {
-              String repositoryName = getRepositoryName();
-
-              if (repositoryName == null) {
-                  return false;
-              }
-
-              // best case 0 API calls (repo is public and that flag is cached, or user's repo listing is already cached with repo in it)
-              // worst case, 2+ API calls to gather user repos (1 call per 100 for batch load, 1 add'l call if public repo not in list)
-              return authenticationToken.hasRepositoryPermission(repositoryName, permission);
             }
 
             // no match.
