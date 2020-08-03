@@ -4,14 +4,13 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.4</version>
+        <version>4.5</version>
         <relativePath/>
     </parent>
 
     <properties>
         <jenkins.version>2.176.4</jenkins.version>
         <java.level>8</java.level>
-        <powermock.version>1.6.5</powermock.version>
     </properties>
     <profiles>
         <!--
@@ -138,20 +137,12 @@
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.powermock</groupId>
-            <artifactId>powermock-api-mockito</artifactId>
-            <version>${powermock.version}</version>
+            <artifactId>powermock-api-mockito2</artifactId>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.hamcrest</groupId>
-                    <artifactId>hamcrest-core</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.powermock</groupId>
             <artifactId>powermock-module-junit4</artifactId>
-            <version>${powermock.version}</version>
             <scope>test</scope>
         </dependency>
         <!-- This is to fix JENKINS-36875 when using hpi:run -->
