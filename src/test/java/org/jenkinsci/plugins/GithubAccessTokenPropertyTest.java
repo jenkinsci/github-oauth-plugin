@@ -301,8 +301,8 @@ public class GithubAccessTokenPropertyTest {
         String aliceApiRestToken = aliceUser.getProperty(ApiTokenProperty.class).getApiToken();
         String aliceGitHubToken = "SPECIFIC_TOKEN";
 
-        // request whoAmI with ApiRestToken => group not populated
-        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated"));
+        // request whoAmI with ApiRestToken => group populated
+        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
 
         // request whoAmI with GitHubToken => group populated
         makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceGitHubToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
@@ -328,8 +328,8 @@ public class GithubAccessTokenPropertyTest {
         User bobUser = User.getById(bobLogin, true);
         String bobApiRestToken = bobUser.getProperty(ApiTokenProperty.class).getApiToken();
 
-        // request whoAmI with ApiRestToken => group not populated
-        makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated"));
+        // request whoAmI with ApiRestToken => group populated
+        makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
         // request whoAmI with GitHub OAuth => group populated
         makeRequestUsingOAuth("bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
 
