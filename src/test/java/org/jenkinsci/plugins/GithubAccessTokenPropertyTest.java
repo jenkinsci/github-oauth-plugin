@@ -259,6 +259,7 @@ public class GithubAccessTokenPropertyTest {
         this.setupMockGithubServer();
         this.setupRealm();
         wc = j.createWebClient();
+        GithubAuthenticationToken.clearCaches();
     }
 
     private void setupRealm(){
