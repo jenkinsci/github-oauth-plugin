@@ -231,7 +231,8 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
     private boolean testBuildPermission(@Nonnull Permission permission) {
         String id = permission.getId();
         return id.equals("hudson.model.Hudson.Build")
-                || id.equals("hudson.model.Item.Build");
+                || id.equals("hudson.model.Item.Build")
+                || id.equals("hudson.model.Run.Replay");
     }
 
     private boolean checkReadPermission(@Nonnull Permission permission) {
