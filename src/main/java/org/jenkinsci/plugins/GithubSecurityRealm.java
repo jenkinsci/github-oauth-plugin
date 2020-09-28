@@ -570,7 +570,8 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         Jenkins j = Jenkins.getInstance();
         assert j != null;
         if (j.hasPermission(Jenkins.READ)) {
-            return super.getPostLogOutUrl(req, auth);
+            // TODO until JEP-227 is merged and core requirement is updated, this will prevent stackoverflow
+            return req.getContextPath() + "/";
         }
         return req.getContextPath()+ "/" + GithubLogoutAction.POST_LOGOUT_URL;
     }
