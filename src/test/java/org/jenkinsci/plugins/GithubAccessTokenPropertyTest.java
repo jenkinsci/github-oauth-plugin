@@ -51,6 +51,7 @@ import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -106,7 +107,7 @@ public class GithubAccessTokenPropertyTest {
     private static class MockGithubServlet extends DefaultServlet {
         private String currentLogin;
         private List<String> organizations;
-        private List<String> teams;
+        private List<Map<String, String>> teams;
 
         private JenkinsRule jenkinsRule;
         private URI serverUri;
@@ -212,12 +213,14 @@ public class GithubAccessTokenPropertyTest {
 
         private void onOrgsTeam(HttpServletRequest req, HttpServletResponse resp, final String orgName) throws IOException {
             List<Map<String, Object>> responseBody = new ArrayList<>();
-            for (String teamName : teams) {
-                final String teamName_ = teamName;
+            for (Map<String, String> team : teams) {
+                final String teamName_ = team.get("name");
+                final String slug = team.get("slug");
                 responseBody.add(new HashMap<String, Object>() {{
                     put("id", 7);
                     put("login", teamName_ + "_login");
                     put("name", teamName_);
+                    put("slug", slug);
                     put("organization", new HashMap<String, Object>() {{
                         put("login", orgName);
                     }});
@@ -229,11 +232,13 @@ public class GithubAccessTokenPropertyTest {
 
         private void onUserTeams(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             List<Map<String, Object>> responseBody = new ArrayList<>();
-            for (String teamName : teams) {
-                final String teamName_ = teamName;
+            for (Map<String, String> team : teams) {
+                final String teamName_ = team.get("name");
+                final String slug = team.get("slug");
                 responseBody.add(new HashMap<String, Object>() {{
                     put("login", teamName_ + "_login");
                     put("name", teamName_);
+                    put("slug", slug);
                     put("organization", new HashMap<String, Object>() {{
                         put("login", organizations.get(0));
                     }});
@@ -294,7 +299,10 @@ public class GithubAccessTokenPropertyTest {
         String aliceLogin = "alice";
         servlet.currentLogin = aliceLogin;
         servlet.organizations = Arrays.asList("org-a");
-        servlet.teams = Arrays.asList("team-b");
+        Map<String, String> team = new HashMap<>();
+        team.put("slug", "team-b");
+        team.put("name", "Team D");
+        servlet.teams = Collections.singletonList(team);
 
         User aliceUser = User.getById(aliceLogin, true);
         String aliceApiRestToken = aliceUser.getProperty(ApiTokenProperty.class).getApiToken();
@@ -322,7 +330,10 @@ public class GithubAccessTokenPropertyTest {
         String bobLogin = "bob";
         servlet.currentLogin = bobLogin;
         servlet.organizations = Arrays.asList("org-c");
-        servlet.teams = Arrays.asList("team-d");
+        Map<String, String> team = new HashMap<>();
+        team.put("slug", "team-d");
+        team.put("name", "Team D");
+        servlet.teams = Collections.singletonList(team);
 
         User bobUser = User.getById(bobLogin, true);
         String bobApiRestToken = bobUser.getProperty(ApiTokenProperty.class).getApiToken();
