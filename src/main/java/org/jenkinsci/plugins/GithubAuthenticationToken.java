@@ -245,8 +245,10 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
                         LOGGER.log(Level.FINE, "Fetch teams for user " + userName + " in organization " + orgLogin);
                         authorities.add(new GrantedAuthorityImpl(orgLogin));
                         for (GHTeam team : teamEntry.getValue()) {
+                            String teamIdentifier = team.getSlug() == null ? team.getName() : team.getSlug();
+
                             authorities.add(new GrantedAuthorityImpl(orgLogin + GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR
-                                    + team.getName()));
+                                    + teamIdentifier));
                         }
                     }
                 } catch (ExecutionException e) {
