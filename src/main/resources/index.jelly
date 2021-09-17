@@ -1,4 +1,4 @@
-
+<?jelly escape-by-default='true'?>
 <div>
     Authentication plugin using GitHub OAuth to provide authentication and authorization capabilities for GitHub and GitHub Enterprise.
 </div>
