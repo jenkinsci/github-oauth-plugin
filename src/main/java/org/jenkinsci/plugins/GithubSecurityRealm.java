@@ -633,9 +633,6 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
      *
      * @param username username to lookup
      * @return userDetails
-     * @throws UserMayOrMayNotExistException
-     * @throws UsernameNotFoundException
-     * @throws DataAccessException
      */
     @Override
     public UserDetails loadUserByUsername(String username)
@@ -731,8 +728,6 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
      *
      * @param groupName groupName to look up
      * @return groupDetails
-     * @throws UsernameNotFoundException
-     * @throws DataAccessException
      */
     @Override
     public GroupDetails loadGroupByGroupname(String groupName)
