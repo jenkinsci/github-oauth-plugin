@@ -339,7 +339,7 @@ public class GithubAccessTokenPropertySEC797Test {
             } else {
                 sessionId = session.getId();
             }
-            return HttpResponses.plainText("ok");
+            return HttpResponses.text("ok");
         }
     }
     
