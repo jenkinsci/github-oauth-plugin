@@ -321,7 +321,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
     @Override
     public GrantedAuthority[] getAuthorities() {
-        return authorities.toArray(new GrantedAuthority[authorities.size()]);
+        return authorities.toArray(new GrantedAuthority[0]);
     }
 
     @Override
