@@ -24,12 +24,12 @@ THE SOFTWARE.
 
 package org.jenkinsci.plugins;
 
-import java.io.IOException;
-import junit.framework.TestCase;
-import org.junit.runner.RunWith;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import org.junit.Test;
 
-public class GithubAuthorizationStrategyTest extends TestCase {
+public class GithubAuthorizationStrategyTest {
     @Test
     public void testEquals_true() {
         GithubAuthorizationStrategy a = new GithubAuthorizationStrategy(new String(""), false, true, false, new String(""), false, false, false, false);
