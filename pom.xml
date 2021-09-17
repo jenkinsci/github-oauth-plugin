@@ -4,52 +4,35 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.5</version>
+        <version>4.25</version>
         <relativePath/>
     </parent>
 
     <properties>
-        <jenkins.version>2.176.4</jenkins.version>
+        <revision>0.34</revision>
+        <changelist>-SNAPSHOT</changelist>
+        <jenkins.version>2.222.4</jenkins.version>
         <java.level>8</java.level>
+        <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     </properties>
-    <profiles>
-        <!--
-          http://stackoverflow.com/a/26806103/1857257
-          Disable doclint only on JDK8+ where the option was introduced.
-        -->
-        <profile>
-            <id>doclint-java8-disable</id>
-            <activation>
-                <jdk>[1.8,)</jdk>
-            </activation>
-            <properties>
-                <javadoc.opts>-Xdoclint:none</javadoc.opts>
-            </properties>
-        </profile>
-    </profiles>
 
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>github-oauth</artifactId>
-    <version>0.34-SNAPSHOT</version>
+    <version>${revision}${changelist}</version>
     <name>GitHub Authentication plugin</name>
     <description>A Jenkins authentication plugin that delegates to GitHub.  We also implement an Authorization Strategy that uses the acquired OAuth token to interact with the GitHub API to determine a user's level of access to Jenkins.</description>
     <packaging>hpi</packaging>
 
-    <url>http://wiki.jenkins-ci.org/display/JENKINS/Github+OAuth+Plugin</url>
+    <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
 
     <licenses>
         <license>
-            <name>MIT license</name>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
             <comments>All source code is under the MIT license.</comments>
         </license>
     </licenses>
 
-    <!--
-      The developers show up as current maintainers in the Jenkins wiki.
-      https://wiki.jenkins-ci.org/display/JENKINS/Github+OAuth+Plugin
-
-      The id should be the jenkinsci.org username and not your GitHub username.
-    -->
     <developers>
         <developer>
             <id>sag47</id>
@@ -64,13 +47,12 @@
     </developers>
 
     <scm>
-        <connection>scm:git:ssh://github.com/jenkinsci/github-oauth-plugin.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/jenkinsci/github-oauth-plugin.git</developerConnection>
-        <url>https://github.com/jenkinsci/github-oauth-plugin</url>
-        <tag>HEAD</tag>
+        <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
+        <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
+        <url>https://github.com/${gitHubRepo}</url>
+        <tag>${scmTag}</tag>
     </scm>
 
-    <!-- Use repositories suggested in plugin tutorial: https://wiki.jenkins-ci.org/display/JENKINS/Plugin+tutorial -->
     <repositories>
         <repository>
             <id>repo.jenkins-ci.org</id>
@@ -88,8 +70,8 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.176.x</artifactId>
-                <version>11</version>
+                <artifactId>bom-2.222.x</artifactId>
+                <version>887.vae9c8ac09ff7</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -106,6 +88,18 @@
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
             <version>1.77</version>
+            <exclusions>
+                <!-- Use Jackson 2 API plugin -->
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>jackson2-api</artifactId>
         </dependency>
 
         <dependency>
@@ -116,7 +110,6 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-multibranch</artifactId>
-            <version>2.9</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -150,7 +143,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>external-monitor-job</artifactId>
-            <version>1.6</version>
+            <version>1.7</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -163,13 +156,6 @@
                 <extensions>true</extensions>
                 <configuration>
                     <compatibleSinceVersion>0.3</compatibleSinceVersion>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <configuration>
-                    <additionalparam>${javadoc.opts}</additionalparam>
                 </configuration>
             </plugin>
         </plugins>

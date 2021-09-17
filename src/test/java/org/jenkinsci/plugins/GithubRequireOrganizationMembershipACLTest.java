@@ -57,6 +57,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -88,6 +89,7 @@ import jenkins.scm.api.SCMSource;
  * @author alex
  */
 @RunWith(PowerMockRunner.class)
+@PowerMockIgnore({"com.sun.org.apache.xerces.*", "javax.xml.*", "org.xml.*", "javax.management.*"})
 @PrepareForTest({GitHub.class, GitHubBuilder.class, Jenkins.class, GithubSecurityRealm.class, WorkflowJob.class, Stapler.class})
 public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
