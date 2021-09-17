@@ -54,7 +54,6 @@ import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
-import org.apache.commons.httpclient.URIException;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -491,7 +490,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     /**
      * Returns the proxy to be used when connecting to the given URI.
      */
-    private HttpHost getProxy(HttpUriRequest method) throws URIException {
+    private HttpHost getProxy(HttpUriRequest method) {
         ProxyConfiguration proxy = Jenkins.get().proxy;
         if (proxy==null)    return null;    // defensive check
 
