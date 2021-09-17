@@ -26,14 +26,13 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
-import com.google.common.collect.ImmutableList;
-
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.util.Collection;
+import java.util.Collections;
 
 import javax.annotation.Nonnull;
 
@@ -118,7 +117,7 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
     @Nonnull
     @Override
     public Collection<String> getGroups() {
-        return ImmutableList.of();
+        return Collections.emptyList();
     }
 
     private Object readResolve() {

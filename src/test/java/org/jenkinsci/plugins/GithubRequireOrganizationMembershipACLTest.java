@@ -26,8 +26,6 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
-import com.google.common.collect.ImmutableMap;
-
 import junit.framework.TestCase;
 
 import org.acegisecurity.Authentication;

@@ -26,11 +26,12 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
-import com.google.common.base.Optional;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.OkUrlFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import hudson.model.Item;
 import hudson.security.Permission;
@@ -52,6 +53,7 @@ import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.OkHttpConnector;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URL;
@@ -62,8 +64,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -95,7 +95,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
      * Cache for faster organization based security
      */
     private static final Cache<String, Set<String>> userOrganizationCache =
-            CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
+            Caffeine.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
     /**
      * This is a double-layered cached. The first mapping is from github username
@@ -111,7 +111,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
      * but I'm unsure of how long it actually lives in memory.
      */
     private static final Cache<String, Cache<String, RepoRights>> repositoriesByUserCache =
-            CacheBuilder.newBuilder().expireAfterWrite(24, CACHE_EXPIRY).build();
+            Caffeine.newBuilder().expireAfterWrite(24, CACHE_EXPIRY).build();
 
     /**
      * Here we keep a global cache of whether repos are public or private, since that
@@ -119,16 +119,16 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
      * can avoid asking for user repos if the repo is known to be public and they want read rights)
      */
     private static final Cache<String, Boolean> repositoriesPublicStatusCache =
-            CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
+            Caffeine.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
     private static final Cache<String, GithubUser> usersByIdCache =
-            CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
+            Caffeine.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
     private static final Cache<String, GithubMyself> usersByTokenCache =
-            CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
+            Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
 
     private static final Cache<String, Map<String, Set<GHTeam>>> userTeamsCache =
-            CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
+            Caffeine.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
     private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
 
@@ -191,6 +191,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         }
     }
 
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public GithubAuthenticationToken(final String accessToken, final String githubServer) throws IOException {
         super(new GrantedAuthority[] {});
 
@@ -223,13 +224,13 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
             // https://developer.github.com/v3/orgs/#list-your-organizations
             // https://developer.github.com/v3/orgs/teams/#list-user-teams
             if (myRealm.hasScope("read:org") || myRealm.hasScope("admin:org") || myRealm.hasScope("user") || myRealm.hasScope("repo")) {
-                try {
                     Set<String> myOrgs = getUserOrgs();
 
-                    Map<String, Set<GHTeam>> myTeams = userTeamsCache.get(this.userName, new Callable<Map<String, Set<GHTeam>>>() {
-                        @Override
-                        public Map<String, Set<GHTeam>> call() throws Exception {
+                    Map<String, Set<GHTeam>> myTeams = userTeamsCache.get(this.userName, unused -> {
+                        try {
                             return getGitHub().getMyTeams();
+                        } catch (IOException e) {
+                            throw new UncheckedIOException("authorization failed for user = " + this.userName, e);
                         }
                     });
 
@@ -249,10 +250,6 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
                                     + team.getName()));
                         }
                     }
-                } catch (ExecutionException e) {
-                    throw new RuntimeException("authorization failed for user = "
-                            + this.userName, e);
-                }
             }
         }
     }
@@ -358,21 +355,21 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     /**
      * Wraps grabbing a user's github orgs with our caching
      * @return                    the Set of org names current user is a member of
-     * @throws ExecutionException if the api call somehow blows up when lazy loading
      */
     @Nonnull
-    private Set<String> getUserOrgs() throws ExecutionException {
-        return userOrganizationCache.get(this.userName, new Callable<Set<String>>() {
-            @Override
-            public Set<String> call() throws Exception {
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+    private Set<String> getUserOrgs() {
+        return userOrganizationCache.get(this.userName, unused -> {
+            try {
                 return getGitHub().getMyOrganizations().keySet();
+            } catch (IOException e) {
+                throw new UncheckedIOException("authorization failed for user = " + this.userName, e);
             }
         });
     }
 
     @Nonnull
     boolean isMemberOfAnyOrganizationInList(@Nonnull Collection<String> organizations) {
-        try {
             Set<String> userOrgs = getUserOrgs();
             for (String orgName : organizations) {
               if (userOrgs.contains(orgName)) {
@@ -380,10 +377,6 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
               }
             }
             return false;
-        } catch (ExecutionException e) {
-            throw new RuntimeException("authorization failed for user = "
-                    + this.userName, e);
-        }
     }
 
     @Nonnull
@@ -429,18 +422,20 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
      * @return [description]
      */
     @Nonnull
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private Cache<String, RepoRights> myRepositories() {
-        try {
-            return repositoriesByUserCache.get(this.userName,
-                new Callable<Cache<String, RepoRights>>() {
-                    @Override
-                    public Cache<String, RepoRights> call() throws Exception {
+            return repositoriesByUserCache.get(this.userName, unused -> {
                         // listRepositories returns all repos owned by user, where they are a collaborator,
                         //  and any user has access through org membership
-                        List<GHRepository> userRepositoryList = getMyself().listRepositories(100).asList(); // use max page size of 100 to limit API calls
+                        List<GHRepository> userRepositoryList;
+                        try {
+                            userRepositoryList = getMyself().listRepositories(100).asList(); // use max page size of 100 to limit API calls
+                        } catch (IOException e) {
+                            throw new UncheckedIOException("authorization failed for user = " + this.userName, e);
+                        }
                         // Now we want to cache each repo's rights too
                         Cache<String, RepoRights> repoNameToRightsCache =
-                                CacheBuilder.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
+                                Caffeine.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
                         for (GHRepository repo : userRepositoryList) {
                           RepoRights rights = new RepoRights(repo);
                           String repositoryName = repo.getFullName();
@@ -450,14 +445,8 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
                           repositoriesPublicStatusCache.put(repositoryName, !rights.isPrivate());
                         }
                         return repoNameToRightsCache;
-                    }
                 }
             );
-        } catch (ExecutionException e) {
-            LOGGER.log(Level.SEVERE, "an exception was thrown", e);
-            throw new RuntimeException("authorization failed for user = "
-                    + this.userName, e);
-        }
     }
 
     private static final Logger LOGGER = Logger
@@ -513,20 +502,22 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     }
 
     @Nonnull
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private RepoRights loadRepository(@Nonnull final String repositoryName) {
       try {
           if (gh != null && isAuthenticated() && (myRealm.hasScope("repo") || myRealm.hasScope("public_repo"))) {
               Cache<String, RepoRights> repoNameToRightsCache = myRepositories();
-              return repoNameToRightsCache.get(repositoryName,
-                new Callable<RepoRights>() {
-                    @Override
-                    public RepoRights call() throws Exception {
-                        GHRepository repo = getGitHub().getRepository(repositoryName);
+              return repoNameToRightsCache.get(repositoryName, unused -> {
+                        GHRepository repo;
+                        try {
+                            repo = getGitHub().getRepository(repositoryName);
+                        } catch (IOException e) {
+                            throw new UncheckedIOException(e);
+                        }
                         RepoRights rights = new RepoRights(repo);
                         // store public/private flag in our cache
                         repositoriesPublicStatusCache.put(repositoryName, !rights.isPrivate());
                         return rights;
-                    }
                 }
               );
           }
