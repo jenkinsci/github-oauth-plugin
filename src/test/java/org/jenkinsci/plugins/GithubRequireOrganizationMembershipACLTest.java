@@ -40,11 +40,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.kohsuke.github.GHMyself;
-import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHPerson;
-import org.kohsuke.github.GHPersonSet;
 import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.PagedIterable;
@@ -61,12 +58,8 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import hudson.model.Hudson;
 import hudson.model.Item;
@@ -108,7 +101,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     private boolean allowAnonymousCCTrayPermission;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         // default to: use repository permissions; don't allow anonymous read/view status; don't allow authenticated read/create
         allowAnonymousReadPermission = false;
         allowAnonymousJobStatusPermission = false;
@@ -120,7 +113,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         //GithubSecurityRealm myRealm = PowerMockito.mock(GithubSecurityRealm.class);
         PowerMockito.mockStatic(Jenkins.class);
-        PowerMockito.when(Jenkins.getInstance()).thenReturn(jenkins);
+        PowerMockito.when(Jenkins.get()).thenReturn(jenkins);
         PowerMockito.when(jenkins.getSecurityRealm()).thenReturn(securityRealm);
         PowerMockito.when(jenkins.getRootUrl()).thenReturn("https://www.jenkins.org/");
         PowerMockito.when(securityRealm.getOauthScopes()).thenReturn("read:org,repo");
@@ -174,15 +167,15 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         PowerMockito.when(builder.withConnector(Mockito.any(OkHttpConnector.class))).thenReturn(builder);
         PowerMockito.when(builder.build()).thenReturn(gh);
         GHMyself me = PowerMockito.mock(GHMyself.class);
-        PowerMockito.when(gh.getMyself()).thenReturn((GHMyself) me);
+        PowerMockito.when(gh.getMyself()).thenReturn(me);
         PowerMockito.when(me.getLogin()).thenReturn(username);
-        mockReposFor(me, Collections.<GHRepository>emptyList());
+        mockReposFor(me, Collections.emptyList());
         return me;
     }
 
     // TODO: Add ability to set list of orgs user belongs to to check whitelisting!
 
-    private void mockReposFor(GHPerson person, List<GHRepository> repositories) throws IOException {
+    private void mockReposFor(GHPerson person, List<GHRepository> repositories) {
         PagedIterable<GHRepository> pagedRepositories = PowerMockito.mock(PagedIterable.class);
         PowerMockito.when(person.listRepositories(100)).thenReturn(pagedRepositories);
         PowerMockito.when(pagedRepositories.asList()).thenReturn(repositories);
@@ -207,7 +200,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         Project project = PowerMockito.mock(Project.class);
         GitSCM gitSCM = PowerMockito.mock(GitSCM.class);
         UserRemoteConfig userRemoteConfig = PowerMockito.mock(UserRemoteConfig.class);
-        List<UserRemoteConfig> userRemoteConfigs = Arrays.asList(userRemoteConfig);
+        List<UserRemoteConfig> userRemoteConfigs = Collections.singletonList(userRemoteConfig);
         PowerMockito.when(project.getScm()).thenReturn(gitSCM);
         PowerMockito.when(gitSCM.getUserRemoteConfigs()).thenReturn(userRemoteConfigs);
         PowerMockito.when(userRemoteConfig.getUrl()).thenReturn(url);
@@ -220,7 +213,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         Branch branch = PowerMockito.mock(Branch.class);
         BranchJobProperty branchJobProperty = PowerMockito.mock(BranchJobProperty.class);
         UserRemoteConfig userRemoteConfig = PowerMockito.mock(UserRemoteConfig.class);
-        List<UserRemoteConfig> userRemoteConfigs = Arrays.asList(userRemoteConfig);
+        List<UserRemoteConfig> userRemoteConfigs = Collections.singletonList(userRemoteConfig);
         PowerMockito.when(project.getProperty(BranchJobProperty.class)).thenReturn(branchJobProperty);
         PowerMockito.when(branchJobProperty.getBranch()).thenReturn(branch);
         PowerMockito.when(branch.getScm()).thenReturn(gitSCM);
@@ -232,7 +225,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     private MultiBranchProject mockMultiBranchProject(String url) {
         WorkflowMultiBranchProject multiBranchProject = PowerMockito.mock(WorkflowMultiBranchProject.class);
         GitHubSCMSource gitHubSCM = PowerMockito.mock(GitHubSCMSource.class);
-        ArrayList<SCMSource> scmSources = new ArrayList<SCMSource>();
+        ArrayList<SCMSource> scmSources = new ArrayList<>();
         scmSources.add(gitHubSCM);
         PowerMockito.when(multiBranchProject.getSCMSources()).thenReturn(scmSources);
         PowerMockito.when(gitHubSCM.getRemote()).thenReturn(url);
@@ -250,7 +243,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     public void testCanReadAndBuildOneOfMyPrivateRepositories() throws IOException {
         GHMyself me = mockGHMyselfAs("Me");
         GHRepository repo = mockRepository("me/a-repo", false, true, true, true); // private; admin, push, and pull rights
-        mockReposFor(me, Arrays.asList(repo)); // hook to my listing
+        mockReposFor(me, Collections.singletonList(repo)); // hook to my listing
         String repoUrl = "https://github.com/me/a-repo.git";
         Project mockProject = mockProject(repoUrl);
         MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
@@ -300,7 +293,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         GHMyself me = mockGHMyselfAs("Me");
         // private repo I have pull rights to
         GHRepository repo = mockRepository("some-org/a-private-repo", false, false, false, true);
-        mockReposFor(me, Arrays.asList(repo));
+        mockReposFor(me, Collections.singletonList(repo));
         String repoUrl = "https://github.com/some-org/a-private-repo.git";
         Project mockProject = mockProject(repoUrl);
         MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
@@ -379,7 +372,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         Project mockProject = PowerMockito.mock(Project.class);
         PowerMockito.when(mockProject.getScm()).thenReturn(new NullSCM());
         GitSCM gitSCM = PowerMockito.mock(GitSCM.class);
-        List<UserRemoteConfig> userRemoteConfigs = Collections.<UserRemoteConfig>emptyList();
+        List<UserRemoteConfig> userRemoteConfigs = Collections.emptyList();
         PowerMockito.when(mockProject.getScm()).thenReturn(gitSCM);
         PowerMockito.when(gitSCM.getUserRemoteConfigs()).thenReturn(userRemoteConfigs);
 
@@ -494,7 +487,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         GHMyself me = mockGHMyselfAs("Me");
         // private repo I have pull rights to
         GHRepository repo = mockRepository("some-org/a-repo", false, false, false, true);
-        mockReposFor(me, Arrays.asList(repo));
+        mockReposFor(me, Collections.singletonList(repo));
         String invalidRepoUrl = "git@github.com//some-org/a-repo.git";
         Project mockProject = mockProject(invalidRepoUrl);
         GithubRequireOrganizationMembershipACL acl = aclForProject(mockProject);
@@ -505,7 +498,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testAnonymousCanViewJobStatusWhenGranted() throws IOException {
+    public void testAnonymousCanViewJobStatusWhenGranted() {
         this.allowAnonymousJobStatusPermission = true;
 
         Project mockProject = mockProject("https://github.com/some-org/a-public-repo.git");
@@ -515,7 +508,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testAnonymousCannotViewJobStatusWhenNotGranted() throws IOException {
+    public void testAnonymousCannotViewJobStatusWhenNotGranted() {
         this.allowAnonymousJobStatusPermission = false;
 
         Project mockProject = mockProject("https://github.com/some-org/a-public-repo.git");
@@ -525,7 +518,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testAnonymousCanReachWebhookWhenGranted() throws IOException {
+    public void testAnonymousCanReachWebhookWhenGranted() {
         this.allowAnonymousWebhookPermission = true;
 
         StaplerRequest currentRequest = PowerMockito.mock(StaplerRequest.class);
@@ -539,7 +532,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testAnonymousCannotReachWebhookIfNotGranted() throws IOException {
+    public void testAnonymousCannotReachWebhookIfNotGranted() {
         this.allowAnonymousWebhookPermission = false;
 
         StaplerRequest currentRequest = PowerMockito.mock(StaplerRequest.class);
@@ -553,7 +546,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testAnonymousCanReadAndDiscoverWhenGranted() throws IOException {
+    public void testAnonymousCanReadAndDiscoverWhenGranted() {
         this.allowAnonymousReadPermission = true;
 
         Project mockProject = mockProject("https://github.com/some-org/a-public-repo.git");
@@ -564,7 +557,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testAnonymousCantReadAndDiscoverWhenNotGranted() throws IOException {
+    public void testAnonymousCantReadAndDiscoverWhenNotGranted() {
         this.allowAnonymousReadPermission = false;
 
         Project mockProject = mockProject("https://github.com/some-org/a-public-repo.git");
@@ -575,7 +568,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testAnonymousCanReachCCTrayWhenGranted() throws IOException {
+    public void testAnonymousCanReachCCTrayWhenGranted() {
         this.allowAnonymousCCTrayPermission = true;
 
         StaplerRequest currentRequest = PowerMockito.mock(StaplerRequest.class);
@@ -589,7 +582,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testAnonymousCannotReachCCTrayIfNotGranted() throws IOException {
+    public void testAnonymousCannotReachCCTrayIfNotGranted() {
         this.allowAnonymousCCTrayPermission = false;
 
         StaplerRequest currentRequest = PowerMockito.mock(StaplerRequest.class);

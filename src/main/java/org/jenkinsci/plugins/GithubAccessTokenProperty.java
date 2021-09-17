@@ -30,7 +30,7 @@ import hudson.model.UserPropertyDescriptor;
 import hudson.util.Secret;
 import org.jenkinsci.Symbol;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Remembers the access token used to connect to the Github server
@@ -44,7 +44,7 @@ public class GithubAccessTokenProperty extends UserProperty {
         this.accessToken = Secret.fromString(accessToken);
     }
 
-    public @Nonnull Secret getAccessToken() {
+    public @NonNull Secret getAccessToken() {
         return accessToken;
     }
 

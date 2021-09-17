@@ -9,7 +9,7 @@ import org.acegisecurity.userdetails.User;
 import org.acegisecurity.userdetails.UserDetails;
 import org.kohsuke.github.GHUser;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 
 /**
@@ -25,13 +25,13 @@ public class GithubOAuthUserDetails extends User implements UserDetails {
 
     private final GithubAuthenticationToken authenticationToken;
 
-    public GithubOAuthUserDetails(@Nonnull String login, @Nonnull GrantedAuthority[] authorities) {
+    public GithubOAuthUserDetails(@NonNull String login, @NonNull GrantedAuthority[] authorities) {
         super(login, "", true, true, true, true, authorities);
         this.authenticationToken = null;
         this.hasGrantedAuthorities = true;
     }
 
-    public GithubOAuthUserDetails(@Nonnull String login, @Nonnull GithubAuthenticationToken authenticationToken) {
+    public GithubOAuthUserDetails(@NonNull String login, @NonNull GithubAuthenticationToken authenticationToken) {
         super(login, "", true, true, true, true, new GrantedAuthority[0]);
         this.authenticationToken = authenticationToken;
         this.hasGrantedAuthorities = false;

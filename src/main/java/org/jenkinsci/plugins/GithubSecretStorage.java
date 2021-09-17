@@ -28,8 +28,8 @@ import hudson.model.User;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 public class GithubSecretStorage {
 
@@ -37,11 +37,11 @@ public class GithubSecretStorage {
         // no accessible constructor
     }
 
-    public static boolean contains(@Nonnull User user) {
+    public static boolean contains(@NonNull User user) {
         return user.getProperty(GithubAccessTokenProperty.class) != null;
     }
 
-    public static @CheckForNull String retrieve(@Nonnull User user) {
+    public static @CheckForNull String retrieve(@NonNull User user) {
         GithubAccessTokenProperty property = user.getProperty(GithubAccessTokenProperty.class);
         if (property == null) {
             LOGGER.log(Level.FINE, "Cache miss for username: " + user.getId());
@@ -52,7 +52,7 @@ public class GithubSecretStorage {
         }
     }
 
-    public static void put(@Nonnull User user, @Nonnull String accessToken) {
+    public static void put(@NonNull User user, @NonNull String accessToken) {
         LOGGER.log(Level.FINE, "Populating the cache for username: " + user.getId());
         try {
             user.addProperty(new GithubAccessTokenProperty(accessToken));

@@ -27,6 +27,7 @@ import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import hudson.model.UnprotectedRootAction;
 import hudson.util.HttpResponses;
+import java.util.Collections;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
@@ -45,8 +46,7 @@ import org.jvnet.hudson.test.TestExtension;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 
-import javax.annotation.CheckForNull;
-import javax.servlet.ServletException;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
@@ -54,7 +54,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -123,7 +122,7 @@ public class GithubAccessTokenPropertySEC797Test {
             this.serverUri = serverUri;
         }
         
-        @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             switch (req.getRequestURI()) {
                 case "/user":
                     this.onUser(req, resp);
@@ -204,12 +203,12 @@ public class GithubAccessTokenPropertySEC797Test {
             resp.getWriter().write(JSONObject.fromObject(responseBody).toString());
         }
         
-        private void onOrgsMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) throws IOException {
+        private void onOrgsMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) {
             resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
             // 302 / 404 responses not implemented
         }
         
-        private void onTeamMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) throws IOException {
+        private void onTeamMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) {
             resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
             // 302 / 404 responses not implemented
         }
@@ -304,8 +303,8 @@ public class GithubAccessTokenPropertySEC797Test {
 
         String aliceLogin = "alice";
         servlet.currentLogin = aliceLogin;
-        servlet.organizations = Arrays.asList("org-a");
-        servlet.teams = Arrays.asList("team-b");
+        servlet.organizations = Collections.singletonList("org-a");
+        servlet.teams = Collections.singletonList("team-b");
         
         String sessionIdBefore = checkSessionFixationWithOAuth();
         String sessionIdAfter = rootAction.sessionId;
@@ -339,7 +338,7 @@ public class GithubAccessTokenPropertySEC797Test {
             } else {
                 sessionId = session.getId();
             }
-            return HttpResponses.plainText("ok");
+            return HttpResponses.text("ok");
         }
     }
     

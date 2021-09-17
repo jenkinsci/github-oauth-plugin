@@ -34,7 +34,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import java.util.Collection;
 import java.util.Collections;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 import hudson.Extension;
 import hudson.model.AbstractItem;
@@ -83,14 +83,14 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
      * @return rootAcl
      * @see hudson.security.AuthorizationStrategy#getRootACL()
      */
-    @Nonnull
+    @NonNull
     @Override
     public ACL getRootACL() {
         return rootACL;
     }
 
-    @Nonnull
-    public ACL getACL(@Nonnull AbstractItem item) {
+    @NonNull
+    public ACL getACL(@NonNull AbstractItem item) {
         if(item instanceof MultiBranchProject) {
             GithubRequireOrganizationMembershipACL githubACL = (GithubRequireOrganizationMembershipACL) getRootACL();
             return githubACL.cloneForProject(item);
@@ -99,8 +99,8 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
         }
     }
 
-    @Nonnull
-    public ACL getACL(@Nonnull Job<?,?> job) {
+    @NonNull
+    public ACL getACL(@NonNull Job<?,?> job) {
         if(job instanceof WorkflowJob && job.getProperty(BranchJobProperty.class) != null || job instanceof AbstractProject) {
             GithubRequireOrganizationMembershipACL githubACL = (GithubRequireOrganizationMembershipACL) getRootACL();
             return githubACL.cloneForProject(job);
@@ -114,7 +114,7 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
      * @return groups
      * @see hudson.security.AuthorizationStrategy#getGroups()
      */
-    @Nonnull
+    @NonNull
     @Override
     public Collection<String> getGroups() {
         return Collections.emptyList();

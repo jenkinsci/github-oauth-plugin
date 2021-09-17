@@ -51,9 +51,9 @@ public class GithubLogoutActionTest extends TestCase {
     private DescriptorImpl descriptor;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         PowerMockito.mockStatic(Jenkins.class);
-        PowerMockito.when(Jenkins.getInstance()).thenReturn(jenkins);
+        PowerMockito.when(Jenkins.get()).thenReturn(jenkins);
         PowerMockito.when(jenkins.getSecurityRealm()).thenReturn(securityRealm);
         PowerMockito.when(securityRealm.getDescriptor()).thenReturn(descriptor);
         PowerMockito.when(descriptor.getDefaultGithubWebUri()).thenReturn("https://github.com");

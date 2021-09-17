@@ -24,23 +24,23 @@ THE SOFTWARE.
 
 package org.jenkinsci.plugins;
 
-import java.io.IOException;
-import junit.framework.TestCase;
-import org.junit.runner.RunWith;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+
 import org.junit.Test;
 
-public class GithubAuthorizationStrategyTest extends TestCase {
+public class GithubAuthorizationStrategyTest {
     @Test
     public void testEquals_true() {
-        GithubAuthorizationStrategy a = new GithubAuthorizationStrategy(new String(""), false, true, false, new String(""), false, false, false, false);
-        GithubAuthorizationStrategy b = new GithubAuthorizationStrategy(new String(""), false, true, false, new String(""), false, false, false, false);
-        assertTrue(a.equals(b));
+        GithubAuthorizationStrategy a = new GithubAuthorizationStrategy("", false, true, false, "", false, false, false, false);
+        GithubAuthorizationStrategy b = new GithubAuthorizationStrategy("", false, true, false, "", false, false, false, false);
+        assertEquals(a, b);
     }
     @Test
     public void testEquals_false() {
-        GithubAuthorizationStrategy a = new GithubAuthorizationStrategy(new String(""), false, true, false, new String(""), false, false, false, false);
-        GithubAuthorizationStrategy b = new GithubAuthorizationStrategy(new String(""), false, false, false, new String(""), false, false, false, false);
-        assertFalse(a.equals(b));
-        assertFalse(a.equals(""));
+        GithubAuthorizationStrategy a = new GithubAuthorizationStrategy("", false, true, false, "", false, false, false, false);
+        GithubAuthorizationStrategy b = new GithubAuthorizationStrategy("", false, false, false, "", false, false, false, false);
+        assertNotEquals(a, b);
+        assertNotEquals("", a);
     }
 }
