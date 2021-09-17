@@ -40,11 +40,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.kohsuke.github.GHMyself;
-import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHPerson;
-import org.kohsuke.github.GHPersonSet;
 import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.PagedIterable;
@@ -61,12 +58,8 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import hudson.model.Hudson;
 import hudson.model.Item;

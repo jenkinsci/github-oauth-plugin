@@ -27,9 +27,7 @@ import hudson.model.User;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.JenkinsSessionRule;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
 
 public class GithubSecretStorageTest {
 
