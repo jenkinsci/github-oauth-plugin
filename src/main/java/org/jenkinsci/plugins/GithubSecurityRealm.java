@@ -637,7 +637,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     public UserDetails loadUserByUsername(String username)
             throws UsernameNotFoundException, DataAccessException {
         //username is in org*team format
-        if(username.indexOf(GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR) >= 0 ) {
+        if(username.contains(GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR)) {
             throw new UsernameNotFoundException("Using org*team format instead of username: " + username);
         }
 
