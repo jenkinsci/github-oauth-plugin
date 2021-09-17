@@ -176,7 +176,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         GHMyself me = PowerMockito.mock(GHMyself.class);
         PowerMockito.when(gh.getMyself()).thenReturn((GHMyself) me);
         PowerMockito.when(me.getLogin()).thenReturn(username);
-        mockReposFor(me, Collections.<GHRepository>emptyList());
+        mockReposFor(me, Collections.emptyList());
         return me;
     }
 
@@ -379,7 +379,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         Project mockProject = PowerMockito.mock(Project.class);
         PowerMockito.when(mockProject.getScm()).thenReturn(new NullSCM());
         GitSCM gitSCM = PowerMockito.mock(GitSCM.class);
-        List<UserRemoteConfig> userRemoteConfigs = Collections.<UserRemoteConfig>emptyList();
+        List<UserRemoteConfig> userRemoteConfigs = Collections.emptyList();
         PowerMockito.when(mockProject.getScm()).thenReturn(gitSCM);
         PowerMockito.when(gitSCM.getUserRemoteConfigs()).thenReturn(userRemoteConfigs);
 

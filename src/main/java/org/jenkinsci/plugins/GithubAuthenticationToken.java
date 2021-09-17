@@ -234,7 +234,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
                     // fetch organization-only memberships (i.e.: groups without teams)
                     for (String orgLogin : myOrgs) {
                         if (!myTeams.containsKey(orgLogin)) {
-                            myTeams.put(orgLogin, Collections.<GHTeam>emptySet());
+                            myTeams.put(orgLogin, Collections.emptySet());
                         }
                     }
 
