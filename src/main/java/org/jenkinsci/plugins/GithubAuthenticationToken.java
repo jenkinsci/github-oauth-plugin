@@ -384,7 +384,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
           // here we do a 2-pass system since public repos are global read, so if *any* user has retrieved tha info
           // for the repo, we can use it here to possibly skip loading the full repo details for the user.
           Boolean isPublic = repositoriesPublicStatusCache.getIfPresent(repositoryName);
-          if (isPublic != null && isPublic.booleanValue()) {
+          if (isPublic != null && isPublic) {
             return true;
           }
         }
