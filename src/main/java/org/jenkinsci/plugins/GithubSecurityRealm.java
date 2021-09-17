@@ -271,19 +271,19 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
 
         private void setValue(GithubSecurityRealm realm, String node,
                 String value) {
-            if (node.toLowerCase().equals("clientid")) {
+            if (node.equalsIgnoreCase("clientid")) {
                 realm.setClientID(value);
-            } else if (node.toLowerCase().equals("clientsecret")) {
+            } else if (node.equalsIgnoreCase("clientsecret")) {
                 realm.setClientSecret(value);
-            } else if (node.toLowerCase().equals("githubweburi")) {
+            } else if (node.equalsIgnoreCase("githubweburi")) {
                 realm.setGithubWebUri(value);
-            } else if (node.toLowerCase().equals("githuburi")) { // backwards compatibility for old field
+            } else if (node.equalsIgnoreCase("githuburi")) { // backwards compatibility for old field
                 realm.setGithubWebUri(value);
                 String apiUrl = realm.determineApiUri(value);
                 realm.setGithubApiUri(apiUrl);
-            } else if (node.toLowerCase().equals("githubapiuri")) {
+            } else if (node.equalsIgnoreCase("githubapiuri")) {
                 realm.setGithubApiUri(value);
-            } else if (node.toLowerCase().equals("oauthscopes")) {
+            } else if (node.equalsIgnoreCase("oauthscopes")) {
                 realm.setOauthScopes(value);
             } else {
                 throw new ConversionException("Invalid node value = " + node);
