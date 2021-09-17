@@ -545,12 +545,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                 throw new BadCredentialsException(
                         "Unexpected authentication type: " + authentication);
             }
-        }, new UserDetailsService() {
-            public UserDetails loadUserByUsername(String username)
-                    throws UsernameNotFoundException, DataAccessException {
-                return GithubSecurityRealm.this.loadUserByUsername(username);
-            }
-        });
+        }, GithubSecurityRealm.this::loadUserByUsername);
     }
 
     @Override
