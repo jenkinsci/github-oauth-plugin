@@ -14,6 +14,7 @@ import org.kohsuke.github.extras.OkHttpConnector;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -22,6 +23,7 @@ import java.io.IOException;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(PowerMockRunner.class)
+@PowerMockIgnore({"com.sun.org.apache.xerces.*", "javax.xml.*", "org.xml.*", "javax.management.*"})
 @PrepareForTest({GitHub.class, GitHubBuilder.class, Jenkins.class, GithubSecurityRealm.class})
 public class GithubAuthenticationTokenTest {
 

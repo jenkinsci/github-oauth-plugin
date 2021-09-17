@@ -33,7 +33,7 @@ import jenkins.model.Jenkins;
 
 /**
  * A page that shows a simple message when the user logs out.
- * This prevents a logout -> login loop when using this security realm and Anonymous does not have {@code Overall.READ} permission.
+ * This prevents a logout -&gt; login loop when using this security realm and Anonymous does not have {@code Overall.READ} permission.
  */
 @Extension
 public class GithubLogoutAction implements UnprotectedRootAction {
