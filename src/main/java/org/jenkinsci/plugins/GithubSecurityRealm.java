@@ -463,10 +463,10 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             content = EntityUtils.toString(entity);
 
         }
-        String parts[] = content.split("&");
+        String[] parts = content.split("&");
         for (String part : parts) {
             if (part.startsWith("access_token=")) {
-                String tokenParts[] = part.split("=");
+                String[] tokenParts = part.split("=");
                 return tokenParts[1];
             }
         }
