@@ -174,7 +174,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         PowerMockito.when(builder.withConnector(Mockito.any(OkHttpConnector.class))).thenReturn(builder);
         PowerMockito.when(builder.build()).thenReturn(gh);
         GHMyself me = PowerMockito.mock(GHMyself.class);
-        PowerMockito.when(gh.getMyself()).thenReturn((GHMyself) me);
+        PowerMockito.when(gh.getMyself()).thenReturn(me);
         PowerMockito.when(me.getLogin()).thenReturn(username);
         mockReposFor(me, Collections.emptyList());
         return me;
