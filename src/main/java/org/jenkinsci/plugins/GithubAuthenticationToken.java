@@ -130,7 +130,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     private static final Cache<String, Map<String, Set<GHTeam>>> userTeamsCache =
             Caffeine.newBuilder().expireAfterWrite(1, CACHE_EXPIRY).build();
 
-    private final List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
+    private final List<GrantedAuthority> authorities = new ArrayList<>();
 
     private static final GithubUser UNKNOWN_USER = new GithubUser(null);
     private static final GithubMyself UNKNOWN_TOKEN = new GithubMyself(null);

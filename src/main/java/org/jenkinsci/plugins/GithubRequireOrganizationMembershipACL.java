@@ -297,7 +297,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
         this.allowCcTrayPermission                = allowCcTrayPermission;
         this.allowAnonymousReadPermission         = allowAnonymousReadPermission;
         this.allowAnonymousJobStatusPermission    = allowAnonymousJobStatusPermission;
-        this.adminUserNameList                    = new LinkedList<String>();
+        this.adminUserNameList                    = new LinkedList<>();
 
         String[] parts = adminUserNames.split(",");
 
@@ -305,7 +305,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
             adminUserNameList.add(part.trim());
         }
 
-        this.organizationNameList = new LinkedList<String>();
+        this.organizationNameList = new LinkedList<>();
 
         parts = organizationNames.split(",");
 

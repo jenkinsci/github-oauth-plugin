@@ -232,7 +232,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     private MultiBranchProject mockMultiBranchProject(String url) {
         WorkflowMultiBranchProject multiBranchProject = PowerMockito.mock(WorkflowMultiBranchProject.class);
         GitHubSCMSource gitHubSCM = PowerMockito.mock(GitHubSCMSource.class);
-        ArrayList<SCMSource> scmSources = new ArrayList<SCMSource>();
+        ArrayList<SCMSource> scmSources = new ArrayList<>();
         scmSources.add(gitHubSCM);
         PowerMockito.when(multiBranchProject.getSCMSources()).thenReturn(scmSources);
         PowerMockito.when(gitHubSCM.getRemote()).thenReturn(url);
