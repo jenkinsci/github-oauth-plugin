@@ -24,7 +24,9 @@ THE SOFTWARE.
 
 package org.jenkinsci.plugins;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -34,13 +36,13 @@ public class GithubAuthorizationStrategyTest {
     public void testEquals_true() {
         GithubAuthorizationStrategy a = new GithubAuthorizationStrategy(new String(""), false, true, false, new String(""), false, false, false, false);
         GithubAuthorizationStrategy b = new GithubAuthorizationStrategy(new String(""), false, true, false, new String(""), false, false, false, false);
-        assertTrue(a.equals(b));
+        assertEquals(a, b);
     }
     @Test
     public void testEquals_false() {
         GithubAuthorizationStrategy a = new GithubAuthorizationStrategy(new String(""), false, true, false, new String(""), false, false, false, false);
         GithubAuthorizationStrategy b = new GithubAuthorizationStrategy(new String(""), false, false, false, new String(""), false, false, false, false);
-        assertFalse(a.equals(b));
-        assertFalse(a.equals(""));
+        assertNotEquals(a, b);
+        assertNotEquals("", a);
     }
 }
