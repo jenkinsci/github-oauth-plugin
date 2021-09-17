@@ -86,8 +86,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import javax.servlet.http.HttpSession;
 
 /**
@@ -446,7 +446,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     }
 
     @Nullable
-    private String getAccessToken(@Nonnull String code) throws IOException {
+    private String getAccessToken(@NonNull String code) throws IOException {
         String content;
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPost httpost = new HttpPost(githubWebUri

@@ -38,8 +38,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 import hudson.model.AbstractItem;
 import hudson.model.AbstractProject;
@@ -80,7 +80,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
      * hudson.security.Permission)
      */
     @Override
-    public boolean hasPermission(@Nonnull Authentication a, @Nonnull Permission permission) {
+    public boolean hasPermission(@NonNull Authentication a, @NonNull Permission permission) {
         if (a instanceof GithubAuthenticationToken) {
             if (!a.isAuthenticated())
                 return false;
@@ -190,8 +190,8 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
         }
     }
 
-    @Nonnull
-    private boolean isInWhitelistedOrgs(@Nonnull GithubAuthenticationToken authenticationToken) {
+    @NonNull
+    private boolean isInWhitelistedOrgs(@NonNull GithubAuthenticationToken authenticationToken) {
       return authenticationToken.isMemberOfAnyOrganizationInList(this.organizationNameList);
     }
 
@@ -225,13 +225,13 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
         return (currentRequest == null) ? null : currentRequest.getOriginalRequestURI();
     }
 
-    private boolean testBuildPermission(@Nonnull Permission permission) {
+    private boolean testBuildPermission(@NonNull Permission permission) {
         String id = permission.getId();
         return id.equals("hudson.model.Hudson.Build")
                 || id.equals("hudson.model.Item.Build");
     }
 
-    private boolean checkReadPermission(@Nonnull Permission permission) {
+    private boolean checkReadPermission(@NonNull Permission permission) {
         String id = permission.getId();
         return (id.equals("hudson.model.Hudson.Read")
                 || id.equals("hudson.model.Item.Workspace")
@@ -239,7 +239,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
                 || id.equals("hudson.model.Item.Read"));
     }
 
-    private boolean checkJobStatusPermission(@Nonnull Permission permission) {
+    private boolean checkJobStatusPermission(@NonNull Permission permission) {
         return permission.getId().equals("hudson.model.Item.ViewStatus");
     }
 

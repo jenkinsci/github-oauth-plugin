@@ -68,8 +68,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 
 /**
@@ -308,8 +308,8 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
      *
      * @return proxy to use it in connector. Should not be null as it can lead to unexpected behaviour
      */
-    @Nonnull
-    private static Proxy getProxy(@Nonnull String host) {
+    @NonNull
+    private static Proxy getProxy(@NonNull String host) {
         Jenkins jenkins = Jenkins.get();
 
         if (jenkins.proxy == null) {
@@ -353,7 +353,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
      * Wraps grabbing a user's github orgs with our caching
      * @return                    the Set of org names current user is a member of
      */
-    @Nonnull
+    @NonNull
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private Set<String> getUserOrgs() {
         return userOrganizationCache.get(this.userName, unused -> {
@@ -365,8 +365,8 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         });
     }
 
-    @Nonnull
-    boolean isMemberOfAnyOrganizationInList(@Nonnull Collection<String> organizations) {
+    @NonNull
+    boolean isMemberOfAnyOrganizationInList(@NonNull Collection<String> organizations) {
             Set<String> userOrgs = getUserOrgs();
             for (String orgName : organizations) {
               if (userOrgs.contains(orgName)) {
@@ -376,8 +376,8 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
             return false;
     }
 
-    @Nonnull
-    boolean hasRepositoryPermission(@Nonnull String repositoryName, @Nonnull Permission permission) {
+    @NonNull
+    boolean hasRepositoryPermission(@NonNull String repositoryName, @NonNull Permission permission) {
         LOGGER.log(Level.FINEST, "Checking for permission: " + permission + " on repo: " + repositoryName + " for user: " + this.userName);
         boolean isReadPermission = isReadRelatedPermission(permission);
         if (isReadPermission) {
@@ -406,8 +406,8 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         return false;
     }
 
-    @Nonnull
-    private boolean isReadRelatedPermission(@Nonnull Permission permission) {
+    @NonNull
+    private boolean isReadRelatedPermission(@NonNull Permission permission) {
       return permission.equals(Item.DISCOVER) ||
              permission.equals(Item.READ) ||
              permission.equals(Item.BUILD) ||
@@ -418,7 +418,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
      * Returns a mapping from repo names to repo rights for the current user
      * @return [description]
      */
-    @Nonnull
+    @NonNull
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private Cache<String, RepoRights> myRepositories() {
             return repositoriesByUserCache.get(this.userName, unused -> {
@@ -450,7 +450,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
             .getLogger(GithubAuthenticationToken.class.getName());
 
     @Nullable
-    GHUser loadUser(@Nonnull String username) throws IOException {
+    GHUser loadUser(@NonNull String username) throws IOException {
         GithubUser user;
         try {
             user = usersByIdCache.getIfPresent(username);
@@ -467,7 +467,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         return user != null ? user.user : null;
     }
 
-    private GHMyself loadMyself(@Nonnull String token) throws IOException {
+    private GHMyself loadMyself(@NonNull String token) throws IOException {
         GithubMyself me;
         try {
             me = usersByTokenCache.getIfPresent(token);
@@ -488,7 +488,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     }
 
     @Nullable
-    GHOrganization loadOrganization(@Nonnull String organization) {
+    GHOrganization loadOrganization(@NonNull String organization) {
         try {
             if (gh != null && isAuthenticated())
                 return getGitHub().getOrganization(organization);
@@ -498,9 +498,9 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         return null;
     }
 
-    @Nonnull
+    @NonNull
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    private RepoRights loadRepository(@Nonnull final String repositoryName) {
+    private RepoRights loadRepository(@NonNull final String repositoryName) {
       try {
           if (gh != null && isAuthenticated() && (myRealm.hasScope("repo") || myRealm.hasScope("public_repo"))) {
               Cache<String, RepoRights> repoNameToRightsCache = myRepositories();
@@ -528,7 +528,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     }
 
     @Nullable
-    GHTeam loadTeam(@Nonnull String organization, @Nonnull String team) {
+    GHTeam loadTeam(@NonNull String organization, @NonNull String team) {
         try {
             GHOrganization org = loadOrganization(organization);
             if (org != null) {
@@ -549,7 +549,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     }
 
     @Nullable
-    GithubOAuthUserDetails getUserDetails(@Nonnull String username) throws IOException {
+    GithubOAuthUserDetails getUserDetails(@NonNull String username) throws IOException {
         GHUser user = loadUser(username);
         if (user != null) {
             return new GithubOAuthUserDetails(user.getLogin(), this);
