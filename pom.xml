@@ -145,6 +145,7 @@
             <artifactId>powermock-module-junit4</artifactId>
             <scope>test</scope>
         </dependency>
+
         <!-- This is to fix JENKINS-36875 when using hpi:run -->
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
