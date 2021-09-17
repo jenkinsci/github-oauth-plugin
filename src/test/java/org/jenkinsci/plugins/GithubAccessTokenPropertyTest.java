@@ -41,9 +41,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.xml.sax.SAXException;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -119,7 +117,7 @@ public class GithubAccessTokenPropertyTest {
             this.serverUri = serverUri;
         }
 
-        @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             switch (req.getRequestURI()) {
                 case "/user":
                     this.onUser(req, resp);
@@ -200,12 +198,12 @@ public class GithubAccessTokenPropertyTest {
             resp.getWriter().write(JSONObject.fromObject(responseBody).toString());
         }
 
-        private void onOrgsMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) throws IOException {
+        private void onOrgsMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) {
             resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
             // 302 / 404 responses not implemented
         }
 
-        private void onTeamMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) throws IOException {
+        private void onTeamMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) {
             resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
             // 302 / 404 responses not implemented
         }
@@ -291,7 +289,7 @@ public class GithubAccessTokenPropertyTest {
 
     @Issue("JENKINS-47113")
     @Test
-    public void testUsingGithubToken() throws IOException, SAXException {
+    public void testUsingGithubToken() throws IOException {
         String aliceLogin = "alice";
         servlet.currentLogin = aliceLogin;
         servlet.organizations = Arrays.asList("org-a");
@@ -319,7 +317,7 @@ public class GithubAccessTokenPropertyTest {
 
     @Issue("JENKINS-47113")
     @Test
-    public void testUsingGithubLogin() throws IOException, SAXException {
+    public void testUsingGithubLogin() throws IOException {
         String bobLogin = "bob";
         servlet.currentLogin = bobLogin;
         servlet.organizations = Arrays.asList("org-c");
@@ -343,7 +341,7 @@ public class GithubAccessTokenPropertyTest {
         makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
     }
 
-    private void makeRequestWithAuthCodeAndVerify(String authCode, String expectedLogin, List<String> expectedAuthorities) throws IOException, SAXException {
+    private void makeRequestWithAuthCodeAndVerify(String authCode, String expectedLogin, List<String> expectedAuthorities) throws IOException {
         WebRequest req = new WebRequest(new URL(j.getURL(), "whoAmI/api/json"));
         req.setEncodingType(null);
         if (authCode != null)

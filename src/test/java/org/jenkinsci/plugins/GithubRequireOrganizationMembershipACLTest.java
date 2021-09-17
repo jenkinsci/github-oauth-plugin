@@ -108,7 +108,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     private boolean allowAnonymousCCTrayPermission;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         // default to: use repository permissions; don't allow anonymous read/view status; don't allow authenticated read/create
         allowAnonymousReadPermission = false;
         allowAnonymousJobStatusPermission = false;
@@ -182,7 +182,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
     // TODO: Add ability to set list of orgs user belongs to to check whitelisting!
 
-    private void mockReposFor(GHPerson person, List<GHRepository> repositories) throws IOException {
+    private void mockReposFor(GHPerson person, List<GHRepository> repositories) {
         PagedIterable<GHRepository> pagedRepositories = PowerMockito.mock(PagedIterable.class);
         PowerMockito.when(person.listRepositories(100)).thenReturn(pagedRepositories);
         PowerMockito.when(pagedRepositories.asList()).thenReturn(repositories);
@@ -505,7 +505,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testAnonymousCanViewJobStatusWhenGranted() throws IOException {
+    public void testAnonymousCanViewJobStatusWhenGranted() {
         this.allowAnonymousJobStatusPermission = true;
 
         Project mockProject = mockProject("https://github.com/some-org/a-public-repo.git");
@@ -515,7 +515,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testAnonymousCannotViewJobStatusWhenNotGranted() throws IOException {
+    public void testAnonymousCannotViewJobStatusWhenNotGranted() {
         this.allowAnonymousJobStatusPermission = false;
 
         Project mockProject = mockProject("https://github.com/some-org/a-public-repo.git");
@@ -525,7 +525,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testAnonymousCanReachWebhookWhenGranted() throws IOException {
+    public void testAnonymousCanReachWebhookWhenGranted() {
         this.allowAnonymousWebhookPermission = true;
 
         StaplerRequest currentRequest = PowerMockito.mock(StaplerRequest.class);
@@ -539,7 +539,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testAnonymousCannotReachWebhookIfNotGranted() throws IOException {
+    public void testAnonymousCannotReachWebhookIfNotGranted() {
         this.allowAnonymousWebhookPermission = false;
 
         StaplerRequest currentRequest = PowerMockito.mock(StaplerRequest.class);
@@ -553,7 +553,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testAnonymousCanReadAndDiscoverWhenGranted() throws IOException {
+    public void testAnonymousCanReadAndDiscoverWhenGranted() {
         this.allowAnonymousReadPermission = true;
 
         Project mockProject = mockProject("https://github.com/some-org/a-public-repo.git");
@@ -564,7 +564,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testAnonymousCantReadAndDiscoverWhenNotGranted() throws IOException {
+    public void testAnonymousCantReadAndDiscoverWhenNotGranted() {
         this.allowAnonymousReadPermission = false;
 
         Project mockProject = mockProject("https://github.com/some-org/a-public-repo.git");
@@ -575,7 +575,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testAnonymousCanReachCCTrayWhenGranted() throws IOException {
+    public void testAnonymousCanReachCCTrayWhenGranted() {
         this.allowAnonymousCCTrayPermission = true;
 
         StaplerRequest currentRequest = PowerMockito.mock(StaplerRequest.class);
@@ -589,7 +589,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     }
 
     @Test
-    public void testAnonymousCannotReachCCTrayIfNotGranted() throws IOException {
+    public void testAnonymousCannotReachCCTrayIfNotGranted() {
         this.allowAnonymousCCTrayPermission = false;
 
         StaplerRequest currentRequest = PowerMockito.mock(StaplerRequest.class);

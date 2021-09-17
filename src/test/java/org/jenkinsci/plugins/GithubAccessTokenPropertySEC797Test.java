@@ -123,7 +123,7 @@ public class GithubAccessTokenPropertySEC797Test {
             this.serverUri = serverUri;
         }
         
-        @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             switch (req.getRequestURI()) {
                 case "/user":
                     this.onUser(req, resp);
@@ -204,12 +204,12 @@ public class GithubAccessTokenPropertySEC797Test {
             resp.getWriter().write(JSONObject.fromObject(responseBody).toString());
         }
         
-        private void onOrgsMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) throws IOException {
+        private void onOrgsMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) {
             resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
             // 302 / 404 responses not implemented
         }
         
-        private void onTeamMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) throws IOException {
+        private void onTeamMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) {
             resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
             // 302 / 404 responses not implemented
         }
