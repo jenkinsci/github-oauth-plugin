@@ -351,15 +351,13 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         for (GitHubOAuthScope s : getJenkins().getExtensionList(GitHubOAuthScope.class)) {
             scopes.addAll(s.getScopesToRequest());
         }
-        String suffix="";
+        String serializedScopes = oauthScopes;
+        // We need repo scope in order to access private repos.
+        // See https://developer.github.com/v3/oauth/#scopes.
         if (!scopes.isEmpty()) {
-            suffix = "&scope="+Util.join(scopes,",")+"&state="+state;
-        } else {
-            // We need repo scope in order to access private repos
-            // See https://developer.github.com/v3/oauth/#scopes
-            suffix = "&scope=" + oauthScopes +"&state="+state;
+            serializedScopes = Util.join(scopes, ",");
         }
-
+        String suffix = "&scope=" + serializedScopes + "&state=" + state;
         return new HttpRedirect(githubWebUri + "/login/oauth/authorize?client_id="
                 + clientID + suffix);
     }
@@ -450,15 +448,15 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     private String getAccessToken(@Nonnull String code) throws IOException {
         String content;
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpPost httpost = new HttpPost(githubWebUri
-                    + "/login/oauth/access_token?" + "client_id=" + clientID + "&"
-                    + "client_secret=" + clientSecret.getPlainText() + "&" + "code=" + code);
+            String suffix = "&client_secret=" + clientSecret.getPlainText() + "&code=" + code;
+            HttpPost httpPost = new HttpPost(githubWebUri + "/login/oauth/access_token?client_id="
+                    + clientID + suffix);
             HttpHost proxy = getProxy(httpost);
             if (proxy != null) {
                 RequestConfig requestConfig = RequestConfig.custom().setProxy(proxy).build();
-                httpost.setConfig(requestConfig);
+                httpPost.setConfig(requestConfig);
             }
-            org.apache.http.HttpResponse response = httpClient.execute(httpost);
+            org.apache.http.HttpResponse response = httpClient.execute(httpPost);
             HttpEntity entity = response.getEntity();
             content = EntityUtils.toString(entity);
 
@@ -493,7 +491,10 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
      */
     private HttpHost getProxy(HttpUriRequest method) throws URIException {
         ProxyConfiguration proxy = getJenkins().proxy;
-        if (proxy==null)    return null;    // defensive check
+        if (proxy == null) {
+            // defensive check
+            return null;
+        }
 
         Proxy p = proxy.createProxy(method.getURI().getHost());
         switch (p.type()) {
