@@ -212,10 +212,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
         // This stuff only really seems useful if *not* using GithubAuthorizationStrategy
         // but instead using matrix so org/team can be granted rights
-        Jenkins jenkins = Jenkins.getInstance();
-        if (jenkins == null) {
-            throw new IllegalStateException("Jenkins not started");
-        }
+        Jenkins jenkins = Jenkins.get();
         if (jenkins.getSecurityRealm() instanceof GithubSecurityRealm) {
             if (myRealm == null) {
                 myRealm = (GithubSecurityRealm) jenkins.getSecurityRealm();
@@ -313,7 +310,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
      */
     @Nonnull
     private static Proxy getProxy(@Nonnull String host) {
-        Jenkins jenkins = Jenkins.getInstance();
+        Jenkins jenkins = Jenkins.get();
 
         if (jenkins.proxy == null) {
             return Proxy.NO_PROXY;

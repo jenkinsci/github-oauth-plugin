@@ -338,17 +338,17 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         String redirectOnFinish;
         if (from != null && Util.isSafeToRedirectTo(from)) {
             redirectOnFinish = from;
-        } else if (referer != null && (referer.startsWith(Jenkins.getInstance().getRootUrl()) || Util.isSafeToRedirectTo(referer))) {
+        } else if (referer != null && (referer.startsWith(Jenkins.get().getRootUrl()) || Util.isSafeToRedirectTo(referer))) {
             redirectOnFinish = referer;
         } else {
-            redirectOnFinish = Jenkins.getInstance().getRootUrl();
+            redirectOnFinish = Jenkins.get().getRootUrl();
         }
 
         request.getSession().setAttribute(REFERER_ATTRIBUTE, redirectOnFinish);
         request.getSession().setAttribute(STATE_ATTRIBUTE, state);
 
         Set<String> scopes = new HashSet<>();
-        for (GitHubOAuthScope s : getJenkins().getExtensionList(GitHubOAuthScope.class)) {
+        for (GitHubOAuthScope s : Jenkins.get().getExtensionList(GitHubOAuthScope.class)) {
             scopes.addAll(s.getScopesToRequest());
         }
         String suffix="";
@@ -492,7 +492,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
      * Returns the proxy to be used when connecting to the given URI.
      */
     private HttpHost getProxy(HttpUriRequest method) throws URIException {
-        ProxyConfiguration proxy = getJenkins().proxy;
+        ProxyConfiguration proxy = Jenkins.get().proxy;
         if (proxy==null)    return null;    // defensive check
 
         Proxy p = proxy.createProxy(method.getURI().getHost());
@@ -577,8 +577,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     protected String getPostLogOutUrl(StaplerRequest req, Authentication auth) {
         // if we just redirect to the root and anonymous does not have Overall read then we will start a login all over again.
         // we are actually anonymous here as the security context has been cleared
-        Jenkins j = Jenkins.getInstance();
-        assert j != null;
+        Jenkins j = Jenkins.get();
         if (j.hasPermission(Jenkins.READ)) {
             return super.getPostLogOutUrl(req, auth);
         }
@@ -765,14 +764,6 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         } catch (Error e) {
             throw new DataRetrievalFailureException("loadGroupByGroupname (groupname=" + groupName + ")", e);
         }
-    }
-
-    static Jenkins getJenkins() {
-        Jenkins jenkins = Jenkins.getInstance();
-        if (jenkins == null) {
-            throw new IllegalStateException("Jenkins not started");
-        }
-        return jenkins;
     }
 
     /**

@@ -120,7 +120,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
 
         //GithubSecurityRealm myRealm = PowerMockito.mock(GithubSecurityRealm.class);
         PowerMockito.mockStatic(Jenkins.class);
-        PowerMockito.when(Jenkins.getInstance()).thenReturn(jenkins);
+        PowerMockito.when(Jenkins.get()).thenReturn(jenkins);
         PowerMockito.when(jenkins.getSecurityRealm()).thenReturn(securityRealm);
         PowerMockito.when(jenkins.getRootUrl()).thenReturn("https://www.jenkins.org/");
         PowerMockito.when(securityRealm.getOauthScopes()).thenReturn("read:org,repo");

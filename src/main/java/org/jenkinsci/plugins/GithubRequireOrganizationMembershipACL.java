@@ -196,10 +196,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
     }
 
     private boolean currentUriPathEquals( String specificPath ) {
-        Jenkins jenkins = Jenkins.getInstance();
-        if (jenkins == null) {
-            throw new IllegalStateException("Jenkins not started");
-        }
+        Jenkins jenkins = Jenkins.get();
         String rootUrl = jenkins.getRootUrl();
         if (rootUrl == null) {
             throw new IllegalStateException("Could not determine Jenkins URL");
