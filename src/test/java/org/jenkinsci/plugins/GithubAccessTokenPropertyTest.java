@@ -27,6 +27,7 @@ import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import hudson.model.User;
 import hudson.util.Scrambler;
+import java.util.Collections;
 import jenkins.security.ApiTokenProperty;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -292,8 +293,8 @@ public class GithubAccessTokenPropertyTest {
     public void testUsingGithubToken() throws IOException {
         String aliceLogin = "alice";
         servlet.currentLogin = aliceLogin;
-        servlet.organizations = Arrays.asList("org-a");
-        servlet.teams = Arrays.asList("team-b");
+        servlet.organizations = Collections.singletonList("org-a");
+        servlet.teams = Collections.singletonList("team-b");
 
         User aliceUser = User.getById(aliceLogin, true);
         String aliceApiRestToken = aliceUser.getProperty(ApiTokenProperty.class).getApiToken();
@@ -320,8 +321,8 @@ public class GithubAccessTokenPropertyTest {
     public void testUsingGithubLogin() throws IOException {
         String bobLogin = "bob";
         servlet.currentLogin = bobLogin;
-        servlet.organizations = Arrays.asList("org-c");
-        servlet.teams = Arrays.asList("team-d");
+        servlet.organizations = Collections.singletonList("org-c");
+        servlet.teams = Collections.singletonList("team-d");
 
         User bobUser = User.getById(bobLogin, true);
         String bobApiRestToken = bobUser.getProperty(ApiTokenProperty.class).getApiToken();

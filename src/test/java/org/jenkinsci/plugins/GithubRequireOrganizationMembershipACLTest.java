@@ -207,7 +207,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         Project project = PowerMockito.mock(Project.class);
         GitSCM gitSCM = PowerMockito.mock(GitSCM.class);
         UserRemoteConfig userRemoteConfig = PowerMockito.mock(UserRemoteConfig.class);
-        List<UserRemoteConfig> userRemoteConfigs = Arrays.asList(userRemoteConfig);
+        List<UserRemoteConfig> userRemoteConfigs = Collections.singletonList(userRemoteConfig);
         PowerMockito.when(project.getScm()).thenReturn(gitSCM);
         PowerMockito.when(gitSCM.getUserRemoteConfigs()).thenReturn(userRemoteConfigs);
         PowerMockito.when(userRemoteConfig.getUrl()).thenReturn(url);
@@ -220,7 +220,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         Branch branch = PowerMockito.mock(Branch.class);
         BranchJobProperty branchJobProperty = PowerMockito.mock(BranchJobProperty.class);
         UserRemoteConfig userRemoteConfig = PowerMockito.mock(UserRemoteConfig.class);
-        List<UserRemoteConfig> userRemoteConfigs = Arrays.asList(userRemoteConfig);
+        List<UserRemoteConfig> userRemoteConfigs = Collections.singletonList(userRemoteConfig);
         PowerMockito.when(project.getProperty(BranchJobProperty.class)).thenReturn(branchJobProperty);
         PowerMockito.when(branchJobProperty.getBranch()).thenReturn(branch);
         PowerMockito.when(branch.getScm()).thenReturn(gitSCM);
@@ -250,7 +250,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
     public void testCanReadAndBuildOneOfMyPrivateRepositories() throws IOException {
         GHMyself me = mockGHMyselfAs("Me");
         GHRepository repo = mockRepository("me/a-repo", false, true, true, true); // private; admin, push, and pull rights
-        mockReposFor(me, Arrays.asList(repo)); // hook to my listing
+        mockReposFor(me, Collections.singletonList(repo)); // hook to my listing
         String repoUrl = "https://github.com/me/a-repo.git";
         Project mockProject = mockProject(repoUrl);
         MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
@@ -300,7 +300,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         GHMyself me = mockGHMyselfAs("Me");
         // private repo I have pull rights to
         GHRepository repo = mockRepository("some-org/a-private-repo", false, false, false, true);
-        mockReposFor(me, Arrays.asList(repo));
+        mockReposFor(me, Collections.singletonList(repo));
         String repoUrl = "https://github.com/some-org/a-private-repo.git";
         Project mockProject = mockProject(repoUrl);
         MultiBranchProject mockMultiBranchProject = mockMultiBranchProject(repoUrl);
@@ -494,7 +494,7 @@ public class GithubRequireOrganizationMembershipACLTest extends TestCase {
         GHMyself me = mockGHMyselfAs("Me");
         // private repo I have pull rights to
         GHRepository repo = mockRepository("some-org/a-repo", false, false, false, true);
-        mockReposFor(me, Arrays.asList(repo));
+        mockReposFor(me, Collections.singletonList(repo));
         String invalidRepoUrl = "git@github.com//some-org/a-repo.git";
         Project mockProject = mockProject(invalidRepoUrl);
         GithubRequireOrganizationMembershipACL acl = aclForProject(mockProject);

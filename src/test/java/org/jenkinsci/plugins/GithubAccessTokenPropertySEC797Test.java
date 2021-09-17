@@ -27,6 +27,7 @@ import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import hudson.model.UnprotectedRootAction;
 import hudson.util.HttpResponses;
+import java.util.Collections;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
@@ -304,8 +305,8 @@ public class GithubAccessTokenPropertySEC797Test {
 
         String aliceLogin = "alice";
         servlet.currentLogin = aliceLogin;
-        servlet.organizations = Arrays.asList("org-a");
-        servlet.teams = Arrays.asList("team-b");
+        servlet.organizations = Collections.singletonList("org-a");
+        servlet.teams = Collections.singletonList("team-b");
         
         String sessionIdBefore = checkSessionFixationWithOAuth();
         String sessionIdAfter = rootAction.sessionId;
