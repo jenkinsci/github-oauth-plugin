@@ -8,6 +8,9 @@ import org.kohsuke.github.GHTeam;
 
 import hudson.security.GroupDetails;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+
 /**
  * @author Mike
  *
@@ -34,7 +37,11 @@ public class GithubOAuthGroupDetails extends GroupDetails {
      */
     public GithubOAuthGroupDetails(GHTeam team) {
         super();
-        this.org = team.getOrganization();
+        try {
+            this.org = team.getOrganization();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
         this.team = team;
     }
 
