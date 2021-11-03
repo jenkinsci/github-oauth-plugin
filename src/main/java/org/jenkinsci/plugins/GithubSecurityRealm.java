@@ -33,21 +33,17 @@ import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Extension;
-import hudson.FilePath;
 import hudson.ProxyConfiguration;
 import hudson.Util;
-import hudson.cli.CLICommand;
 import hudson.model.Descriptor;
 import hudson.model.User;
 import hudson.security.AbstractPasswordBasedSecurityRealm;
-import hudson.security.CliAuthenticator;
 import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
 import hudson.security.UserMayOrMayNotExistException;
 import hudson.tasks.Mailer;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
-import jenkins.security.MasterToSlaveCallable;
 import jenkins.security.SecurityListener;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
@@ -58,7 +54,6 @@ import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
-import org.apache.commons.httpclient.URIException;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -68,7 +63,6 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.kohsuke.args4j.Option;
 import org.kohsuke.github.GHEmail;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
@@ -83,7 +77,6 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataRetrievalFailureException;
 
-import java.io.Console;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -93,8 +86,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import javax.servlet.http.HttpSession;
 
 /**
@@ -278,19 +271,19 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
 
         private void setValue(GithubSecurityRealm realm, String node,
                 String value) {
-            if (node.toLowerCase().equals("clientid")) {
+            if (node.equalsIgnoreCase("clientid")) {
                 realm.setClientID(value);
-            } else if (node.toLowerCase().equals("clientsecret")) {
+            } else if (node.equalsIgnoreCase("clientsecret")) {
                 realm.setClientSecret(value);
-            } else if (node.toLowerCase().equals("githubweburi")) {
+            } else if (node.equalsIgnoreCase("githubweburi")) {
                 realm.setGithubWebUri(value);
-            } else if (node.toLowerCase().equals("githuburi")) { // backwards compatibility for old field
+            } else if (node.equalsIgnoreCase("githuburi")) { // backwards compatibility for old field
                 realm.setGithubWebUri(value);
                 String apiUrl = realm.determineApiUri(value);
                 realm.setGithubApiUri(apiUrl);
-            } else if (node.toLowerCase().equals("githubapiuri")) {
+            } else if (node.equalsIgnoreCase("githubapiuri")) {
                 realm.setGithubApiUri(value);
-            } else if (node.toLowerCase().equals("oauthscopes")) {
+            } else if (node.equalsIgnoreCase("oauthscopes")) {
                 realm.setOauthScopes(value);
             } else {
                 throw new ConversionException("Invalid node value = " + node);
@@ -344,17 +337,17 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         String redirectOnFinish;
         if (from != null && Util.isSafeToRedirectTo(from)) {
             redirectOnFinish = from;
-        } else if (referer != null && (referer.startsWith(Jenkins.getInstance().getRootUrl()) || Util.isSafeToRedirectTo(referer))) {
+        } else if (referer != null && (referer.startsWith(Jenkins.get().getRootUrl()) || Util.isSafeToRedirectTo(referer))) {
             redirectOnFinish = referer;
         } else {
-            redirectOnFinish = Jenkins.getInstance().getRootUrl();
+            redirectOnFinish = Jenkins.get().getRootUrl();
         }
 
         request.getSession().setAttribute(REFERER_ATTRIBUTE, redirectOnFinish);
         request.getSession().setAttribute(STATE_ATTRIBUTE, state);
 
         Set<String> scopes = new HashSet<>();
-        for (GitHubOAuthScope s : getJenkins().getExtensionList(GitHubOAuthScope.class)) {
+        for (GitHubOAuthScope s : Jenkins.get().getExtensionList(GitHubOAuthScope.class)) {
             scopes.addAll(s.getScopesToRequest());
         }
         String suffix="";
@@ -453,7 +446,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     }
 
     @Nullable
-    private String getAccessToken(@Nonnull String code) throws IOException {
+    private String getAccessToken(@NonNull String code) throws IOException {
         String content;
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPost httpost = new HttpPost(githubWebUri
@@ -469,10 +462,10 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             content = EntityUtils.toString(entity);
 
         }
-        String parts[] = content.split("&");
+        String[] parts = content.split("&");
         for (String part : parts) {
             if (part.startsWith("access_token=")) {
-                String tokenParts[] = part.split("=");
+                String[] tokenParts = part.split("=");
                 return tokenParts[1];
             }
         }
@@ -497,8 +490,8 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     /**
      * Returns the proxy to be used when connecting to the given URI.
      */
-    private HttpHost getProxy(HttpUriRequest method) throws URIException {
-        ProxyConfiguration proxy = getJenkins().proxy;
+    private HttpHost getProxy(HttpUriRequest method) {
+        ProxyConfiguration proxy = Jenkins.get().proxy;
         if (proxy==null)    return null;    // defensive check
 
         Proxy p = proxy.createProxy(method.getURI().getHost());
@@ -552,12 +545,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                 throw new BadCredentialsException(
                         "Unexpected authentication type: " + authentication);
             }
-        }, new UserDetailsService() {
-            public UserDetails loadUserByUsername(String username)
-                    throws UsernameNotFoundException, DataAccessException {
-                return GithubSecurityRealm.this.loadUserByUsername(username);
-            }
-        });
+        }, GithubSecurityRealm.this::loadUserByUsername);
     }
 
     @Override
@@ -575,43 +563,6 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     }
 
     @Override
-    public CliAuthenticator createCliAuthenticator(final CLICommand command) {
-        return new CliAuthenticator() {
-            @Option(name="--username",usage="GitHub username to authenticate yourself to Jenkins.")
-            public String userName;
-
-            @Option(name="--password",usage="GitHub personal access token. Note that passing a password in arguments is insecure.")
-            public String password;
-
-            @Option(name="--password-file",usage="File that contains the personal access token.")
-            public String passwordFile;
-
-            public Authentication authenticate() throws AuthenticationException, IOException, InterruptedException {
-                if(userName == null) {
-                    // no authentication parameter. fallback to the transport
-                    return command.getTransportAuthentication();
-                }
-                if(passwordFile != null) {
-                    try {
-                        password = new FilePath(command.channel, passwordFile).readToString().trim();
-                    } catch (IOException e) {
-                        throw new BadCredentialsException("Failed to read " + passwordFile, e);
-                    }
-                }
-                if(password == null) {
-                    password = command.channel.call(new InteractivelyAskForPassword());
-                }
-
-                if(password == null) {
-                    throw new BadCredentialsException("No GitHub personal access token specified.");
-                }
-                GithubSecurityRealm.this.authenticate(userName, password);
-                return new GithubAuthenticationToken(password, getGithubApiUri());
-            }
-        };
-    }
-
-    @Override
     public String getLoginUrl() {
         return "securityRealm/commenceLogin";
     }
@@ -620,8 +571,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     protected String getPostLogOutUrl(StaplerRequest req, Authentication auth) {
         // if we just redirect to the root and anonymous does not have Overall read then we will start a login all over again.
         // we are actually anonymous here as the security context has been cleared
-        Jenkins j = Jenkins.getInstance();
-        assert j != null;
+        Jenkins j = Jenkins.get();
         if (j.hasPermission(Jenkins.READ)) {
             return super.getPostLogOutUrl(req, auth);
         }
@@ -677,15 +627,12 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
      *
      * @param username username to lookup
      * @return userDetails
-     * @throws UserMayOrMayNotExistException
-     * @throws UsernameNotFoundException
-     * @throws DataAccessException
      */
     @Override
     public UserDetails loadUserByUsername(String username)
             throws UsernameNotFoundException, DataAccessException {
         //username is in org*team format
-        if(username.indexOf(GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR) >= 0 ) {
+        if(username.contains(GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR)) {
             throw new UsernameNotFoundException("Using org*team format instead of username: " + username);
         }
 
@@ -775,8 +722,6 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
      *
      * @param groupName groupName to look up
      * @return groupDetails
-     * @throws UsernameNotFoundException
-     * @throws DataAccessException
      */
     @Override
     public GroupDetails loadGroupByGroupname(String groupName)
@@ -810,14 +755,6 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         }
     }
 
-    static Jenkins getJenkins() {
-        Jenkins jenkins = Jenkins.getInstance();
-        if (jenkins == null) {
-            throw new IllegalStateException("Jenkins not started");
-        }
-        return jenkins;
-    }
-
     /**
      * Logger for debugging purposes.
      */
@@ -828,21 +765,4 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
-    /**
-     * Asks for the password.
-     */
-    private static class InteractivelyAskForPassword extends MasterToSlaveCallable<String,IOException> {
-        public String call() throws IOException {
-            Console console = System.console();
-            if(console == null) {
-                return null;    // no terminal
-            }
-            char[] w = console.readPassword("GitHub Personal Access Token: ");
-            if(w==null) {
-                return null;
-            }
-            return new String(w);
-        }
-        private static final long serialVersionUID = 1L;
-    }
 }

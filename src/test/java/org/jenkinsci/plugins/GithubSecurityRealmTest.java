@@ -29,7 +29,9 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 
@@ -42,15 +44,15 @@ public class GithubSecurityRealmTest {
     public void testEquals_true() {
         GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
         GithubSecurityRealm b = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
-        assertTrue(a.equals(b));
+        assertEquals(a, b);
     }
 
     @Test
     public void testEquals_false() {
         GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
         GithubSecurityRealm b = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,repo");
-        assertFalse(a.equals(b));
-        assertFalse(a.equals(""));
+        assertNotEquals(a, b);
+        assertNotEquals("", a);
     }
 
     @Test
@@ -70,18 +72,18 @@ public class GithubSecurityRealmTest {
     @Test
     public void testDescriptorImplGetDefaultGithubWebUri() {
         DescriptorImpl descriptor = new DescriptorImpl();
-        assertTrue("https://github.com".equals(descriptor.getDefaultGithubWebUri()));
+        assertEquals("https://github.com", descriptor.getDefaultGithubWebUri());
     }
 
     @Test
     public void testDescriptorImplGetDefaultGithubApiUri() {
         DescriptorImpl descriptor = new DescriptorImpl();
-        assertTrue("https://api.github.com".equals(descriptor.getDefaultGithubApiUri()));
+        assertEquals("https://api.github.com", descriptor.getDefaultGithubApiUri());
     }
 
     @Test
     public void testDescriptorImplGetDefaultOauthScopes() {
         DescriptorImpl descriptor = new DescriptorImpl();
-        assertTrue("read:org,user:email,repo".equals(descriptor.getDefaultOauthScopes()));
+        assertEquals("read:org,user:email,repo", descriptor.getDefaultOauthScopes());
     }
 }

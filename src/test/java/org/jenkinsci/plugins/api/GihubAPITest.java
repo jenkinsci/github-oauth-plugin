@@ -63,9 +63,6 @@ public class GihubAPITest extends TestCase {
     // the name of the organization to which the login is a participant.
     private static final String PARTICPATING_ORG = System.getProperty("github.org");
 
-    /**
-     * @param name
-     */
     public GihubAPITest(String name) {
         super(name);
         // TODO Auto-generated constructor stub

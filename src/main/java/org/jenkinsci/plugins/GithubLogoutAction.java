@@ -33,7 +33,7 @@ import jenkins.model.Jenkins;
 
 /**
  * A page that shows a simple message when the user logs out.
- * This prevents a logout -> login loop when using this security realm and Anonymous does not have {@code Overall.READ} permission.
+ * This prevents a logout -&gt; login loop when using this security realm and Anonymous does not have {@code Overall.READ} permission.
  */
 @Extension
 public class GithubLogoutAction implements UnprotectedRootAction {
@@ -59,8 +59,7 @@ public class GithubLogoutAction implements UnprotectedRootAction {
 
     @Restricted(NoExternalUse.class) // jelly only
     public String getGitHubURL() {
-        Jenkins j = Jenkins.getInstance();
-        assert j != null;
+        Jenkins j = Jenkins.get();
         SecurityRealm r = j.getSecurityRealm();
         if (r instanceof GithubSecurityRealm) {
             GithubSecurityRealm ghsr = (GithubSecurityRealm) r;
@@ -72,8 +71,7 @@ public class GithubLogoutAction implements UnprotectedRootAction {
 
     @Restricted(NoExternalUse.class) // jelly only
     public String getGitHubText() {
-        Jenkins j = Jenkins.getInstance();
-        assert j != null;
+        Jenkins j = Jenkins.get();
         SecurityRealm r = j.getSecurityRealm();
         if (r instanceof GithubSecurityRealm) {
             GithubSecurityRealm ghsr = (GithubSecurityRealm) r;

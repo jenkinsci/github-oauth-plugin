@@ -27,6 +27,7 @@ import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import hudson.model.User;
 import hudson.util.Scrambler;
+import java.util.Collections;
 import jenkins.security.ApiTokenProperty;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -41,9 +42,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.xml.sax.SAXException;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -59,7 +58,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class GithubAccessTokenPropertyTest {
 
@@ -120,7 +118,7 @@ public class GithubAccessTokenPropertyTest {
             this.serverUri = serverUri;
         }
 
-        @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             switch (req.getRequestURI()) {
                 case "/user":
                     this.onUser(req, resp);
@@ -201,12 +199,12 @@ public class GithubAccessTokenPropertyTest {
             resp.getWriter().write(JSONObject.fromObject(responseBody).toString());
         }
 
-        private void onOrgsMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) throws IOException {
+        private void onOrgsMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) {
             resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
             // 302 / 404 responses not implemented
         }
 
-        private void onTeamMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) throws IOException {
+        private void onTeamMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) {
             resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
             // 302 / 404 responses not implemented
         }
@@ -264,6 +262,7 @@ public class GithubAccessTokenPropertyTest {
         this.setupMockGithubServer();
         this.setupRealm();
         wc = j.createWebClient();
+        GithubAuthenticationToken.clearCaches();
     }
 
     private void setupRealm(){
@@ -295,10 +294,10 @@ public class GithubAccessTokenPropertyTest {
 
     @Issue("JENKINS-47113")
     @Test
-    public void testUsingGithubToken() throws IOException, SAXException {
+    public void testUsingGithubToken() throws IOException {
         String aliceLogin = "alice";
         servlet.currentLogin = aliceLogin;
-        servlet.organizations = Arrays.asList("org-a");
+        servlet.organizations = Collections.singletonList("org-a");
         Map<String, String> team = new HashMap<>();
         team.put("slug", "team-b");
         team.put("name", "Team D");
@@ -308,8 +307,8 @@ public class GithubAccessTokenPropertyTest {
         String aliceApiRestToken = aliceUser.getProperty(ApiTokenProperty.class).getApiToken();
         String aliceGitHubToken = "SPECIFIC_TOKEN";
 
-        // request whoAmI with ApiRestToken => group not populated
-        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated"));
+        // request whoAmI with ApiRestToken => group populated
+        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
 
         // request whoAmI with GitHubToken => group populated
         makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceGitHubToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
@@ -326,10 +325,10 @@ public class GithubAccessTokenPropertyTest {
 
     @Issue("JENKINS-47113")
     @Test
-    public void testUsingGithubLogin() throws IOException, SAXException {
+    public void testUsingGithubLogin() throws IOException {
         String bobLogin = "bob";
         servlet.currentLogin = bobLogin;
-        servlet.organizations = Arrays.asList("org-c");
+        servlet.organizations = Collections.singletonList("org-c");
         Map<String, String> team = new HashMap<>();
         team.put("slug", "team-d");
         team.put("name", "Team D");
@@ -338,8 +337,8 @@ public class GithubAccessTokenPropertyTest {
         User bobUser = User.getById(bobLogin, true);
         String bobApiRestToken = bobUser.getProperty(ApiTokenProperty.class).getApiToken();
 
-        // request whoAmI with ApiRestToken => group not populated
-        makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated"));
+        // request whoAmI with ApiRestToken => group populated
+        makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
         // request whoAmI with GitHub OAuth => group populated
         makeRequestUsingOAuth("bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
 
@@ -353,7 +352,7 @@ public class GithubAccessTokenPropertyTest {
         makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
     }
 
-    private void makeRequestWithAuthCodeAndVerify(String authCode, String expectedLogin, List<String> expectedAuthorities) throws IOException, SAXException {
+    private void makeRequestWithAuthCodeAndVerify(String authCode, String expectedLogin, List<String> expectedAuthorities) throws IOException {
         WebRequest req = new WebRequest(new URL(j.getURL(), "whoAmI/api/json"));
         req.setEncodingType(null);
         if (authCode != null)
@@ -392,8 +391,7 @@ public class GithubAccessTokenPropertyTest {
 
             Set<String> expectedAuthoritiesSet = new HashSet<>(expectedAuthorities);
 
-            assertTrue(String.format("They do not have the same content, expected=%s, actual=%s", expectedAuthorities, actualAuthorities),
-                    expectedAuthoritiesSet.equals(actualAuthorities));
+            assertEquals(String.format("They do not have the same content, expected=%s, actual=%s", expectedAuthorities, actualAuthorities), expectedAuthoritiesSet, actualAuthorities);
         }
     }
 

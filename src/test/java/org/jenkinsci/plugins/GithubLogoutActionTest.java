@@ -27,20 +27,15 @@ package org.jenkinsci.plugins;
 import jenkins.model.Jenkins;
 import junit.framework.TestCase;
 import org.jenkinsci.plugins.GithubSecurityRealm.DescriptorImpl;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({Jenkins.class, GithubSecurityRealm.class, DescriptorImpl.class})
 public class GithubLogoutActionTest extends TestCase {
-
-    @Mock
-    private Jenkins jenkins;
 
     @Mock
     private GithubSecurityRealm securityRealm;
@@ -48,30 +43,47 @@ public class GithubLogoutActionTest extends TestCase {
     @Mock
     private DescriptorImpl descriptor;
 
+    private AutoCloseable closeable;
+
     @Before
-    public void setUp() throws Exception {
-        PowerMockito.mockStatic(Jenkins.class);
-        PowerMockito.when(Jenkins.getInstance()).thenReturn(jenkins);
-        PowerMockito.when(jenkins.getSecurityRealm()).thenReturn(securityRealm);
-        PowerMockito.when(securityRealm.getDescriptor()).thenReturn(descriptor);
-        PowerMockito.when(descriptor.getDefaultGithubWebUri()).thenReturn("https://github.com");
+    public void setUp() {
+        closeable = MockitoAnnotations.openMocks(this);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        closeable.close();
+    }
+
+    private void mockJenkins(MockedStatic<Jenkins> mockedJenkins) {
+        Jenkins jenkins = Mockito.mock(Jenkins.class);
+        mockedJenkins.when(Jenkins::get).thenReturn(jenkins);
+        Mockito.when(jenkins.getSecurityRealm()).thenReturn(securityRealm);
+        Mockito.when(securityRealm.getDescriptor()).thenReturn(descriptor);
+        Mockito.when(descriptor.getDefaultGithubWebUri()).thenReturn("https://github.com");
     }
 
     private void mockGithubSecurityRealmWebUriFor(String host) {
-        PowerMockito.when(securityRealm.getGithubWebUri()).thenReturn(host);
+        Mockito.when(securityRealm.getGithubWebUri()).thenReturn(host);
     }
 
     @Test
     public void testGetGitHubText_gh() {
-        mockGithubSecurityRealmWebUriFor("https://github.com");
-        GithubLogoutAction ghlogout = new GithubLogoutAction();
-        assertEquals("GitHub", ghlogout.getGitHubText());
+        try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class)) {
+            mockJenkins(mockedJenkins);
+            mockGithubSecurityRealmWebUriFor("https://github.com");
+            GithubLogoutAction ghlogout = new GithubLogoutAction();
+            assertEquals("GitHub", ghlogout.getGitHubText());
+        }
     }
 
     @Test
     public void testGetGitHubText_ghe() {
-        mockGithubSecurityRealmWebUriFor("https://ghe.example.com");
-        GithubLogoutAction ghlogout = new GithubLogoutAction();
-        assertEquals("GitHub Enterprise", ghlogout.getGitHubText());
+        try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class)) {
+            mockJenkins(mockedJenkins);
+            mockGithubSecurityRealmWebUriFor("https://ghe.example.com");
+            GithubLogoutAction ghlogout = new GithubLogoutAction();
+            assertEquals("GitHub Enterprise", ghlogout.getGitHubText());
+        }
     }
 }
