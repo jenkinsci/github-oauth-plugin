@@ -11,7 +11,7 @@
     <properties>
         <revision>0.36</revision>
         <changelist>-SNAPSHOT</changelist>
-        <jenkins.version>2.277.4</jenkins.version>
+        <jenkins.version>2.289.1</jenkins.version>
         <java.level>8</java.level>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     </properties>
@@ -70,10 +70,15 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.277.x</artifactId>
-                <version>984.vb5eaac999a7e</version>
+                <artifactId>bom-2.289.x</artifactId>
+                <version>1036.v9f5a1aba8fab</version>
                 <scope>import</scope>
                 <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.11</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -82,7 +87,6 @@
         <dependency>
             <groupId>io.jenkins.plugins</groupId>
             <artifactId>caffeine-api</artifactId>
-            <version>2.9.2-29.v717aac953ff3</version>
         </dependency>
 
         <dependency>
@@ -93,7 +97,6 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.301-378.v9807bd746da5</version>
         </dependency>
 
         <dependency>
