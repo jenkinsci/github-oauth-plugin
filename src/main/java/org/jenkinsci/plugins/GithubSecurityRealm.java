@@ -57,10 +57,15 @@ import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.kohsuke.github.GHEmail;
@@ -448,15 +453,11 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     @Nullable
     private String getAccessToken(@NonNull String code) throws IOException {
         String content;
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpPost httpost = new HttpPost(githubWebUri
-                    + "/login/oauth/access_token?" + "client_id=" + clientID + "&"
-                    + "client_secret=" + clientSecret.getPlainText() + "&" + "code=" + code);
-            HttpHost proxy = getProxy(httpost);
-            if (proxy != null) {
-                RequestConfig requestConfig = RequestConfig.custom().setProxy(proxy).build();
-                httpost.setConfig(requestConfig);
-            }
+        HttpPost httpost = new HttpPost(githubWebUri
+                + "/login/oauth/access_token?" + "client_id=" + clientID + "&"
+                + "client_secret=" + clientSecret.getPlainText() + "&" + "code=" + code);
+
+        try (CloseableHttpClient httpClient = configureClientWithProxy(httpost)) {
             org.apache.http.HttpResponse response = httpClient.execute(httpost);
             HttpEntity entity = response.getEntity();
             content = EntityUtils.toString(entity);
@@ -471,6 +472,35 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         }
         return null;
     }
+
+    private CloseableHttpClient configureClientWithProxy(HttpPost postLocation) {
+        ProxyConfiguration proxyConfiguration = Jenkins.get().proxy;
+
+        if (proxyConfiguration == null) return HttpClients.createDefault();
+
+        HttpHost proxyHost = getProxy(proxyConfiguration, postLocation.getURI().getHost());
+
+        HttpClientBuilder httpClientBuilder = HttpClients.custom();
+
+        if (proxyHost != null) {
+            RequestConfig requestConfig = RequestConfig.custom()
+                    .setProxy(proxyHost)
+                    .build();
+
+            postLocation.setConfig(requestConfig);
+
+            if(proxyConfiguration.getUserName() != null && proxyConfiguration.getSecretPassword() != null ) {
+                CredentialsProvider credsProvider = new BasicCredentialsProvider();
+                credsProvider.setCredentials(
+                        new AuthScope(proxyHost.getHostName(), proxyHost.getPort()),
+                        new UsernamePasswordCredentials(proxyConfiguration.getUserName(), proxyConfiguration.getSecretPassword().getPlainText()));
+                httpClientBuilder.setDefaultCredentialsProvider(credsProvider);
+            }
+        }
+
+        return httpClientBuilder.build();
+    }
+
 
     /**
      * Generates a random URL Safe String of n characters
@@ -490,11 +520,8 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     /**
      * Returns the proxy to be used when connecting to the given URI.
      */
-    private HttpHost getProxy(HttpUriRequest method) {
-        ProxyConfiguration proxy = Jenkins.get().proxy;
-        if (proxy==null)    return null;    // defensive check
-
-        Proxy p = proxy.createProxy(method.getURI().getHost());
+    private HttpHost getProxy(ProxyConfiguration proxy, String host) {
+        Proxy p = proxy.createProxy(host);
         switch (p.type()) {
         case DIRECT:
             return null;        // no proxy
