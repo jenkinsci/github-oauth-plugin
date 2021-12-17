@@ -9,7 +9,7 @@
     </parent>
 
     <properties>
-        <revision>0.36</revision>
+        <revision>0.37</revision>
         <changelist>-SNAPSHOT</changelist>
         <jenkins.version>2.289.1</jenkins.version>
         <java.level>8</java.level>
@@ -18,7 +18,7 @@
 
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>github-oauth</artifactId>
-    <version>0.36</version>
+    <version>${revision}${changelist}</version>
     <name>GitHub Authentication plugin</name>
     <description>A Jenkins authentication plugin that delegates to GitHub.  We also implement an Authorization Strategy that uses the acquired OAuth token to interact with the GitHub API to determine a user's level of access to Jenkins.</description>
     <packaging>hpi</packaging>
@@ -50,7 +50,7 @@
         <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
         <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
         <url>https://github.com/${gitHubRepo}</url>
-        <tag>github-oauth-0.36</tag>
+        <tag>${scmTag}</tag>
     </scm>
 
     <repositories>
