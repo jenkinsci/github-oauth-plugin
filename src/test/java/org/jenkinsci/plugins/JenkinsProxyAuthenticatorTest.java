@@ -64,7 +64,7 @@ public class JenkinsProxyAuthenticatorTest {
         String credentials = Credentials.basic("user", "password");
         Request requestWithBasicAuth = new JenkinsProxyAuthenticator(proxyConfiguration).authenticate(null, response);
 
-        Assert.assertEquals(requestWithBasicAuth.header("Authorization"), credentials);
+        Assert.assertEquals(requestWithBasicAuth.header("Proxy-Authorization"), credentials);
     }
 
     @Test

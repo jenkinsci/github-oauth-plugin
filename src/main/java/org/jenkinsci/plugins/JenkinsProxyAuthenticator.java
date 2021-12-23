@@ -55,7 +55,7 @@ public class JenkinsProxyAuthenticator implements Authenticator {
                     String credentials = Credentials.basic(username, password.getPlainText());
                     return response.request()
                             .newBuilder()
-                            .header("Authorization", credentials)
+                            .header("Proxy-Authorization", credentials)
                             .build();
                 } else {
                     LOGGER.log(Level.WARNING, "Proxy requires Basic authentication but no username and password have been configured for the proxy");
