@@ -295,46 +295,8 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
             OkHttpClient client = new OkHttpClient.Builder()
                     .proxy(getProxy(host))
-                    .proxyAuthenticator((route, response) -> {
-
-                        if(response.request().header("Proxy-Authorization") != null) {
-                            return null; // Give up since we already tried to authenticate
-                        }
-
-                        if(response.challenges().isEmpty()) {
-                            // Proxy does not require authentication
-                            return null;
-                        }
-
-                        // Refuse pre-emptive challenge
-                        if(response.challenges().size() == 1) {
-                            Challenge challenge = response.challenges().get(0);
-                            if(challenge.scheme().equalsIgnoreCase("OkHttp-Preemptive")) {
-                                return null;
-                            }
-                        }
-
-                        for(Challenge challenge : response.challenges()) {
-                            if(challenge.scheme().equalsIgnoreCase("Basic")) {
-                                ProxyConfiguration proxy = Jenkins.get().getProxy();
-                                String username = proxy.getUserName();
-                                String password = proxy.getSecretPassword().getPlainText();
-                                if(username != null && password != null) {
-                                    String credentials = Credentials.basic(username, password);
-                                    return response.request()
-                                            .newBuilder()
-                                            .header("Authorization", credentials)
-                                            .build();
-                                } else {
-                                    LOGGER.log(Level.WARNING, "Proxy requires Basic authentication but no username and password have been configured for the proxy");
-                                }
-                                break;
-                            }
-                        }
-
-                        LOGGER.log(Level.WARNING, "Proxy requires authentication, but does not support Basic authentication");
-                        return null;
-                    }).build();
+                    .proxyAuthenticator(new JenkinsProxyAuthenticator(Jenkins.get().getProxy()))
+                    .build();
 
             this.gh = GitHubBuilder.fromEnvironment()
                     .withEndpoint(this.githubServer)
