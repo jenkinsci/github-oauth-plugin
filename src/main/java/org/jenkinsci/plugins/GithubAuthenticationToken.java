@@ -29,6 +29,7 @@ package org.jenkinsci.plugins;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import hudson.ProxyConfiguration;
+import okhttp3.Challenge;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 
@@ -58,6 +59,7 @@ import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -294,18 +296,44 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
             OkHttpClient client = new OkHttpClient.Builder()
                     .proxy(getProxy(host))
                     .proxyAuthenticator((route, response) -> {
-                        if(response.request().header("Authorization") != null) {
+
+                        if(response.request().header("Proxy-Authorization") != null) {
                             return null; // Give up since we already tried to authenticate
                         }
-                        ProxyConfiguration jenkinsProxyConfiguration = Jenkins.get().proxy;
 
-                        Request.Builder requestBuilder = response.request().newBuilder();
-                        if(jenkinsProxyConfiguration.getUserName() != null && jenkinsProxyConfiguration.getSecretPassword() != null) {
-                            String credential = Credentials.basic(jenkinsProxyConfiguration.getUserName(),
-                                    jenkinsProxyConfiguration.getSecretPassword().getPlainText());
-                            requestBuilder.header("Authorization", credential);
+                        if(response.challenges().isEmpty()) {
+                            // Proxy does not require authentication
+                            return null;
                         }
-                        return requestBuilder.build();
+
+                        // Refuse pre-emptive challenge
+                        if(response.challenges().size() == 1) {
+                            Challenge challenge = response.challenges().get(0);
+                            if(challenge.scheme().equalsIgnoreCase("OkHttp-Preemptive")) {
+                                return null;
+                            }
+                        }
+
+                        for(Challenge challenge : response.challenges()) {
+                            if(challenge.scheme().equalsIgnoreCase("Basic")) {
+                                ProxyConfiguration proxy = Jenkins.get().getProxy();
+                                String username = proxy.getUserName();
+                                String password = proxy.getSecretPassword().getPlainText();
+                                if(username != null && password != null) {
+                                    String credentials = Credentials.basic(username, password);
+                                    return response.request()
+                                            .newBuilder()
+                                            .header("Authorization", credentials)
+                                            .build();
+                                } else {
+                                    LOGGER.log(Level.WARNING, "Proxy requires Basic authentication but no username and password have been configured for the proxy");
+                                }
+                                break;
+                            }
+                        }
+
+                        LOGGER.log(Level.WARNING, "Proxy requires authentication, but does not support Basic authentication");
+                        return null;
                     }).build();
 
             this.gh = GitHubBuilder.fromEnvironment()
