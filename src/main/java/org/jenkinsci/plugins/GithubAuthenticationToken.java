@@ -28,8 +28,9 @@ package org.jenkinsci.plugins;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.OkUrlFactory;
+import hudson.ProxyConfiguration;
+import okhttp3.Credentials;
+import okhttp3.OkHttpClient;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -37,6 +38,7 @@ import hudson.model.Item;
 import hudson.security.Permission;
 import hudson.security.SecurityRealm;
 import jenkins.model.Jenkins;
+import okhttp3.Request;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.providers.AbstractAuthenticationToken;
@@ -49,7 +51,6 @@ import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
-import org.kohsuke.github.extras.OkHttpConnector;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -68,6 +69,7 @@ import java.util.logging.Logger;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
 
 
 /**
@@ -289,13 +291,28 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
                 throw new IOException("Invalid GitHub API URL: " + this.githubServer, e);
             }
 
-            OkHttpClient client = new OkHttpClient().setProxy(getProxy(host));
+            OkHttpClient client = new OkHttpClient.Builder()
+                    .proxy(getProxy(host))
+                    .proxyAuthenticator((route, response) -> {
+                        if(response.request().header("Authorization") != null) {
+                            return null; // Give up since we already tried to authenticate
+                        }
+                        ProxyConfiguration jenkinsProxyConfiguration = Jenkins.get().proxy;
+
+                        Request.Builder requestBuilder = response.request().newBuilder();
+                        if(jenkinsProxyConfiguration.getUserName() != null && jenkinsProxyConfiguration.getSecretPassword() != null) {
+                            String credential = Credentials.basic(jenkinsProxyConfiguration.getUserName(),
+                                    jenkinsProxyConfiguration.getSecretPassword().getPlainText());
+                            requestBuilder.header("Authorization", credential);
+                        }
+                        return requestBuilder.build();
+                    }).build();
 
             this.gh = GitHubBuilder.fromEnvironment()
                     .withEndpoint(this.githubServer)
                     .withOAuthToken(this.accessToken)
                     .withRateLimitHandler(RateLimitHandler.FAIL)
-                    .withConnector(new OkHttpConnector(new OkUrlFactory(client)))
+                    .withConnector(new OkHttpGitHubConnector(client))
                     .build();
         }
         return gh;
@@ -480,7 +497,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
                 usersByIdCache.put(username, new GithubUser(ghMyself));
             }
         } catch (IOException e) {
-            LOGGER.log(Level.FINEST, e.getMessage(), e);
+            LOGGER.log(Level.INFO, e.getMessage(), e);
             me = UNKNOWN_TOKEN;
             usersByTokenCache.put(token, UNKNOWN_TOKEN);
         }
