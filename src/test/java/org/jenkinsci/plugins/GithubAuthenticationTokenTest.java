@@ -10,6 +10,7 @@ import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.OkHttpConnector;
+import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -71,7 +72,7 @@ public class GithubAuthenticationTokenTest {
         Mockito.when(builder.withEndpoint("https://api.github.com")).thenReturn(builder);
         Mockito.when(builder.withOAuthToken("accessToken")).thenReturn(builder);
         Mockito.when(builder.withRateLimitHandler(RateLimitHandler.FAIL)).thenReturn(builder);
-        Mockito.when(builder.withConnector(Mockito.any(OkHttpConnector.class))).thenReturn(builder);
+        Mockito.when(builder.withConnector(Mockito.any(OkHttpGitHubConnector.class))).thenReturn(builder);
         Mockito.when(builder.build()).thenReturn(gh);
         GHMyself me = Mockito.mock(GHMyself.class);
         Mockito.when(gh.getMyself()).thenReturn(me);
