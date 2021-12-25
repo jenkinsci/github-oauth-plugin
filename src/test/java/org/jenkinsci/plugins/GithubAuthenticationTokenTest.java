@@ -9,7 +9,6 @@ import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
-import org.kohsuke.github.extras.OkHttpConnector;
 import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;

@@ -28,10 +28,6 @@ package org.jenkinsci.plugins;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import hudson.ProxyConfiguration;
-import okhttp3.Challenge;
-import okhttp3.Credentials;
-import okhttp3.OkHttpClient;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -39,7 +35,7 @@ import hudson.model.Item;
 import hudson.security.Permission;
 import hudson.security.SecurityRealm;
 import jenkins.model.Jenkins;
-import okhttp3.Request;
+import okhttp3.OkHttpClient;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.providers.AbstractAuthenticationToken;
@@ -52,6 +48,7 @@ import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
+import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -71,7 +68,6 @@ import java.util.logging.Logger;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
-import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
 
 
 /**
@@ -293,17 +289,20 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
                 throw new IOException("Invalid GitHub API URL: " + this.githubServer, e);
             }
 
-            OkHttpClient client = new OkHttpClient.Builder()
-                    .proxy(getProxy(host))
-                    .proxyAuthenticator(new JenkinsProxyAuthenticator(Jenkins.get().getProxy()))
-                    .build();
+            OkHttpClient client =
+                    new OkHttpClient.Builder()
+                            .proxy(getProxy(host))
+                            .proxyAuthenticator(
+                                    new JenkinsProxyAuthenticator(Jenkins.get().getProxy()))
+                            .build();
 
-            this.gh = GitHubBuilder.fromEnvironment()
-                    .withEndpoint(this.githubServer)
-                    .withOAuthToken(this.accessToken)
-                    .withRateLimitHandler(RateLimitHandler.FAIL)
-                    .withConnector(new OkHttpGitHubConnector(client))
-                    .build();
+            this.gh =
+                    GitHubBuilder.fromEnvironment()
+                            .withEndpoint(this.githubServer)
+                            .withOAuthToken(this.accessToken)
+                            .withRateLimitHandler(RateLimitHandler.FAIL)
+                            .withConnector(new OkHttpGitHubConnector(client))
+                            .build();
         }
         return gh;
     }
