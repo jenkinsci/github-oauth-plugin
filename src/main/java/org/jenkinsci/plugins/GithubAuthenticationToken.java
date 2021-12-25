@@ -28,8 +28,6 @@ package org.jenkinsci.plugins;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.OkUrlFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -37,6 +35,7 @@ import hudson.model.Item;
 import hudson.security.Permission;
 import hudson.security.SecurityRealm;
 import jenkins.model.Jenkins;
+import okhttp3.OkHttpClient;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
 import org.acegisecurity.providers.AbstractAuthenticationToken;
@@ -49,7 +48,7 @@ import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
-import org.kohsuke.github.extras.OkHttpConnector;
+import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -57,6 +56,7 @@ import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -289,14 +289,20 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
                 throw new IOException("Invalid GitHub API URL: " + this.githubServer, e);
             }
 
-            OkHttpClient client = new OkHttpClient().setProxy(getProxy(host));
+            OkHttpClient client =
+                    new OkHttpClient.Builder()
+                            .proxy(getProxy(host))
+                            .proxyAuthenticator(
+                                    new JenkinsProxyAuthenticator(Jenkins.get().getProxy()))
+                            .build();
 
-            this.gh = GitHubBuilder.fromEnvironment()
-                    .withEndpoint(this.githubServer)
-                    .withOAuthToken(this.accessToken)
-                    .withRateLimitHandler(RateLimitHandler.FAIL)
-                    .withConnector(new OkHttpConnector(new OkUrlFactory(client)))
-                    .build();
+            this.gh =
+                    GitHubBuilder.fromEnvironment()
+                            .withEndpoint(this.githubServer)
+                            .withOAuthToken(this.accessToken)
+                            .withRateLimitHandler(RateLimitHandler.FAIL)
+                            .withConnector(new OkHttpGitHubConnector(client))
+                            .build();
         }
         return gh;
     }
@@ -480,7 +486,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
                 usersByIdCache.put(username, new GithubUser(ghMyself));
             }
         } catch (IOException e) {
-            LOGGER.log(Level.FINEST, e.getMessage(), e);
+            LOGGER.log(Level.INFO, e.getMessage(), e);
             me = UNKNOWN_TOKEN;
             usersByTokenCache.put(token, UNKNOWN_TOKEN);
         }
