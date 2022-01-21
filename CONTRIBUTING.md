@@ -5,7 +5,7 @@ completely off of pull requests and code review.  There are a couple ways of
 contributing.  This document serves as helpful guidelines to contributing and
 isn't necessarily the full scope of available ways to contribute.
 
-### Contribute code
+## Contribute code
 
 1. Fork the project.
 2. Create a feature or bugfix branch.
@@ -24,7 +24,29 @@ What sort of code could use contributing?
 * Adding code coverage metrics such as cobertura.
 * Javadoc - it would be nice if Javadoc was complete.
 
-### Contribute code reviews
+### Building the plugin from master
+
+#### Prerequisites
+
+This plugin was last compiled with the following versions.
+
+* Ubuntu 16.04.1 LTS
+* Apache Maven 3.3.9
+* Java version: `1.8.0_131`, vendor: Oracle Corporation
+
+Newer/older versions may work.
+
+#### Packaging HPI for Jenkins
+
+To create `github-oauth.hpi` which is the plugin that would be loaded in Jenkins
+execute the following command.
+
+    mvn clean package
+
+The command assumes both Maven and Java are in your `$PATH` and that you have
+`$JAVA_HOME` set up.
+
+## Contribute code reviews
 
 Review [open pull requests][pr-open].  When reviewing, a simple `:+1:` comment
 is good enough.  Make a best effort at catching bugs.  For extra credit, build
@@ -39,7 +61,7 @@ the plugin and manually test it yourself.  Things to look out for:
 The current maintainers make a best effort to build and test the plugin manually
 before merging a pull request.
 
-### File issues or comment
+## File issues or comment
 
 Filing new issues and commenting on existing issues is a great help for
 validating or debunking potential bug reports.
