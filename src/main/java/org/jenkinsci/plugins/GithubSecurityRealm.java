@@ -400,7 +400,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
 
         if (accessToken != null && accessToken.trim().length() > 0) {
             // only set the access token if it exists.
-            GithubAuthenticationToken auth = new GithubAuthenticationToken(accessToken, getGithubApiUri());
+            GithubAuthenticationToken auth = new GithubAuthenticationToken(accessToken, getGithubApiUri(), true);
 
             HttpSession session = request.getSession(false);
             if(session != null){
