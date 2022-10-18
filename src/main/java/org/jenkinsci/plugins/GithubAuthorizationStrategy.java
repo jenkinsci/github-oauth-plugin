@@ -55,6 +55,7 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 
     @DataBoundConstructor
     public GithubAuthorizationStrategy(String adminUserNames,
+            String agentUserName,
             boolean authenticatedUserReadPermission,
             boolean useRepositoryPermissions,
             boolean authenticatedUserCreateJobPermission,
@@ -66,6 +67,7 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
         super();
 
         rootACL = new GithubRequireOrganizationMembershipACL(adminUserNames,
+                agentUserName,
                 organizationNames,
                 authenticatedUserReadPermission,
                 useRepositoryPermissions,
@@ -140,6 +142,10 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
         return StringUtils.join(rootACL.getAdminUserNameList().iterator(), ", ");
     }
 
+    public String getAgentUserName() {
+        return rootACL.getAgentUserName();
+    }
+
     /**
      * @return isUseRepositoryPermissions
      * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isUseRepositoryPermissions()
@@ -208,6 +214,7 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
             GithubAuthorizationStrategy obj = (GithubAuthorizationStrategy) object;
             return this.getOrganizationNames().equals(obj.getOrganizationNames()) &&
                 this.getAdminUserNames().equals(obj.getAdminUserNames()) &&
+                this.getAgentUserName().equals(obj.getAgentUserName()) &&
                 this.isUseRepositoryPermissions() == obj.isUseRepositoryPermissions() &&
                 this.isAuthenticatedUserCreateJobPermission() == obj.isAuthenticatedUserCreateJobPermission() &&
                 this.isAuthenticatedUserReadPermission() == obj.isAuthenticatedUserReadPermission() &&

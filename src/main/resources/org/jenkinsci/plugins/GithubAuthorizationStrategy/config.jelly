@@ -8,6 +8,10 @@
             <f:textbox />
         </f:entry>
 
+        <f:entry title="Agent User Name"  field="agentUserName" help="/plugin/github-oauth/help/auth/agent-user-name-help.html" >
+            <f:textbox />
+        </f:entry>
+
         <f:entry title="Participant in Organization"  field="organizationNames" help="/plugin/github-oauth/help/auth/organization-names-help.html">
             <f:textbox />
         </f:entry>

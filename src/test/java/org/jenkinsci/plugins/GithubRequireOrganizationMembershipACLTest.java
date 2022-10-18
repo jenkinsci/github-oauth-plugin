@@ -132,6 +132,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     private GithubRequireOrganizationMembershipACL createACL() {
         return new GithubRequireOrganizationMembershipACL(
                 "admin",
+                "agent",
                 "myOrg",
                 authenticatedUserReadPermission,
                 useRepositoryPermissions,
