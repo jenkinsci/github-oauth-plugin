@@ -4,14 +4,14 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.47</version>
+        <version>4.49</version>
         <relativePath />
     </parent>
 
     <properties>
         <revision>0.40</revision>
         <changelist>-SNAPSHOT</changelist>
-        <jenkins.version>2.289.3</jenkins.version>
+        <jenkins.version>2.332.4</jenkins.version>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     </properties>
 
@@ -69,8 +69,8 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.289.x</artifactId>
-                <version>1500.ve4d05cd32975</version>
+                <artifactId>bom-2.332.x</artifactId>
+                <version>1670.v7f165fc7a_079</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -133,7 +133,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>external-monitor-job</artifactId>
-            <version>192.ve979ca_8b_3ccd</version>
+            <version>203.v683c09d993b_9</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
