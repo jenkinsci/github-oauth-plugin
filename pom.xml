@@ -115,7 +115,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-branch-source</artifactId>
-            <version>1701.v00cc8184df93</version>
+            <version>1703.vd5a_2b_29c6cdc</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
