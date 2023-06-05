@@ -23,8 +23,8 @@
  */
 package org.jenkinsci.plugins;
 
-import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.WebRequest;
+import org.htmlunit.Page;
+import org.htmlunit.WebRequest;
 import hudson.model.User;
 import hudson.util.Scrambler;
 import java.util.Collections;
