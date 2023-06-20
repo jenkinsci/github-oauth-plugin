@@ -56,10 +56,13 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
+import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Messages;
@@ -130,7 +133,7 @@ public class GithubRequireOrganizationMembershipACLTest {
             new GrantedAuthority[]{new GrantedAuthorityImpl("anonymous")});
 
     private GithubRequireOrganizationMembershipACL createACL() {
-        return new GithubRequireOrganizationMembershipACL(
+        GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL(
                 "admin",
                 "myOrg",
                 authenticatedUserReadPermission,
@@ -140,6 +143,8 @@ public class GithubRequireOrganizationMembershipACLTest {
                 allowAnonymousCCTrayPermission,
                 allowAnonymousReadPermission,
                 allowAnonymousJobStatusPermission);
+        acl.setAgentServiceAccountList(Arrays.asList("myagent"));
+        return acl;
     }
 
     private GithubRequireOrganizationMembershipACL aclForProject(Project project) {
@@ -658,4 +663,78 @@ public class GithubRequireOrganizationMembershipACLTest {
         }
     }
 
+    @Test
+    public void testAdminCanAdminister() throws IOException {
+        try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
+             MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
+            mockJenkins(mockedJenkins);
+            GHMyself me = mockGHMyselfAs(mockedGitHubBuilder, "admin");
+            GithubRequireOrganizationMembershipACL acl = createACL();
+            GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
+
+            assertTrue(acl.hasPermission(authenticationToken, Jenkins.ADMINISTER));
+        }
+    }
+
+    @Test
+    public void testUserCannotAdminister() throws IOException {
+        try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
+             MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
+            mockJenkins(mockedJenkins);
+            GHMyself me = mockGHMyselfAs(mockedGitHubBuilder, "Me");
+            GithubRequireOrganizationMembershipACL acl = createACL();
+            GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
+
+            assertFalse(acl.hasPermission(authenticationToken, Jenkins.ADMINISTER));
+        }
+    }
+
+    @Test
+    public void testAgentCannotAdminister() throws IOException {
+        try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
+             MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
+            mockJenkins(mockedJenkins);
+            GHMyself me = mockGHMyselfAs(mockedGitHubBuilder, "myagent");
+            GithubRequireOrganizationMembershipACL acl = createACL();
+            GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
+
+            assertFalse(acl.hasPermission(authenticationToken, Jenkins.ADMINISTER));
+        }
+    }
+
+    @Test
+    public void testAgentCanManageAgent() throws IOException {
+        try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
+             MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
+            mockJenkins(mockedJenkins);
+            GHMyself me = mockGHMyselfAs(mockedGitHubBuilder, "myagent");
+            GithubRequireOrganizationMembershipACL acl = createACL();
+            GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
+
+            assertTrue(acl.hasPermission(authenticationToken, Computer.CONNECT));
+            assertTrue(acl.hasPermission(authenticationToken, Computer.DISCONNECT));
+            assertTrue(acl.hasPermission(authenticationToken, Computer.CREATE));
+            assertTrue(acl.hasPermission(authenticationToken, Computer.DELETE));
+            assertTrue(acl.hasPermission(authenticationToken, Computer.CONFIGURE));
+            assertTrue(acl.hasPermission(authenticationToken, Computer.BUILD));
+        }
+    }
+
+    @Test
+    public void testUserCannotManageAgent() throws IOException {
+        try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
+             MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
+            mockJenkins(mockedJenkins);
+            GHMyself me = mockGHMyselfAs(mockedGitHubBuilder, "Me");
+            GithubRequireOrganizationMembershipACL acl = createACL();
+            GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
+
+            assertFalse(acl.hasPermission(authenticationToken, Computer.CONNECT));
+            assertFalse(acl.hasPermission(authenticationToken, Computer.DISCONNECT));
+            assertFalse(acl.hasPermission(authenticationToken, Computer.CREATE));
+            assertFalse(acl.hasPermission(authenticationToken, Computer.DELETE));
+            assertFalse(acl.hasPermission(authenticationToken, Computer.CONFIGURE));
+            assertFalse(acl.hasPermission(authenticationToken, Computer.BUILD));
+        }
+    }
 }

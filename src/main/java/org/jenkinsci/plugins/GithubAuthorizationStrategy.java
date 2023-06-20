@@ -30,9 +30,11 @@ import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 
@@ -140,6 +142,28 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
         return StringUtils.join(rootACL.getAdminUserNameList().iterator(), ", ");
     }
 
+    /** Set the agent service accounts. We use a setter instead of a constructor to make this an optional
+     *  to avoid a breaking change.
+     * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#setAgentServiceAccountList(List)
+     */
+    @DataBoundSetter
+    public void setAgentServiceAccounts(String accounts) {
+        LinkedList<String> list = new LinkedList<String>();
+        for (String account : accounts.split(",")) {
+            list.add(account.trim());
+        }
+        rootACL.setAgentServiceAccountList(list);
+    }
+
+    /**
+     * @return agentServiceAccounts
+     * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#getAgentServiceAccountList()
+     */
+    public String getAgentServiceAccounts() {
+        return StringUtils.join(rootACL.getAgentServiceAccountList().iterator(), ", ");
+    }
+
+
     /**
      * @return isUseRepositoryPermissions
      * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isUseRepositoryPermissions()
@@ -208,6 +232,7 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
             GithubAuthorizationStrategy obj = (GithubAuthorizationStrategy) object;
             return this.getOrganizationNames().equals(obj.getOrganizationNames()) &&
                 this.getAdminUserNames().equals(obj.getAdminUserNames()) &&
+                this.getAgentServiceAccounts().equals(obj.getAgentServiceAccounts()) &&
                 this.isUseRepositoryPermissions() == obj.isUseRepositoryPermissions() &&
                 this.isAuthenticatedUserCreateJobPermission() == obj.isAuthenticatedUserCreateJobPermission() &&
                 this.isAuthenticatedUserReadPermission() == obj.isAuthenticatedUserReadPermission() &&

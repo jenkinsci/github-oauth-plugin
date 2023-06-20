@@ -43,6 +43,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 
 import hudson.model.AbstractItem;
 import hudson.model.AbstractProject;
+import hudson.model.Computer;
 import hudson.model.Describable;
 import hudson.model.Item;
 import hudson.plugins.git.GitSCM;
@@ -72,6 +73,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
     private final boolean allowAnonymousReadPermission;
     private final boolean allowAnonymousJobStatusPermission;
     private final AbstractItem item;
+    private List<String> agentServiceAccountList;
 
     /*
      * (non-Javadoc)
@@ -96,6 +98,12 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
             }
 
             // Streamline checks!
+
+            // Is this an agent trying to connect?
+            if (agentServiceAccountList.contains(candidateName) && checkAgentPermission(permission)) {
+                log.finest("Granting Agent access to user " + candidateName);
+                return true;
+            }
 
             // Are they trying to create something and we have that setting enabled? Return quickly!
             if (authenticatedUserCreateJobPermission && permission.equals(Item.CREATE)) {
@@ -183,6 +191,13 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
                 return true;
             }
 
+            // Is this an agent trying to connect?
+            if (agentServiceAccountList.contains(authenticatedUserName) &&
+                (checkAgentPermission(permission) || checkReadPermission(permission))) {
+                log.finest("Granting Agent access to user " + a.getName());
+                return true;
+            }
+
             // else:
             // deny request
             //
@@ -243,6 +258,15 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
         return permission.getId().equals("hudson.model.Item.ViewStatus");
     }
 
+    private boolean checkAgentPermission(@NonNull Permission permission) {
+        return permission.equals(Computer.CONNECT)
+               || permission.equals(Computer.DISCONNECT)
+               || permission.equals(Computer.CREATE)
+               || permission.equals(Computer.DELETE)
+               || permission.equals(Computer.CONFIGURE)
+               || permission.equals(Computer.BUILD);
+    }
+
     @Nullable
     private String getRepositoryName() {
         String repositoryName = null;
@@ -297,40 +321,42 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
         this.allowCcTrayPermission                = allowCcTrayPermission;
         this.allowAnonymousReadPermission         = allowAnonymousReadPermission;
         this.allowAnonymousJobStatusPermission    = allowAnonymousJobStatusPermission;
-        this.adminUserNameList                    = new LinkedList<>();
 
-        String[] parts = adminUserNames.split(",");
-
-        for (String part : parts) {
+        this.adminUserNameList = new LinkedList<>();
+        for (String part : adminUserNames.split(",")) {
             adminUserNameList.add(part.trim());
         }
 
         this.organizationNameList = new LinkedList<>();
-
-        parts = organizationNames.split(",");
-
-        for (String part : parts) {
+        for (String part : organizationNames.split(",")) {
             organizationNameList.add(part.trim());
         }
+
+        // Initially blank - populated by a setter since this field is optional
+        this.agentServiceAccountList = new LinkedList<String>();
 
         this.item = null;
     }
 
     public GithubRequireOrganizationMembershipACL cloneForProject(AbstractItem item) {
-      return new GithubRequireOrganizationMembershipACL(
-          this.adminUserNameList,
-          this.organizationNameList,
-          this.authenticatedUserReadPermission,
-          this.useRepositoryPermissions,
-          this.authenticatedUserCreateJobPermission,
-          this.allowGithubWebHookPermission,
-          this.allowCcTrayPermission,
-          this.allowAnonymousReadPermission,
-          this.allowAnonymousJobStatusPermission,
-          item);
+        GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL(
+            this.adminUserNameList,
+            this.agentServiceAccountList,
+            this.organizationNameList,
+            this.authenticatedUserReadPermission,
+            this.useRepositoryPermissions,
+            this.authenticatedUserCreateJobPermission,
+            this.allowGithubWebHookPermission,
+            this.allowCcTrayPermission,
+            this.allowAnonymousReadPermission,
+            this.allowAnonymousJobStatusPermission,
+            item);
+        acl.setAgentServiceAccountList(this.agentServiceAccountList);
+        return acl;
     }
 
     public GithubRequireOrganizationMembershipACL(List<String> adminUserNameList,
+            List<String> agentServiceAccountList,
             List<String> organizationNameList,
             boolean authenticatedUserReadPermission,
             boolean useRepositoryPermissions,
@@ -343,6 +369,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
         super();
 
         this.adminUserNameList                    = adminUserNameList;
+        this.agentServiceAccountList              = agentServiceAccountList;
         this.organizationNameList                 = organizationNameList;
         this.authenticatedUserReadPermission      = authenticatedUserReadPermission;
         this.useRepositoryPermissions             = useRepositoryPermissions;
@@ -360,6 +387,14 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
     public List<String> getAdminUserNameList() {
         return adminUserNameList;
+    }
+
+    public void setAgentServiceAccountList(List<String> accounts) {
+        this.agentServiceAccountList = accounts;
+    }
+
+    public List<String> getAgentServiceAccountList() {
+        return agentServiceAccountList;
     }
 
     public boolean isUseRepositoryPermissions() {
