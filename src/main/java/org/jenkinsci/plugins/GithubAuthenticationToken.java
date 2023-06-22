@@ -201,7 +201,11 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         this.accessToken = accessToken;
         this.githubServer = githubServer;
 
-        this.me = loadMyself(accessToken);
+        if(Boolean.getBoolean("org.jenkinsci.plugins.GithubAuthenticationToken.cacheUsersByToken")) {
+            this.me = loadMyself(accessToken);
+        }else{
+            this.me = getGitHub().getMyself();
+        }
 
         if(this.me == null) {
             throw new UsernameNotFoundException("Token not valid");
