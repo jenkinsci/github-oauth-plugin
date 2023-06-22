@@ -23,8 +23,8 @@
  */
 package org.jenkinsci.plugins;
 
-import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.WebRequest;
+import org.htmlunit.Page;
+import org.htmlunit.WebRequest;
 import hudson.model.User;
 import hudson.util.Scrambler;
 import java.util.Collections;
@@ -347,10 +347,42 @@ public class GithubAccessTokenPropertyTest {
         makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
 
         GithubAuthenticationToken.clearCaches();
-        wc = j.createWebClient();
+
         // retrieve the security group even without the cookie (using LastGrantedAuthorities this time)
         makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
     }
+
+    @Issue("JENKINS-60200")
+    @Test
+    public void testInvalidateAuthorizationCacheOnFreshLogin() throws IOException {
+        String bobLogin = "bob";
+        servlet.currentLogin = bobLogin;
+        servlet.organizations = Collections.singletonList("org-c");
+        Map<String, String> team = new HashMap<>();
+        team.put("slug", "team-d");
+        team.put("name", "Team D");
+        servlet.teams = Collections.singletonList(team);
+
+        User bobUser = User.getById(bobLogin, true);
+        String bobApiRestToken = bobUser.getProperty(ApiTokenProperty.class).getApiToken();
+
+        // request whoAmI with ApiRestToken => group populated
+        makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
+        // request whoAmI with GitHub OAuth => group populated
+        makeRequestUsingOAuth("bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
+
+        // Switch the teams
+        team.put("slug", "team-e");
+        team.put("name", "Team E");
+        servlet.teams = Collections.singletonList(team);
+
+        // With just AuthCode, the cache is not invalidated
+        makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
+
+        // With OAuth the cache is invalidated
+        makeRequestUsingOAuth("bob", Arrays.asList("authenticated", "org-c", "org-c*team-e"));
+    }
+
 
     private void makeRequestWithAuthCodeAndVerify(String authCode, String expectedLogin, List<String> expectedAuthorities) throws IOException {
         WebRequest req = new WebRequest(new URL(j.getURL(), "whoAmI/api/json"));
