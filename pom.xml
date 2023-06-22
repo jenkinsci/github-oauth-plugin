@@ -10,7 +10,7 @@
 
     <properties>
         <revision>0.40</revision>
-        <changelist>-SNAPSHOT</changelist>
+        <changelist>-SNAPSHOT-ahura-disable-cache</changelist>
         <jenkins.version>2.361.4</jenkins.version>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     </properties>
