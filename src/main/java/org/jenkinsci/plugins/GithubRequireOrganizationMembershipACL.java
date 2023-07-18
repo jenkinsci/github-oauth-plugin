@@ -105,6 +105,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
             // Grant agent permissions to agent user
             if (candidateName.equalsIgnoreCase(agentUserName) && checkAgentUserPermission(permission)) {
+                log.finest("Granting Agent Connect rights to user " + candidateName);
                 return true;
             }
 
@@ -161,6 +162,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
             // Grant agent permissions to agent user
             if (authenticatedUserName.equalsIgnoreCase(agentUserName) && checkAgentUserPermission(permission)) {
+                log.finest("Granting Agent Connect rights to user " + authenticatedUserName);
                 return true;
             }
 
