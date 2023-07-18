@@ -26,6 +26,7 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
+import hudson.model.*;
 import org.acegisecurity.Authentication;
 import org.jenkinsci.plugins.github_branch_source.GitHubSCMSource;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -41,10 +42,6 @@ import java.util.logging.Logger;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 
-import hudson.model.AbstractItem;
-import hudson.model.AbstractProject;
-import hudson.model.Describable;
-import hudson.model.Item;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.UserRemoteConfig;
 import hudson.security.ACL;
@@ -254,10 +251,10 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
     private boolean checkAgentUserPermission(@NonNull Permission permission) {
         String id = permission.getId();
-        return (id.equals("hudson.model.Hudson.Read")
-                || id.equals("hudson.model.Computer.Create")
-                || id.equals("hudson.model.Computer.Connect")
-                || id.equals("hudson.model.Computer.Configure"));
+        return (id.equals(Hudson.READ)
+                || id.equals(Computer.CREATE)
+                || id.equals(Computer.CONNECT)
+                || id.equals(Computer.CONFIGURE));
     }
 
     private boolean checkJobStatusPermission(@NonNull Permission permission) {
