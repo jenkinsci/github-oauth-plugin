@@ -250,11 +250,10 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
     }
 
     private boolean checkAgentUserPermission(@NonNull Permission permission) {
-        String id = permission.getId();
-        return (id.equals(Hudson.READ)
-                || id.equals(Computer.CREATE)
-                || id.equals(Computer.CONNECT)
-                || id.equals(Computer.CONFIGURE));
+        return permission.equals(Hudson.READ)
+                || permission.equals(Computer.CREATE)
+                || permission.equals(Computer.CONNECT)
+                || permission.equals(Computer.CONFIGURE);
     }
 
     private boolean checkJobStatusPermission(@NonNull Permission permission) {
