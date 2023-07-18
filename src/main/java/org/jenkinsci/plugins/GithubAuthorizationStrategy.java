@@ -30,6 +30,7 @@ import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -55,7 +56,6 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
 
     @DataBoundConstructor
     public GithubAuthorizationStrategy(String adminUserNames,
-            String agentUserName,
             boolean authenticatedUserReadPermission,
             boolean useRepositoryPermissions,
             boolean authenticatedUserCreateJobPermission,
@@ -67,7 +67,6 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
         super();
 
         rootACL = new GithubRequireOrganizationMembershipACL(adminUserNames,
-                agentUserName,
                 organizationNames,
                 authenticatedUserReadPermission,
                 useRepositoryPermissions,
@@ -140,6 +139,15 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
      */
     public String getAdminUserNames() {
         return StringUtils.join(rootACL.getAdminUserNameList().iterator(), ", ");
+    }
+
+    /** Set the agent username. We use a setter instead of a constructor to make this an optional field
+     *  to avoid a breaking change.
+     * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#setAgentUserName(String)
+     */
+    @DataBoundSetter
+    public void setAgentUserName(String agentUserName) {
+        rootACL.setAgentUserName(agentUserName);
     }
 
     /**

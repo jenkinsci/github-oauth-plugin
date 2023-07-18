@@ -131,9 +131,8 @@ public class GithubRequireOrganizationMembershipACLTest {
             new GrantedAuthority[]{new GrantedAuthorityImpl("anonymous")});
 
     private GithubRequireOrganizationMembershipACL createACL() {
-        return new GithubRequireOrganizationMembershipACL(
+        GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL(
                 "admin",
-                "agent",
                 "myOrg",
                 authenticatedUserReadPermission,
                 useRepositoryPermissions,
@@ -142,6 +141,8 @@ public class GithubRequireOrganizationMembershipACLTest {
                 allowAnonymousCCTrayPermission,
                 allowAnonymousReadPermission,
                 allowAnonymousJobStatusPermission);
+        acl.setAgentUserName("agent");
+        return acl;
     }
 
     private GithubRequireOrganizationMembershipACL aclForProject(Project project) {
