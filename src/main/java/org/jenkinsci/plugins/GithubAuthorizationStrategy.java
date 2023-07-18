@@ -142,6 +142,10 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
         return StringUtils.join(rootACL.getAdminUserNameList().iterator(), ", ");
     }
 
+    /**
+     * @return agentUserName
+     * @see GithubRequireOrganizationMembershipACL#getAgentUserName()
+     */
     public String getAgentUserName() {
         return rootACL.getAgentUserName();
     }
