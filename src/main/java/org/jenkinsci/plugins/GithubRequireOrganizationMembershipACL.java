@@ -26,6 +26,7 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
+import hudson.model.*;
 import org.acegisecurity.Authentication;
 import org.jenkinsci.plugins.github_branch_source.GitHubSCMSource;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -41,10 +42,6 @@ import java.util.logging.Logger;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 
-import hudson.model.AbstractItem;
-import hudson.model.AbstractProject;
-import hudson.model.Describable;
-import hudson.model.Item;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.UserRemoteConfig;
 import hudson.security.ACL;
@@ -64,6 +61,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
     private final List<String> organizationNameList;
     private final List<String> adminUserNameList;
+    private String agentUserName;
     private final boolean authenticatedUserReadPermission;
     private final boolean useRepositoryPermissions;
     private final boolean authenticatedUserCreateJobPermission;
@@ -99,6 +97,12 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
             // Are they trying to create something and we have that setting enabled? Return quickly!
             if (authenticatedUserCreateJobPermission && permission.equals(Item.CREATE)) {
+                return true;
+            }
+
+            // Grant agent permissions to agent user
+            if (candidateName.equalsIgnoreCase(agentUserName) && checkAgentUserPermission(permission)) {
+                log.finest("Granting Agent Connect rights to user " + candidateName);
                 return true;
             }
 
@@ -150,6 +154,12 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
             if (authenticatedUserName.equals(SYSTEM.getPrincipal())) {
                 // give system user full access
                 log.finest("Granting Full rights to SYSTEM user.");
+                return true;
+            }
+
+            // Grant agent permissions to agent user
+            if (authenticatedUserName.equalsIgnoreCase(agentUserName) && checkAgentUserPermission(permission)) {
+                log.finest("Granting Agent Connect rights to user " + authenticatedUserName);
                 return true;
             }
 
@@ -239,6 +249,13 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
                 || id.equals("hudson.model.Item.Read"));
     }
 
+    private boolean checkAgentUserPermission(@NonNull Permission permission) {
+        return permission.equals(Hudson.READ)
+                || permission.equals(Computer.CREATE)
+                || permission.equals(Computer.CONNECT)
+                || permission.equals(Computer.CONFIGURE);
+    }
+
     private boolean checkJobStatusPermission(@NonNull Permission permission) {
         return permission.getId().equals("hudson.model.Item.ViewStatus");
     }
@@ -314,10 +331,11 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
         }
 
         this.item = null;
+        this.agentUserName = ""; // Initially blank - populated by a setter since this field is optional
     }
 
     public GithubRequireOrganizationMembershipACL cloneForProject(AbstractItem item) {
-      return new GithubRequireOrganizationMembershipACL(
+        GithubRequireOrganizationMembershipACL acl = new GithubRequireOrganizationMembershipACL(
           this.adminUserNameList,
           this.organizationNameList,
           this.authenticatedUserReadPermission,
@@ -328,6 +346,8 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
           this.allowAnonymousReadPermission,
           this.allowAnonymousJobStatusPermission,
           item);
+        acl.setAgentUserName(agentUserName);
+        return acl;
     }
 
     public GithubRequireOrganizationMembershipACL(List<String> adminUserNameList,
@@ -361,6 +381,11 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
     public List<String> getAdminUserNameList() {
         return adminUserNameList;
     }
+
+    public void setAgentUserName(String agentUserName) {
+        this.agentUserName = agentUserName;
+    }
+    public String getAgentUserName() { return agentUserName; }
 
     public boolean isUseRepositoryPermissions() {
         return useRepositoryPermissions;

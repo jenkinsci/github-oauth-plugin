@@ -30,6 +30,7 @@ import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -140,6 +141,23 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
         return StringUtils.join(rootACL.getAdminUserNameList().iterator(), ", ");
     }
 
+    /** Set the agent username. We use a setter instead of a constructor to make this an optional field
+     *  to avoid a breaking change.
+     * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#setAgentUserName(String)
+     */
+    @DataBoundSetter
+    public void setAgentUserName(String agentUserName) {
+        rootACL.setAgentUserName(agentUserName);
+    }
+
+    /**
+     * @return agentUserName
+     * @see GithubRequireOrganizationMembershipACL#getAgentUserName()
+     */
+    public String getAgentUserName() {
+        return rootACL.getAgentUserName();
+    }
+
     /**
      * @return isUseRepositoryPermissions
      * @see org.jenkinsci.plugins.GithubRequireOrganizationMembershipACL#isUseRepositoryPermissions()
@@ -208,6 +226,7 @@ public class GithubAuthorizationStrategy extends AuthorizationStrategy {
             GithubAuthorizationStrategy obj = (GithubAuthorizationStrategy) object;
             return this.getOrganizationNames().equals(obj.getOrganizationNames()) &&
                 this.getAdminUserNames().equals(obj.getAdminUserNames()) &&
+                this.getAgentUserName().equals(obj.getAgentUserName()) &&
                 this.isUseRepositoryPermissions() == obj.isUseRepositoryPermissions() &&
                 this.isAuthenticatedUserCreateJobPermission() == obj.isAuthenticatedUserCreateJobPermission() &&
                 this.isAuthenticatedUserReadPermission() == obj.isAuthenticatedUserReadPermission() &&
