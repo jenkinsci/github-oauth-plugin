@@ -6,9 +6,10 @@ buildPlugin(
   useContainerAgent: true,
   // Show failures on all configurations
   failFast: false,
-  // Test Java 11 with default Jenkins version, Java 17 with more recent LTS
+  // Test Java 11, 17, and 21
   configurations: [
-    [platform: 'linux',   jdk: '17', jenkins: '2.387.1'],
+    [platform: 'linux',   jdk: '17'],
+    [platform: 'linux',   jdk: '21', jenkins: '2.414'],
     [platform: 'windows', jdk: '11']
   ]
 )
