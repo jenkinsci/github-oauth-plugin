@@ -504,9 +504,6 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
                 // Also stick into usersByIdCache (to have latest copy)
                 String username = ghMyself.getLogin();
                 usersByIdCache.put(username, new GithubUser(ghMyself));
-            } else {
-                // force creation of the gh variable, esp. in case of impersonation
-                getGitHub();
             }
         } catch (IOException e) {
             LOGGER.log(Level.INFO, e.getMessage(), e);

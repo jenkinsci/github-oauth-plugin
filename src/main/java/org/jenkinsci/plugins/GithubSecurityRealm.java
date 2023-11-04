@@ -753,15 +753,10 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     @Override
     public GroupDetails loadGroupByGroupname(String groupName)
             throws UsernameNotFoundException, DataAccessException {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            throw new UsernameNotFoundException("No known group: " + groupName);
-        }
-        if (!(authentication instanceof GithubAuthenticationToken)) {
-            throw new UserMayOrMayNotExistException("The received token is not a GitHub one");
-        }
+        GithubAuthenticationToken authToken =  (GithubAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
 
-        GithubAuthenticationToken authToken = (GithubAuthenticationToken) authentication;
+        if(authToken == null)
+            throw new UsernameNotFoundException("No known group: " + groupName);
 
         try {
             int idx = groupName.indexOf(GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR);
