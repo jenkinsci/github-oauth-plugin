@@ -10,8 +10,7 @@
 
     <properties>
         <changelist>999999-SNAPSHOT</changelist>
-        <!-- TODO JENKINS-73130 https://ci.jenkins.io/job/Core/job/jenkins/job/prototype/ -->
-        <jenkins.version>2.468-rc35110.010999645350</jenkins.version>
+        <jenkins.version>2.361.4</jenkins.version>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
         <!-- TODO JENKINS-73339 until in parent POM -->
         <jenkins-test-harness.version>2244.v77428109fd1f</jenkins-test-harness.version>
