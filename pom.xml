@@ -12,6 +12,9 @@
         <changelist>999999-SNAPSHOT</changelist>
         <jenkins.version>2.361.4</jenkins.version>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
+        <!-- TODO JENKINS-73339 until in parent POM -->
+        <jenkins-test-harness.version>2244.v77428109fd1f</jenkins-test-harness.version>
+        <maven.compiler.release>17</maven.compiler.release>
     </properties>
 
     <groupId>org.jenkins-ci.plugins</groupId>
