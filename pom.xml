@@ -16,7 +16,7 @@
         <jenkins.version>2.472</jenkins.version>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
         <!-- TODO JENKINS-73339 until in parent POM -->
-        <jenkins-test-harness.version>2244.v77428109fd1f</jenkins-test-harness.version>
+        <jenkins-test-harness.version>2254.vcff7a_d4969e5</jenkins-test-harness.version>
         <maven.compiler.release>17</maven.compiler.release>
     </properties>
 
