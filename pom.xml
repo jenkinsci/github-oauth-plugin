@@ -10,7 +10,10 @@
 
     <properties>
         <changelist>999999-SNAPSHOT</changelist>
-        <jenkins.version>2.361.4</jenkins.version>
+        <jenkins.baseline>2.462</jenkins.baseline>
+        <!-- TODO: replace when 2.472 is in LTS -->
+        <!-- <jenkins.version>${jenkins.baseline}.3</jenkins.version> -->
+        <jenkins.version>2.472</jenkins.version>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
         <!-- TODO JENKINS-73339 until in parent POM -->
         <jenkins-test-harness.version>2244.v77428109fd1f</jenkins-test-harness.version>
@@ -71,8 +74,8 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.361.x</artifactId>
-                <version>2102.v854b_fec19c92</version>
+                <artifactId>bom-${jenkins.baseline}.x</artifactId>
+                <version>3271.vf18ea_cb_9edfb_</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
