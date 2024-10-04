@@ -4,20 +4,17 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.88</version>
+        <version>5.1</version>
         <relativePath />
     </parent>
 
     <properties>
         <changelist>999999-SNAPSHOT</changelist>
         <jenkins.baseline>2.462</jenkins.baseline>
-        <!-- TODO: replace when 2.472 is in LTS -->
+        <!-- TODO: replace when 2.479 is in LTS -->
         <!-- <jenkins.version>${jenkins.baseline}.3</jenkins.version> -->
-        <jenkins.version>2.472</jenkins.version>
+        <jenkins.version>2.479</jenkins.version>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-        <!-- TODO JENKINS-73339 until in parent POM -->
-        <jenkins-test-harness.version>2254.vcff7a_d4969e5</jenkins-test-harness.version>
-        <maven.compiler.release>17</maven.compiler.release>
     </properties>
 
     <groupId>org.jenkins-ci.plugins</groupId>
