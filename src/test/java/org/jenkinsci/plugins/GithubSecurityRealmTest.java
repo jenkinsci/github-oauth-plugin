@@ -52,7 +52,24 @@ public class GithubSecurityRealmTest {
         GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
         GithubSecurityRealm b = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,repo");
         assertNotEquals(a, b);
-        assertNotEquals("", a);
+    }
+
+    @Test
+    public void testEqualsRedirectUri() {
+        GithubSecurityRealm _default = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
+        GithubSecurityRealm empty = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
+        empty.setRedirectUri("");
+        GithubSecurityRealm sameValue1 = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
+        sameValue1.setRedirectUri("http://jenkins1.awesomecorp.com");
+        GithubSecurityRealm sameValue2 = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
+        sameValue2.setRedirectUri("http://jenkins1.awesomecorp.com");
+        GithubSecurityRealm otherValue = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
+        otherValue.setRedirectUri("http://jenkins1.notsogoodcorp.com");
+        assertEquals(_default, empty);
+        assertEquals(sameValue1, sameValue2);
+        assertNotEquals(sameValue1, _default);
+        assertNotEquals(sameValue1, empty);
+        assertNotEquals(sameValue1, otherValue);
     }
 
     @Test
