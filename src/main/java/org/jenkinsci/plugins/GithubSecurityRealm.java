@@ -62,7 +62,7 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -73,6 +73,7 @@ import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHTeam;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.Header;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
@@ -85,6 +86,8 @@ import org.springframework.dao.DataRetrievalFailureException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -115,6 +118,8 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     private Secret clientSecret;
     private String oauthScopes;
     private String[] myScopes;
+    @NonNull
+    private String redirectUri = "";
 
     /**
      * @param githubWebUri The URI to the root of the web UI for GitHub or GitHub Enterprise,
@@ -188,6 +193,15 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
     }
 
     /**
+     * @param redirectUri the redirectUri to set
+     */
+    @DataBoundSetter
+    public void setRedirectUri(String redirectUri) {
+        if (null == redirectUri) redirectUri = "";
+        this.redirectUri = redirectUri;
+    }
+
+    /**
      * Checks the security realm for a GitHub OAuth scope.
      * @param scope A scope to check for in the security realm.
      * @return true if security realm has the scope or false if it does not.
@@ -245,6 +259,10 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             writer.setValue(realm.getOauthScopes());
             writer.endNode();
 
+            writer.startNode("redirectUri");
+            writer.setValue(realm.getRedirectUri());
+            writer.endNode();
+
         }
 
         public Object unmarshal(HierarchicalStreamReader reader,
@@ -274,8 +292,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             return realm;
         }
 
-        private void setValue(GithubSecurityRealm realm, String node,
-                String value) {
+        private void setValue(GithubSecurityRealm realm, String node, String value) {
             if (node.equalsIgnoreCase("clientid")) {
                 realm.setClientID(value);
             } else if (node.equalsIgnoreCase("clientsecret")) {
@@ -290,6 +307,8 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                 realm.setGithubApiUri(value);
             } else if (node.equalsIgnoreCase("oauthscopes")) {
                 realm.setOauthScopes(value);
+            } else if (node.equalsIgnoreCase("redirecturi")) {
+                realm.setRedirectUri(value);
             } else {
                 throw new ConversionException("Invalid node value = " + node);
             }
@@ -334,11 +353,21 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         return oauthScopes;
     }
 
+    /**
+     * @return the redirectUri
+     */
+    @NonNull
+    public String getRedirectUri() {
+        return redirectUri;
+    }
+
     public HttpResponse doCommenceLogin(StaplerRequest request, @QueryParameter String from, @Header("Referer") final String referer)
-            throws IOException {
+            throws IOException, URISyntaxException {
         // https://tools.ietf.org/html/rfc6749#section-10.10 dictates that probability that an attacker guesses the string
         // SHOULD be less than or equal to 2^(-160) and our Strings consist of 65 chars. (65^27 ~= 2^160)
         final String state = getSecureRandomString(27);
+
+        // This is to go back to the current page after login, not the oauth callback
         String redirectOnFinish;
         if (from != null && Util.isSafeToRedirectTo(from)) {
             redirectOnFinish = from;
@@ -355,17 +384,17 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
         for (GitHubOAuthScope s : Jenkins.get().getExtensionList(GitHubOAuthScope.class)) {
             scopes.addAll(s.getScopesToRequest());
         }
-        String suffix="";
-        if (!scopes.isEmpty()) {
-            suffix = "&scope="+Util.join(scopes,",")+"&state="+state;
-        } else {
-            // We need repo scope in order to access private repos
-            // See https://developer.github.com/v3/oauth/#scopes
-            suffix = "&scope=" + oauthScopes +"&state="+state;
+
+        URIBuilder builder = new URIBuilder(githubWebUri, StandardCharsets.UTF_8);
+        builder.setPath("/login/oauth/authorize");
+        builder.setParameter("client_id", clientID);
+        builder.setParameter("scope", scopes.isEmpty() ? oauthScopes : Util.join(scopes,","));
+        builder.setParameter("state", state);
+        if (!redirectUri.isEmpty()) {
+            builder.setParameter("redirect_uri", redirectUri);
         }
 
-        return new HttpRedirect(githubWebUri + "/login/oauth/authorize?client_id="
-                + clientID + suffix);
+        return new HttpRedirect(builder.toString());
     }
 
     /**
@@ -630,6 +659,12 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
             return DEFAULT_OAUTH_SCOPES;
         }
 
+        public String getDefaultRequestUri() {
+            // Intentionally making this default in UI and not in code
+            // to preserve behaviour for existing groovy init & JCasc setups
+            return Jenkins.get().getRootUrl() + "securityRealm/finishLogin";
+        }
+
         public DescriptorImpl() {
             super();
             // TODO Auto-generated constructor stub
@@ -728,7 +763,8 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                 this.getGithubApiUri().equals(obj.getGithubApiUri()) &&
                 this.getClientID().equals(obj.getClientID()) &&
                 this.getClientSecret().equals(obj.getClientSecret()) &&
-                this.getOauthScopes().equals(obj.getOauthScopes());
+                this.getOauthScopes().equals(obj.getOauthScopes()) &&
+                this.getRedirectUri().equals(obj.getRedirectUri());
         } else {
             return false;
         }
@@ -742,6 +778,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm impl
                 .append(this.getClientID())
                 .append(this.getClientSecret())
                 .append(this.getOauthScopes())
+                .append(this.getRedirectUri())
                 .toHashCode();
     }
 

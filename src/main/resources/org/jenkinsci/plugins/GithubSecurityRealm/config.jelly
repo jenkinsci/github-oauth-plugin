@@ -23,5 +23,10 @@
         <f:entry title="OAuth Scope(s)" field="oauthScopes" help="/plugin/github-oauth/help/realm/oauth-scopes-help.html">
             <f:textbox default="${descriptor.getDefaultOauthScopes()}" />
         </f:entry>
+
+        <f:entry title="Redirect URI" field="redirectUri" help="/plugin/github-oauth/help/realm/redirect-uri-help.html">
+            <f:textbox default="${descriptor.getDefaultRequestUri()}" />
+        </f:entry>
+
     </f:section>
 </j:jelly>
