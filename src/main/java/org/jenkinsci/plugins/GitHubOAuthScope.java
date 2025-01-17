@@ -1,7 +1,6 @@
 package org.jenkinsci.plugins;
 
 import hudson.ExtensionPoint;
-
 import java.util.Collection;
 
 /**

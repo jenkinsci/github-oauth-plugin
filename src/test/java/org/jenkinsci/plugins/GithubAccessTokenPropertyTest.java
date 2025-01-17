@@ -23,28 +23,12 @@
  */
 package org.jenkinsci.plugins;
 
-import org.htmlunit.Page;
-import org.htmlunit.WebRequest;
+import static org.junit.Assert.assertEquals;
+
 import hudson.model.User;
 import hudson.util.Scrambler;
-import java.util.Collections;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jenkins.security.ApiTokenProperty;
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
-import org.eclipse.jetty.ee9.servlet.DefaultServlet;
-import org.eclipse.jetty.ee9.servlet.ServletContextHandler;
-import org.eclipse.jetty.ee9.servlet.ServletHolder;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.JenkinsRule;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
@@ -56,8 +40,22 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.junit.Assert.assertEquals;
+import jenkins.security.ApiTokenProperty;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import org.eclipse.jetty.ee9.servlet.DefaultServlet;
+import org.eclipse.jetty.ee9.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee9.servlet.ServletHolder;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.htmlunit.Page;
+import org.htmlunit.WebRequest;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.JenkinsRule;
 
 public class GithubAccessTokenPropertyTest {
 

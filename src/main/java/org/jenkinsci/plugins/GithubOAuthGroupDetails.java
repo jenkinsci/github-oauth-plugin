@@ -3,13 +3,11 @@
  */
 package org.jenkinsci.plugins;
 
-import org.kohsuke.github.GHOrganization;
-import org.kohsuke.github.GHTeam;
-
 import hudson.security.GroupDetails;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import org.kohsuke.github.GHOrganization;
+import org.kohsuke.github.GHTeam;
 
 /**
  * @author Mike

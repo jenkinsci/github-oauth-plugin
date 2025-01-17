@@ -29,9 +29,7 @@ package org.jenkinsci.plugins.api;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
-
 import junit.framework.TestCase;
-
 import org.junit.Ignore;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHTeam;

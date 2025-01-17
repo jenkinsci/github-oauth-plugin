@@ -8,7 +8,6 @@ import okhttp3.Response;
 import org.junit.Assert;
 import org.junit.Test;
 
-
 public class JenkinsProxyAuthenticatorTest {
 
 

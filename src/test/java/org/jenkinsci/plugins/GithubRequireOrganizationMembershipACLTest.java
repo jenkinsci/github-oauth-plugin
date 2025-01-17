@@ -29,6 +29,24 @@ package org.jenkinsci.plugins;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import hudson.model.Computer;
+import hudson.model.Hudson;
+import hudson.model.Item;
+import hudson.model.Messages;
+import hudson.model.Project;
+import hudson.plugins.git.GitSCM;
+import hudson.plugins.git.UserRemoteConfig;
+import hudson.scm.NullSCM;
+import hudson.security.Permission;
+import hudson.security.PermissionScope;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import jenkins.branch.Branch;
+import jenkins.branch.MultiBranchProject;
+import jenkins.model.Jenkins;
+import jenkins.scm.api.SCMSource;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
@@ -54,26 +72,6 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import hudson.model.Computer;
-import hudson.model.Hudson;
-import hudson.model.Item;
-import hudson.model.Messages;
-import hudson.model.Project;
-import hudson.plugins.git.GitSCM;
-import hudson.plugins.git.UserRemoteConfig;
-import hudson.scm.NullSCM;
-import hudson.security.Permission;
-import hudson.security.PermissionScope;
-import jenkins.branch.Branch;
-import jenkins.branch.MultiBranchProject;
-import jenkins.model.Jenkins;
-import jenkins.scm.api.SCMSource;
 
 /**
  *
