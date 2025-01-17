@@ -23,13 +23,12 @@
  */
 package org.jenkinsci.plugins;
 
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 import hudson.Extension;
 import hudson.model.UnprotectedRootAction;
 import hudson.security.SecurityRealm;
 import jenkins.model.Jenkins;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * A page that shows a simple message when the user logs out.

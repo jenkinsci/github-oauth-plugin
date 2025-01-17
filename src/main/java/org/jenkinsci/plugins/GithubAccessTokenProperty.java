@@ -23,14 +23,13 @@
  */
 package org.jenkinsci.plugins;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.User;
 import hudson.model.UserProperty;
 import hudson.model.UserPropertyDescriptor;
 import hudson.util.Secret;
 import org.jenkinsci.Symbol;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Remembers the access token used to connect to the Github server

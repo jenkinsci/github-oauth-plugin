@@ -1,5 +1,8 @@
 package org.jenkinsci.plugins;
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.IOException;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.SerializationUtils;
 import org.junit.After;
@@ -14,10 +17,6 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-
-import java.io.IOException;
-
-import static org.junit.Assert.assertEquals;
 
 public class GithubAuthenticationTokenTest {
 

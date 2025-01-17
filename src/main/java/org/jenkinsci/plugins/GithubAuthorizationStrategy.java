@@ -26,17 +26,7 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
-import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.DataBoundSetter;
-
-import java.util.Collection;
-import java.util.Collections;
-
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import hudson.Extension;
 import hudson.model.AbstractItem;
 import hudson.model.AbstractProject;
@@ -44,7 +34,14 @@ import hudson.model.Descriptor;
 import hudson.model.Job;
 import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
+import java.util.Collection;
+import java.util.Collections;
 import jenkins.branch.MultiBranchProject;
+import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * @author mocleiri

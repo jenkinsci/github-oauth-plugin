@@ -23,13 +23,12 @@
  */
 package org.jenkinsci.plugins;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.User;
-
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
 
 public class GithubSecretStorage {
 

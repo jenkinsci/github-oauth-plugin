@@ -23,14 +23,23 @@
  */
 package org.jenkinsci.plugins;
 
-import org.htmlunit.Page;
-import org.htmlunit.WebRequest;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.model.UnprotectedRootAction;
 import hudson.util.HttpResponses;
-import java.util.Collections;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
@@ -39,6 +48,8 @@ import org.eclipse.jetty.ee9.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee9.servlet.ServletHolder;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
+import org.htmlunit.Page;
+import org.htmlunit.WebRequest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -48,18 +59,6 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest2;
-
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
 
 //TODO merge with GithubAccessTokenPropertyTest after security release, just meant to ease the security merge
 // or with GithubSecurityRealmTest, but will require more refactor to move out the mock server

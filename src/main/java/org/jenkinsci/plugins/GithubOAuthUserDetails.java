@@ -3,14 +3,13 @@
  */
 package org.jenkinsci.plugins;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.userdetails.User;
 import org.acegisecurity.userdetails.UserDetails;
 import org.kohsuke.github.GHUser;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
-import java.io.IOException;
 
 /**
  * @author Mike

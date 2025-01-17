@@ -24,16 +24,15 @@ THE SOFTWARE.
 
 package org.jenkinsci.plugins;
 
-import org.jenkinsci.plugins.GithubSecurityRealm.DescriptorImpl;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsRule;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.jenkinsci.plugins.GithubSecurityRealm.DescriptorImpl;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule;
 
 public class GithubSecurityRealmTest {
 

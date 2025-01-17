@@ -28,12 +28,26 @@ package org.jenkinsci.plugins;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import hudson.model.Item;
 import hudson.security.Permission;
 import hudson.security.SecurityRealm;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.MalformedURLException;
+import java.net.Proxy;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import okhttp3.OkHttpClient;
 import org.acegisecurity.GrantedAuthority;
@@ -49,26 +63,6 @@ import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.net.MalformedURLException;
-import java.net.Proxy;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
-
 
 /**
  * @author mocleiri

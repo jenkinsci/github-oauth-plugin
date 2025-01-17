@@ -26,29 +26,31 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
-import hudson.model.*;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
+import hudson.model.AbstractItem;
+import hudson.model.AbstractProject;
+import hudson.model.Computer;
+import hudson.model.Describable;
+import hudson.model.Hudson;
+import hudson.model.Item;
+import hudson.plugins.git.GitSCM;
+import hudson.plugins.git.UserRemoteConfig;
+import hudson.security.ACL;
+import hudson.security.Permission;
+import java.net.URI;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.logging.Logger;
+import jenkins.branch.MultiBranchProject;
+import jenkins.model.Jenkins;
+import jenkins.scm.api.SCMSource;
 import org.acegisecurity.Authentication;
 import org.jenkinsci.plugins.github_branch_source.GitHubSCMSource;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
-
-import java.net.URI;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.logging.Logger;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
-
-import hudson.plugins.git.GitSCM;
-import hudson.plugins.git.UserRemoteConfig;
-import hudson.security.ACL;
-import hudson.security.Permission;
-import jenkins.branch.MultiBranchProject;
-import jenkins.model.Jenkins;
-import jenkins.scm.api.SCMSource;
 
 /**
  * @author Mike
