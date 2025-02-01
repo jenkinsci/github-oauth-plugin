@@ -5,11 +5,10 @@ package org.jenkinsci.plugins;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.io.IOException;
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.userdetails.User;
-import org.acegisecurity.userdetails.UserDetails;
-import org.kohsuke.github.GHUser;
+import java.util.Collection;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 
 /**
  * @author Mike
@@ -20,34 +19,8 @@ public class GithubOAuthUserDetails extends User implements UserDetails {
 
     private static final long serialVersionUID = 1L;
 
-    private boolean hasGrantedAuthorities;
-
-    private final GithubAuthenticationToken authenticationToken;
-
-    public GithubOAuthUserDetails(@NonNull String login, @NonNull GrantedAuthority[] authorities) {
+    public GithubOAuthUserDetails(@NonNull String login, @NonNull Collection<? extends GrantedAuthority> authorities) {
         super(login, "", true, true, true, true, authorities);
-        this.authenticationToken = null;
-        this.hasGrantedAuthorities = true;
     }
 
-    public GithubOAuthUserDetails(@NonNull String login, @NonNull GithubAuthenticationToken authenticationToken) {
-        super(login, "", true, true, true, true, new GrantedAuthority[0]);
-        this.authenticationToken = authenticationToken;
-        this.hasGrantedAuthorities = false;
-    }
-
-    @Override
-    public GrantedAuthority[] getAuthorities() {
-        if (!hasGrantedAuthorities) {
-            try {
-                GHUser user = authenticationToken.loadUser(getUsername());
-                if(user != null) {
-                    setAuthorities(authenticationToken.getAuthorities());
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return super.getAuthorities();
-    }
 }

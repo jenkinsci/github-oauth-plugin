@@ -50,10 +50,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import okhttp3.OkHttpClient;
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.GrantedAuthorityImpl;
-import org.acegisecurity.providers.AbstractAuthenticationToken;
-import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHRepository;
@@ -63,6 +59,10 @@ import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 /**
  * @author mocleiri
@@ -190,7 +190,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
 
     @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public GithubAuthenticationToken(final String accessToken, final String githubServer, final boolean clearUserCache) throws IOException {
-        super(new GrantedAuthority[] {});
+        super(List.of());
 
         this.accessToken = accessToken;
         this.githubServer = githubServer;
@@ -209,7 +209,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
             // may have changed due to SSO [JENKINS-60200].
             clearCacheForUser(this.userName);
         }
-        authorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
+        authorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
 
         // This stuff only really seems useful if *not* using GithubAuthorizationStrategy
         // but instead using matrix so org/team can be granted rights
@@ -242,11 +242,11 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
                     for (Map.Entry<String, Set<GHTeam>> teamEntry : myTeams.entrySet()) {
                         String orgLogin = teamEntry.getKey();
                         LOGGER.log(Level.FINE, "Fetch teams for user " + userName + " in organization " + orgLogin);
-                        authorities.add(new GrantedAuthorityImpl(orgLogin));
+                        authorities.add(new SimpleGrantedAuthority(orgLogin));
                         for (GHTeam team : teamEntry.getValue()) {
                             String teamIdentifier = team.getSlug() == null ? team.getName() : team.getSlug();
 
-                            authorities.add(new GrantedAuthorityImpl(orgLogin + GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR
+                            authorities.add(new SimpleGrantedAuthority(orgLogin + GithubOAuthGroupDetails.ORG_TEAM_SEPARATOR
                                     + teamIdentifier));
                         }
                     }
@@ -340,8 +340,8 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     }
 
     @Override
-    public GrantedAuthority[] getAuthorities() {
-        return authorities.toArray(new GrantedAuthority[0]);
+    public Collection<GrantedAuthority> getAuthorities() {
+        return authorities;
     }
 
     @Override
@@ -572,7 +572,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     GithubOAuthUserDetails getUserDetails(@NonNull String username) throws IOException {
         GHUser user = loadUser(username);
         if (user != null) {
-            return new GithubOAuthUserDetails(user.getLogin(), this);
+            return new GithubOAuthUserDetails(user.getLogin(), getAuthorities());
         }
         return null;
     }

@@ -29,7 +29,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-import org.jenkinsci.plugins.GithubSecurityRealm.DescriptorImpl;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -70,19 +69,19 @@ public class GithubSecurityRealmTest {
 
     @Test
     public void testDescriptorImplGetDefaultGithubWebUri() {
-        DescriptorImpl descriptor = new DescriptorImpl();
+        GithubSecurityRealm.DescriptorImpl descriptor = new GithubSecurityRealm.DescriptorImpl();
         assertEquals("https://github.com", descriptor.getDefaultGithubWebUri());
     }
 
     @Test
     public void testDescriptorImplGetDefaultGithubApiUri() {
-        DescriptorImpl descriptor = new DescriptorImpl();
+        GithubSecurityRealm.DescriptorImpl descriptor = new GithubSecurityRealm.DescriptorImpl();
         assertEquals("https://api.github.com", descriptor.getDefaultGithubApiUri());
     }
 
     @Test
     public void testDescriptorImplGetDefaultOauthScopes() {
-        DescriptorImpl descriptor = new DescriptorImpl();
+        GithubSecurityRealm.DescriptorImpl descriptor = new GithubSecurityRealm.DescriptorImpl();
         assertEquals("read:org,user:email,repo", descriptor.getDefaultOauthScopes());
     }
 }

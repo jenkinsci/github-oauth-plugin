@@ -24,36 +24,24 @@ THE SOFTWARE.
 
 package org.jenkinsci.plugins;
 
+import static org.junit.Assert.assertEquals;
+
 import jenkins.model.Jenkins;
-import junit.framework.TestCase;
-import org.jenkinsci.plugins.GithubSecurityRealm.DescriptorImpl;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 
-public class GithubLogoutActionTest extends TestCase {
+@RunWith(MockitoJUnitRunner.class)
+public class GithubLogoutActionTest {
 
     @Mock
     private GithubSecurityRealm securityRealm;
 
     @Mock
-    private DescriptorImpl descriptor;
-
-    private AutoCloseable closeable;
-
-    @Before
-    public void setUp() {
-        closeable = MockitoAnnotations.openMocks(this);
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        closeable.close();
-    }
+    private GithubSecurityRealm.DescriptorImpl descriptor;
 
     private void mockJenkins(MockedStatic<Jenkins> mockedJenkins) {
         Jenkins jenkins = Mockito.mock(Jenkins.class);
