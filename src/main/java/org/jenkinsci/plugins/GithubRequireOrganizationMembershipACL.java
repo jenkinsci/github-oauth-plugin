@@ -45,12 +45,12 @@ import java.util.logging.Logger;
 import jenkins.branch.MultiBranchProject;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSource;
-import org.acegisecurity.Authentication;
 import org.jenkinsci.plugins.github_branch_source.GitHubSCMSource;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty;
 import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.springframework.security.core.Authentication;
 
 /**
  * @author Mike
@@ -76,11 +76,11 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
     /*
      * (non-Javadoc)
      *
-     * @see hudson.security.ACL#hasPermission(org.acegisecurity.Authentication,
+     * @see hudson.security.ACL#hasPermission(org.springframework.security.core.Authentication,
      * hudson.security.Permission)
      */
     @Override
-    public boolean hasPermission(@NonNull Authentication a, @NonNull Permission permission) {
+    public boolean hasPermission2(@NonNull Authentication a, @NonNull Permission permission) {
         if (a instanceof GithubAuthenticationToken) {
             if (!a.isAuthenticated())
                 return false;
@@ -153,7 +153,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
                 throw new IllegalArgumentException("Authentication must have a valid name");
             }
 
-            if (authenticatedUserName.equals(SYSTEM.getPrincipal())) {
+            if (authenticatedUserName.equals(SYSTEM2.getPrincipal())) {
                 // give system user full access
                 log.finest("Granting Full rights to SYSTEM user.");
                 return true;
@@ -233,7 +233,7 @@ public class GithubRequireOrganizationMembershipACL extends ACL {
 
     @Nullable
     private String requestURI() {
-        StaplerRequest currentRequest = Stapler.getCurrentRequest();
+        StaplerRequest2 currentRequest = Stapler.getCurrentRequest2();
         return (currentRequest == null) ? null : currentRequest.getOriginalRequestURI();
     }
 
