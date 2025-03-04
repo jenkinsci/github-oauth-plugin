@@ -1,165 +1,156 @@
 /**
- The MIT License
-
-Copyright (c) 2011 Michael O'Cleirigh
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
-
-
+ * The MIT License
+ * <p>
+ * Copyright (c) 2011 Michael O'Cleirigh
+ * <p>
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * <p>
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * <p>
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
 package org.jenkinsci.plugins.api;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.Set;
-import junit.framework.TestCase;
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHTeam;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 
-//TODO could use JUnit Assume.* instead of @Ignore
+import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 /**
  * @author mocleiri
- *
+ * <p>
  * we ignore this test when running the automated tests.
  */
-@Ignore
-public class GihubAPITest extends TestCase {
+@Disabled("we ignore this test when running the automated tests")
+class GihubAPITest {
 
-    /**
-     *
-     */
-    public GihubAPITest() {
-        // TODO Auto-generated constructor stub
-    }
+	private static final String LOGIN = System.getProperty("github.login");
+	private static final String API_TOKEN = System.getProperty("github.api");
 
-    private static final String LOGIN = System.getProperty("github.login");
-    private static final String API_TOKEN = System.getProperty("github.api");
+	// I would suggest with the repo level of permission.
+	private static final String OAUTH_TOKEN = System.getProperty("github.oauth");
 
-    // I would sugest with the repo level of permission.
-    private static final String OAUTH_TOKEN = System.getProperty("github.oauth");
+	// the name of the organization to which the login is a participant.
+	private static final String PARTICIPATING_ORG = System.getProperty("github.org");
 
-    // the name of the organization to which the login is a participant.
-    private static final String PARTICPATING_ORG = System.getProperty("github.org");
+	@Test
+	void testWithUserAPIToken() throws IOException {
+		GitHub gh = GitHub.connect(LOGIN, API_TOKEN);
 
-    public GihubAPITest(String name) {
-        super(name);
-        // TODO Auto-generated constructor stub
-    }
+		GHOrganization org = gh.getOrganization(PARTICIPATING_ORG);
 
-    public void testWithUserAPIToken() throws IOException {
-        GitHub gh = GitHub.connect(LOGIN, API_TOKEN);
+		Map<String, GHTeam> teams = org.getTeams();
 
-        GHOrganization org = gh.getOrganization(PARTICPATING_ORG);
+		boolean found = false;
 
-        Map<String, GHTeam> teams = org.getTeams();
+		for (GHTeam team : teams.values()) {
+			System.out.println("team = " + team.getName() + ", permission = "
+					+ team.getPermission());
 
-        boolean found = false;
+			// check for membership
+			for (GHUser member : team.getMembers()) {
+				System.out.println("member = " + member.getLogin());
 
-        for (GHTeam team : teams.values()) {
-            System.out.println("team = " + team.getName() + ", permission = "
-                    + team.getPermission());
+				if (member.getLogin().equals(LOGIN)) {
+					found = true;
+				}
+			}
+		}
 
-            // check for membership
-            for (GHUser member : team.getMembers()) {
-                System.out.println("member = " + member.getLogin());
+		assertTrue(found);
+	}
 
-                if (member.getLogin().equals(LOGIN)) {
-                    found = true;
-                }
-            }
-        }
+	@Test
+	void testOrganizationMembership() throws IOException {
+		GitHub gh = GitHub.connectUsingOAuth(OAUTH_TOKEN);
 
-        assertTrue(found);
-    }
+		Map<String, GHOrganization> orgs = gh.getMyOrganizations();
 
-    public void testOrganizationMembership () throws IOException {
-        GitHub gh = GitHub.connectUsingOAuth(OAUTH_TOKEN);
+		for (String orgName : orgs.keySet()) {
+			GHOrganization org = orgs.get(orgName);
 
-        Map<String, GHOrganization> orgs = gh.getMyOrganizations();
+			Map<String, GHTeam> teams = org.getTeams();
 
-        for (String orgName : orgs.keySet()) {
-            GHOrganization org = orgs.get(orgName);
+			System.out.println("org = " + orgName);
 
-            Map<String, GHTeam> teams = org.getTeams();
+			for (String name : teams.keySet()) {
+				GHTeam team = teams.get(name);
 
-            System.out.println("org = " + orgName);
+				Set<GHUser> members = team.getMembers();
 
-            for (String name : teams.keySet()) {
-                GHTeam team = teams.get(name);
+				System.out.println("team = " + team.getName());
 
-                Set<GHUser> members = team.getMembers();
+				for (GHUser ghUser : members) {
+					System.out.println("member = " + ghUser.getLogin());
+				}
+			}
+		}
 
-                System.out.println("team = " + team.getName());
+		assertTrue(true);
+	}
 
-                for (GHUser ghUser : members) {
-                    System.out.println("member = " + ghUser.getLogin());
-                }
-            }
-        }
+	@Test
+	void testOrganizationMembershipAPI() throws IOException {
+		GitHub gh = GitHub.connect(LOGIN, API_TOKEN);
 
-        assertTrue(true);
-    }
+		Map<String, GHOrganization> orgs = gh.getMyOrganizations();
 
-    public void testOrganizationMembershipAPI () throws IOException {
-        GitHub gh = GitHub.connect(LOGIN, API_TOKEN);
+		for (String orgName : orgs.keySet()) {
+			GHOrganization org = orgs.get(orgName);
 
-        Map<String, GHOrganization> orgs = gh.getMyOrganizations();
+			System.out.println("org = " + orgName);
+		}
 
-        for (String orgName : orgs.keySet()) {
-            GHOrganization org = orgs.get(orgName);
+		assertTrue(true);
+	}
 
-            System.out.println("org = " + orgName);
-        }
+	// /organizations
+	@Test
+	void testWithOAuthToken() throws IOException {
+		GitHub gh = GitHub.connectUsingOAuth(OAUTH_TOKEN);
 
-        assertTrue(true);
-    }
+		GHUser me = gh.getMyself();
 
-    // /organizations
-    public void testWithOAuthToken() throws IOException {
-        GitHub gh = GitHub.connectUsingOAuth(OAUTH_TOKEN);
+		GHOrganization org = gh.getOrganization(PARTICIPATING_ORG);
 
-        GHUser me = gh.getMyself();
+		Map<String, GHTeam> teams = org.getTeams();
 
-        GHOrganization org = gh.getOrganization(PARTICPATING_ORG);
+		boolean found = false;
 
-        Map<String, GHTeam> teams = org.getTeams();
+		for (GHTeam team : teams.values()) {
+			System.out.println("team = " + team.getName() + ", permission = "
+					+ team.getPermission());
 
-        boolean found = false;
+			// check for membership
+			for (GHUser member : team.getMembers()) {
+				System.out.println("member = " + member.getLogin());
 
-        for (GHTeam team : teams.values()) {
-            System.out.println("team = " + team.getName() + ", permission = "
-                    + team.getPermission());
+				if (member.getLogin().equals(LOGIN)) {
+					found = true;
+				}
+			}
+		}
 
-            // check for membership
-            for (GHUser member : team.getMembers()) {
-                System.out.println("member = " + member.getLogin());
-
-                if (member.getLogin().equals(LOGIN)) {
-                    found = true;
-                }
-            }
-        }
-
-        assertTrue(found);
-    }
+		assertTrue(found);
+	}
 }

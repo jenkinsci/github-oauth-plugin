@@ -23,12 +23,27 @@
  */
 package org.jenkinsci.plugins;
 
-import static org.junit.Assert.assertEquals;
-
 import hudson.model.User;
 import hudson.util.Scrambler;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jenkins.security.ApiTokenProperty;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import org.eclipse.jetty.ee9.servlet.DefaultServlet;
+import org.eclipse.jetty.ee9.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee9.servlet.ServletHolder;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.htmlunit.Page;
+import org.htmlunit.WebRequest;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
@@ -40,392 +55,375 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import jenkins.security.ApiTokenProperty;
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
-import org.eclipse.jetty.ee9.servlet.DefaultServlet;
-import org.eclipse.jetty.ee9.servlet.ServletContextHandler;
-import org.eclipse.jetty.ee9.servlet.ServletHolder;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.htmlunit.Page;
-import org.htmlunit.WebRequest;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.JenkinsRule;
 
-public class GithubAccessTokenPropertyTest {
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+@WithJenkins
+class GithubAccessTokenPropertyTest {
 
-    private JenkinsRule.WebClient wc;
+	private JenkinsRule j;
 
-    private Server server;
-    private URI serverUri;
-    private MockGithubServlet servlet;
+	private JenkinsRule.WebClient wc;
 
-    public void setupMockGithubServer() throws Exception {
-        server = new Server();
-        ServerConnector connector = new ServerConnector(server);
-        // auto-bind to available port
-        connector.setPort(0);
-        server.addConnector(connector);
+	private Server server;
+	private URI serverUri;
+	private MockGithubServlet servlet;
 
-        servlet = new MockGithubServlet(j);
+	public void setupMockGithubServer() throws Exception {
+		server = new Server();
+		ServerConnector connector = new ServerConnector(server);
+		// auto-bind to available port
+		connector.setPort(0);
+		server.addConnector(connector);
 
-        ServletContextHandler context = new ServletContextHandler();
-        ServletHolder servletHolder = new ServletHolder("default", servlet);
-        context.addServlet(servletHolder, "/*");
-        server.setHandler(context);
+		servlet = new MockGithubServlet(j);
 
-        server.start();
+		ServletContextHandler context = new ServletContextHandler();
+		ServletHolder servletHolder = new ServletHolder("default", servlet);
+		context.addServlet(servletHolder, "/*");
+		server.setHandler(context);
 
-        String host = connector.getHost();
-        if (host == null) {
-            host = "localhost";
-        }
+		server.start();
 
-        int port = connector.getLocalPort();
-        serverUri = new URI(String.format("http://%s:%d/", host, port));
-        servlet.setServerUrl(serverUri);
-    }
+		String host = connector.getHost();
+		if (host == null) {
+			host = "localhost";
+		}
 
-    /**
-     * Based on documentation found at
-     * https://developer.github.com/v3/users/
-     * https://developer.github.com/v3/orgs/
-     * https://developer.github.com/v3/orgs/teams/
-     */
-    private static class MockGithubServlet extends DefaultServlet {
-        private String currentLogin;
-        private List<String> organizations;
-        private List<Map<String, String>> teams;
+		int port = connector.getLocalPort();
+		serverUri = new URI(String.format("http://%s:%d/", host, port));
+		servlet.setServerUrl(serverUri);
+	}
 
-        private JenkinsRule jenkinsRule;
-        private URI serverUri;
+	/**
+	 * Based on documentation found at
+	 * https://developer.github.com/v3/users/
+	 * https://developer.github.com/v3/orgs/
+	 * https://developer.github.com/v3/orgs/teams/
+	 */
+	private static class MockGithubServlet extends DefaultServlet {
+		private String currentLogin;
+		private List<String> organizations;
+		private List<Map<String, String>> teams;
 
-        public MockGithubServlet(JenkinsRule jenkinsRule) {
-            this.jenkinsRule = jenkinsRule;
-        }
+		private final JenkinsRule jenkinsRule;
+		private URI serverUri;
 
-        public void setServerUrl(URI serverUri) {
-            this.serverUri = serverUri;
-        }
+		public MockGithubServlet(JenkinsRule jenkinsRule) {
+			this.jenkinsRule = jenkinsRule;
+		}
 
-        @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-            switch (req.getRequestURI()) {
-                case "/user":
-                    this.onUser(req, resp);
-                    break;
-                case "/users/_specific_login_":
-                    this.onUser(req, resp);
-                    break;
-                case "/user/orgs":
-                    this.onUserOrgs(req, resp);
-                    break;
-                case "/user/teams":
-                    this.onUserTeams(req, resp);
-                    break;
-                case "/orgs/org-a":
-                    this.onOrgs(req, resp, "org-a");
-                    break;
-                case "/orgs/org-a/teams":
-                    this.onOrgsTeam(req, resp, "org-a");
-                    break;
-                case "/orgs/org-a/members/alice":
-                    this.onOrgsMember(req, resp, "org-a", "alice");
-                    break;
-                case "/teams/7/members/alice":
-                    this.onTeamMember(req, resp, "team-b", "alice");
-                    break;
-                case "/orgs/org-c":
-                    this.onOrgs(req, resp, "org-c");
-                    break;
-                case "/orgs/org-c/teams":
-                    this.onOrgsTeam(req, resp, "org-c");
-                    break;
-                case "/orgs/org-c/members/bob":
-                    this.onOrgsMember(req, resp, "org-c", "bob");
-                    break;
-                case "/teams/7/members/bob":
-                    this.onTeamMember(req, resp, "team-d", "bob");
-                    break;
-                case "/login/oauth/authorize":
-                    this.onLoginOAuthAuthorize(req, resp);
-                    break;
-                case "/login/oauth/access_token":
-                    this.onLoginOAuthAccessToken(req, resp);
-                    break;
-                default:
-                    throw new RuntimeException("Url not mapped yet: " + req.getRequestURI());
-            }
-        }
+		public void setServerUrl(URI serverUri) {
+			this.serverUri = serverUri;
+		}
 
-        private void onUser(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-            resp.getWriter().write(JSONObject.fromObject(
-                    new HashMap<String, Object>() {{
-                        put("login", currentLogin);
-                        put("name", currentLogin + "_name");
-                        // to avoid triggering a second call, due to GithubSecurityRealm:382
-                        put("created_at", "2008-01-14T04:33:35Z");
-                        put("url", serverUri + "/users/_specific_login_");
-                    }}
-            ).toString());
-        }
+		@Override
+		protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+			switch (req.getRequestURI()) {
+				case "/user":
+					this.onUser(req, resp);
+					break;
+				case "/users/_specific_login_":
+					this.onUser(req, resp);
+					break;
+				case "/user/orgs":
+					this.onUserOrgs(req, resp);
+					break;
+				case "/user/teams":
+					this.onUserTeams(req, resp);
+					break;
+				case "/orgs/org-a":
+					this.onOrgs(req, resp, "org-a");
+					break;
+				case "/orgs/org-a/teams":
+					this.onOrgsTeam(req, resp, "org-a");
+					break;
+				case "/orgs/org-a/members/alice":
+					this.onOrgsMember(req, resp, "org-a", "alice");
+					break;
+				case "/teams/7/members/alice":
+					this.onTeamMember(req, resp, "team-b", "alice");
+					break;
+				case "/orgs/org-c":
+					this.onOrgs(req, resp, "org-c");
+					break;
+				case "/orgs/org-c/teams":
+					this.onOrgsTeam(req, resp, "org-c");
+					break;
+				case "/orgs/org-c/members/bob":
+					this.onOrgsMember(req, resp, "org-c", "bob");
+					break;
+				case "/teams/7/members/bob":
+					this.onTeamMember(req, resp, "team-d", "bob");
+					break;
+				case "/login/oauth/authorize":
+					this.onLoginOAuthAuthorize(req, resp);
+					break;
+				case "/login/oauth/access_token":
+					this.onLoginOAuthAccessToken(req, resp);
+					break;
+				default:
+					throw new RuntimeException("Url not mapped yet: " + req.getRequestURI());
+			}
+		}
 
-        private void onUserOrgs(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-            List<Map<String, Object>> responseBody = new ArrayList<>();
-            for (String orgName : organizations) {
-                final String orgName_ = orgName;
-                responseBody.add(new HashMap<String, Object>() {{
-                    put("login", orgName_);
-                }});
-            }
+		private void onUser(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+			resp.getWriter().write(JSONObject.fromObject(
+					new HashMap<String, Object>() {{
+						put("login", currentLogin);
+						put("name", currentLogin + "_name");
+						// to avoid triggering a second call, due to GithubSecurityRealm:382
+						put("created_at", "2008-01-14T04:33:35Z");
+						put("url", serverUri + "/users/_specific_login_");
+					}}
+			).toString());
+		}
 
-            resp.getWriter().write(JSONArray.fromObject(responseBody).toString());
-        }
+		private void onUserOrgs(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+			List<Map<String, Object>> responseBody = new ArrayList<>();
+			for (String orgName : organizations) {
+				final String orgName_ = orgName;
+				responseBody.add(new HashMap<>() {{
+					put("login", orgName_);
+				}});
+			}
 
-        private void onOrgs(HttpServletRequest req, HttpServletResponse resp, final String orgName) throws IOException {
-            Map<String, Object> responseBody = new HashMap<String, Object>() {{
-                put("login", orgName);
-            }};
+			resp.getWriter().write(JSONArray.fromObject(responseBody).toString());
+		}
 
-            resp.getWriter().write(JSONObject.fromObject(responseBody).toString());
-        }
+		private void onOrgs(HttpServletRequest req, HttpServletResponse resp, final String orgName) throws IOException {
+			Map<String, Object> responseBody = new HashMap<>() {{
+				put("login", orgName);
+			}};
 
-        private void onOrgsMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) {
-            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
-            // 302 / 404 responses not implemented
-        }
+			resp.getWriter().write(JSONObject.fromObject(responseBody).toString());
+		}
 
-        private void onTeamMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) {
-            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
-            // 302 / 404 responses not implemented
-        }
+		private void onOrgsMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) {
+			resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+			// 302 / 404 responses not implemented
+		}
 
-        private void onOrgsTeam(HttpServletRequest req, HttpServletResponse resp, final String orgName) throws IOException {
-            List<Map<String, Object>> responseBody = new ArrayList<>();
-            for (Map<String, String> team : teams) {
-                final String teamName_ = team.get("name");
-                final String slug = team.get("slug");
-                responseBody.add(new HashMap<String, Object>() {{
-                    put("id", 7);
-                    put("login", teamName_ + "_login");
-                    put("name", teamName_);
-                    put("slug", slug);
-                    put("organization", new HashMap<String, Object>() {{
-                        put("login", orgName);
-                    }});
-                }});
-            }
+		private void onTeamMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) {
+			resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+			// 302 / 404 responses not implemented
+		}
 
-            resp.getWriter().write(JSONArray.fromObject(responseBody).toString());
-        }
+		private void onOrgsTeam(HttpServletRequest req, HttpServletResponse resp, final String orgName) throws IOException {
+			List<Map<String, Object>> responseBody = new ArrayList<>();
+			for (Map<String, String> team : teams) {
+				final String teamName_ = team.get("name");
+				final String slug = team.get("slug");
+				responseBody.add(new HashMap<>() {{
+					put("id", 7);
+					put("login", teamName_ + "_login");
+					put("name", teamName_);
+					put("slug", slug);
+					put("organization", new HashMap<String, Object>() {{
+						put("login", orgName);
+					}});
+				}});
+			}
 
-        private void onUserTeams(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-            List<Map<String, Object>> responseBody = new ArrayList<>();
-            for (Map<String, String> team : teams) {
-                final String teamName_ = team.get("name");
-                final String slug = team.get("slug");
-                responseBody.add(new HashMap<String, Object>() {{
-                    put("login", teamName_ + "_login");
-                    put("name", teamName_);
-                    put("slug", slug);
-                    put("organization", new HashMap<String, Object>() {{
-                        put("login", organizations.get(0));
-                    }});
-                }});
-            }
+			resp.getWriter().write(JSONArray.fromObject(responseBody).toString());
+		}
 
-            resp.getWriter().write(JSONArray.fromObject(responseBody).toString());
-        }
+		private void onUserTeams(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+			List<Map<String, Object>> responseBody = new ArrayList<>();
+			for (Map<String, String> team : teams) {
+				final String teamName_ = team.get("name");
+				final String slug = team.get("slug");
+				responseBody.add(new HashMap<>() {{
+					put("login", teamName_ + "_login");
+					put("name", teamName_);
+					put("slug", slug);
+					put("organization", new HashMap<String, Object>() {{
+						put("login", organizations.get(0));
+					}});
+				}});
+			}
 
-        private void onLoginOAuthAuthorize(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-            String code = "test";
-            String state = req.getParameter("state");
-            resp.sendRedirect(jenkinsRule.getURL() + "securityRealm/finishLogin?code=" + code + "&state=" + state);
-        }
+			resp.getWriter().write(JSONArray.fromObject(responseBody).toString());
+		}
 
-        private void onLoginOAuthAccessToken(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-            resp.getWriter().write("access_token=RANDOM_ACCESS_TOKEN");
-        }
-    }
+		private void onLoginOAuthAuthorize(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+			String code = "test";
+			String state = req.getParameter("state");
+			resp.sendRedirect(jenkinsRule.getURL() + "securityRealm/finishLogin?code=" + code + "&state=" + state);
+		}
 
-    @Before
-    public void prepareRealmAndWebClient() throws Exception {
-        this.setupMockGithubServer();
-        this.setupRealm();
-        wc = j.createWebClient();
-        GithubAuthenticationToken.clearCaches();
-    }
+		private void onLoginOAuthAccessToken(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+			resp.getWriter().write("access_token=RANDOM_ACCESS_TOKEN");
+		}
+	}
 
-    private void setupRealm(){
-        String githubWebUri = serverUri.toString();
-        String githubApiUri = serverUri.toString();
-        String clientID = "xxx";
-        String clientSecret = "yyy";
-        String oauthScopes = "read:org";
+	@BeforeEach
+	void prepareRealmAndWebClient(JenkinsRule j) throws Exception {
+		this.j = j;
+		this.setupMockGithubServer();
+		this.setupRealm();
+		wc = j.createWebClient();
+		GithubAuthenticationToken.clearCaches();
+	}
 
-        GithubSecurityRealm githubSecurityRealm = new GithubSecurityRealm(
-                githubWebUri,
-                githubApiUri,
-                clientID,
-                clientSecret,
-                oauthScopes
-        );
+	private void setupRealm() {
+		String githubWebUri = serverUri.toString();
+		String githubApiUri = serverUri.toString();
+		String clientID = "xxx";
+		String clientSecret = "yyy";
+		String oauthScopes = "read:org";
 
-        j.jenkins.setSecurityRealm(githubSecurityRealm);
-    }
+		GithubSecurityRealm githubSecurityRealm = new GithubSecurityRealm(
+				githubWebUri,
+				githubApiUri,
+				clientID,
+				clientSecret,
+				oauthScopes
+		);
 
-    @After
-    public void stopEmbeddedJettyServer() {
-        try {
-            server.stop();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+		j.jenkins.setSecurityRealm(githubSecurityRealm);
+	}
 
-    @Issue("JENKINS-47113")
-    @Test
-    public void testUsingGithubToken() throws IOException {
-        String aliceLogin = "alice";
-        servlet.currentLogin = aliceLogin;
-        servlet.organizations = Collections.singletonList("org-a");
-        Map<String, String> team = new HashMap<>();
-        team.put("slug", "team-b");
-        team.put("name", "Team D");
-        servlet.teams = Collections.singletonList(team);
+	@AfterEach
+	void stopEmbeddedJettyServer() throws Exception {
+		server.stop();
+	}
 
-        User aliceUser = User.getById(aliceLogin, true);
-        String aliceApiRestToken = aliceUser.getProperty(ApiTokenProperty.class).getApiToken();
-        String aliceGitHubToken = "SPECIFIC_TOKEN";
+	@Issue("JENKINS-47113")
+	@Test
+	void testUsingGithubToken() throws IOException {
+		String aliceLogin = "alice";
+		servlet.currentLogin = aliceLogin;
+		servlet.organizations = Collections.singletonList("org-a");
+		Map<String, String> team = new HashMap<>();
+		team.put("slug", "team-b");
+		team.put("name", "Team D");
+		servlet.teams = Collections.singletonList(team);
 
-        // request whoAmI with ApiRestToken => group populated
-        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
+		User aliceUser = User.getById(aliceLogin, true);
+		String aliceApiRestToken = aliceUser.getProperty(ApiTokenProperty.class).getApiToken();
+		String aliceGitHubToken = "SPECIFIC_TOKEN";
 
-        // request whoAmI with GitHubToken => group populated
-        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceGitHubToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
+		// request whoAmI with ApiRestToken => group populated
+		makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
 
-        GithubAuthenticationToken.clearCaches();
+		// request whoAmI with GitHubToken => group populated
+		makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceGitHubToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
 
-        // no authentication in session but use the cache
-        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
+		GithubAuthenticationToken.clearCaches();
 
-        wc = j.createWebClient();
-        // no session at all, use the cache also
-        makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
-    }
+		// no authentication in session but use the cache
+		makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
 
-    @Issue("JENKINS-47113")
-    @Test
-    public void testUsingGithubLogin() throws IOException {
-        String bobLogin = "bob";
-        servlet.currentLogin = bobLogin;
-        servlet.organizations = Collections.singletonList("org-c");
-        Map<String, String> team = new HashMap<>();
-        team.put("slug", "team-d");
-        team.put("name", "Team D");
-        servlet.teams = Collections.singletonList(team);
+		wc = j.createWebClient();
+		// no session at all, use the cache also
+		makeRequestWithAuthCodeAndVerify(encodeBasic(aliceLogin, aliceApiRestToken), "alice", Arrays.asList("authenticated", "org-a", "org-a*team-b"));
+	}
 
-        User bobUser = User.getById(bobLogin, true);
-        String bobApiRestToken = bobUser.getProperty(ApiTokenProperty.class).getApiToken();
+	@Issue("JENKINS-47113")
+	@Test
+	void testUsingGithubLogin() throws IOException {
+		String bobLogin = "bob";
+		servlet.currentLogin = bobLogin;
+		servlet.organizations = Collections.singletonList("org-c");
+		Map<String, String> team = new HashMap<>();
+		team.put("slug", "team-d");
+		team.put("name", "Team D");
+		servlet.teams = Collections.singletonList(team);
 
-        // request whoAmI with ApiRestToken => group populated
-        makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
-        // request whoAmI with GitHub OAuth => group populated
-        makeRequestUsingOAuth("bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
+		User bobUser = User.getById(bobLogin, true);
+		String bobApiRestToken = bobUser.getProperty(ApiTokenProperty.class).getApiToken();
 
-        // use only the session
-        // request whoAmI with ApiRestToken => group populated (due to login event)
-        makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
+		// request whoAmI with ApiRestToken => group populated
+		makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
+		// request whoAmI with GitHub OAuth => group populated
+		makeRequestUsingOAuth("bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
 
-        GithubAuthenticationToken.clearCaches();
+		// use only the session
+		// request whoAmI with ApiRestToken => group populated (due to login event)
+		makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
 
-        // retrieve the security group even without the cookie (using LastGrantedAuthorities this time)
-        makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
-    }
+		GithubAuthenticationToken.clearCaches();
 
-    @Issue("JENKINS-60200")
-    @Test
-    public void testInvalidateAuthorizationCacheOnFreshLogin() throws IOException {
-        String bobLogin = "bob";
-        servlet.currentLogin = bobLogin;
-        servlet.organizations = Collections.singletonList("org-c");
-        Map<String, String> team = new HashMap<>();
-        team.put("slug", "team-d");
-        team.put("name", "Team D");
-        servlet.teams = Collections.singletonList(team);
+		// retrieve the security group even without the cookie (using LastGrantedAuthorities this time)
+		makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
+	}
 
-        User bobUser = User.getById(bobLogin, true);
-        String bobApiRestToken = bobUser.getProperty(ApiTokenProperty.class).getApiToken();
+	@Issue("JENKINS-60200")
+	@Test
+	void testInvalidateAuthorizationCacheOnFreshLogin() throws IOException {
+		String bobLogin = "bob";
+		servlet.currentLogin = bobLogin;
+		servlet.organizations = Collections.singletonList("org-c");
+		Map<String, String> team = new HashMap<>();
+		team.put("slug", "team-d");
+		team.put("name", "Team D");
+		servlet.teams = Collections.singletonList(team);
 
-        // request whoAmI with ApiRestToken => group populated
-        makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
-        // request whoAmI with GitHub OAuth => group populated
-        makeRequestUsingOAuth("bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
+		User bobUser = User.getById(bobLogin, true);
+		String bobApiRestToken = bobUser.getProperty(ApiTokenProperty.class).getApiToken();
 
-        // Switch the teams
-        team.put("slug", "team-e");
-        team.put("name", "Team E");
-        servlet.teams = Collections.singletonList(team);
+		// request whoAmI with ApiRestToken => group populated
+		makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
+		// request whoAmI with GitHub OAuth => group populated
+		makeRequestUsingOAuth("bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
 
-        // With just AuthCode, the cache is not invalidated
-        makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
+		// Switch the teams
+		team.put("slug", "team-e");
+		team.put("name", "Team E");
+		servlet.teams = Collections.singletonList(team);
 
-        // With OAuth the cache is invalidated
-        makeRequestUsingOAuth("bob", Arrays.asList("authenticated", "org-c", "org-c*team-e"));
-    }
+		// With just AuthCode, the cache is not invalidated
+		makeRequestWithAuthCodeAndVerify(encodeBasic(bobLogin, bobApiRestToken), "bob", Arrays.asList("authenticated", "org-c", "org-c*team-d"));
 
+		// With OAuth the cache is invalidated
+		makeRequestUsingOAuth("bob", Arrays.asList("authenticated", "org-c", "org-c*team-e"));
+	}
 
-    private void makeRequestWithAuthCodeAndVerify(String authCode, String expectedLogin, List<String> expectedAuthorities) throws IOException {
-        WebRequest req = new WebRequest(new URL(j.getURL(), "whoAmI/api/json"));
-        req.setEncodingType(null);
-        if (authCode != null)
-            req.setAdditionalHeader("Authorization", authCode);
-        Page p = wc.getPage(req);
+	private void makeRequestWithAuthCodeAndVerify(String authCode, String expectedLogin, List<String> expectedAuthorities) throws IOException {
+		WebRequest req = new WebRequest(new URL(j.getURL(), "whoAmI/api/json"));
+		req.setEncodingType(null);
+		if (authCode != null)
+			req.setAdditionalHeader("Authorization", authCode);
+		Page p = wc.getPage(req);
 
-        assertResponse(p, expectedLogin, expectedAuthorities);
-    }
+		assertResponse(p, expectedLogin, expectedAuthorities);
+	}
 
-    private void makeRequestUsingOAuth(String expectedLogin, List<String> expectedAuthorities) throws IOException {
-        WebRequest req = new WebRequest(new URL(j.getURL(), "securityRealm/commenceLogin"));
-        req.setEncodingType(null);
+	private void makeRequestUsingOAuth(String expectedLogin, List<String> expectedAuthorities) throws IOException {
+		WebRequest req = new WebRequest(new URL(j.getURL(), "securityRealm/commenceLogin"));
+		req.setEncodingType(null);
 
-        String referer = j.getURL() + "whoAmI/api/json";
-        req.setAdditionalHeader("Referer", referer);
-        Page p = wc.getPage(req);
+		String referer = j.getURL() + "whoAmI/api/json";
+		req.setAdditionalHeader("Referer", referer);
+		Page p = wc.getPage(req);
 
-        assertResponse(p, expectedLogin, expectedAuthorities);
-    }
+		assertResponse(p, expectedLogin, expectedAuthorities);
+	}
 
-    private void assertResponse(Page p, String expectedLogin, List<String> expectedAuthorities) {
-        String response = p.getWebResponse().getContentAsString().trim();
-        JSONObject respObject = JSONObject.fromObject(response);
-        if (expectedLogin != null) {
-            assertEquals(expectedLogin, respObject.getString("name"));
-        }
-        if (expectedAuthorities != null) {
-            // we use set to avoid having duplicated "authenticated"
-            // as that will be corrected in https://github.com/jenkinsci/jenkins/pull/3123
-            Set<String> actualAuthorities = new HashSet<>(
-                    JSONArray.toCollection(
-                            respObject.getJSONArray("authorities"),
-                            String.class
-                    )
-            );
+	private static void assertResponse(Page p, String expectedLogin, List<String> expectedAuthorities) {
+		String response = p.getWebResponse().getContentAsString().trim();
+		JSONObject respObject = JSONObject.fromObject(response);
+		if (expectedLogin != null) {
+			assertEquals(expectedLogin, respObject.getString("name"));
+		}
+		if (expectedAuthorities != null) {
+			// we use set to avoid having duplicated "authenticated"
+			// as that will be corrected in https://github.com/jenkinsci/jenkins/pull/3123
+			Set<String> actualAuthorities = new HashSet<>(
+					JSONArray.toCollection(
+							respObject.getJSONArray("authorities"),
+							String.class
+					)
+			);
 
-            Set<String> expectedAuthoritiesSet = new HashSet<>(expectedAuthorities);
+			Set<String> expectedAuthoritiesSet = new HashSet<>(expectedAuthorities);
 
-            assertEquals(String.format("They do not have the same content, expected=%s, actual=%s", expectedAuthorities, actualAuthorities), expectedAuthoritiesSet, actualAuthorities);
-        }
-    }
+			assertEquals(expectedAuthoritiesSet, actualAuthorities, String.format("They do not have the same content, expected=%s, actual=%s", expectedAuthorities, actualAuthorities));
+		}
+	}
 
-    private String encodeBasic(String login, String credentials) {
-        return "Basic " + Scrambler.scramble(login + ":" + credentials);
-    }
+	private static String encodeBasic(String login, String credentials) {
+		return "Basic " + Scrambler.scramble(login + ":" + credentials);
+	}
 }
