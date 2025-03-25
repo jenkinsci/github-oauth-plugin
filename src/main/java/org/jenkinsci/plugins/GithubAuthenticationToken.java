@@ -30,7 +30,6 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Item;
 import hudson.security.Permission;
 import hudson.security.SecurityRealm;
@@ -183,12 +182,10 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         }
     }
 
-    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public GithubAuthenticationToken(final String accessToken, final String githubServer) throws IOException {
         this(accessToken, githubServer, false);
     }
 
-    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public GithubAuthenticationToken(final String accessToken, final String githubServer, final boolean clearUserCache) throws IOException {
         super(List.of());
 
@@ -374,7 +371,6 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
      * @return                    the Set of org names current user is a member of
      */
     @NonNull
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private Set<String> getUserOrgs() {
         return userOrganizationCache.get(this.userName, unused -> {
             try {
@@ -439,7 +435,6 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
      * @return [description]
      */
     @NonNull
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private Cache<String, RepoRights> myRepositories() {
             return repositoriesByUserCache.get(this.userName, unused -> {
                         // listRepositories returns all repos owned by user, where they are a collaborator,
@@ -519,7 +514,6 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     }
 
     @NonNull
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private RepoRights loadRepository(@NonNull final String repositoryName) {
       try {
           if (gh != null && isAuthenticated() && (myRealm.hasScope("repo") || myRealm.hasScope("public_repo"))) {
