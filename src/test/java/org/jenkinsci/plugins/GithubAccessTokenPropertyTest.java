@@ -23,13 +23,25 @@
  */
 package org.jenkinsci.plugins;
 
-import static org.junit.Assert.assertEquals;
-
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import hudson.model.User;
 import hudson.util.Scrambler;
+import jenkins.security.ApiTokenProperty;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import org.eclipse.jetty.util.Fields;
+import org.eclipse.jetty.util.UrlEncoded;
+import org.htmlunit.Page;
+import org.htmlunit.WebRequest;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -46,24 +58,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import jenkins.security.ApiTokenProperty;
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
-import org.eclipse.jetty.util.Fields;
-import org.eclipse.jetty.util.UrlEncoded;
-import org.htmlunit.Page;
-import org.htmlunit.WebRequest;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.JenkinsRule;
 
-public class GithubAccessTokenPropertyTest {
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+@WithJenkins
+class GithubAccessTokenPropertyTest {
+
+    private JenkinsRule j;
 
     private JenkinsRule.WebClient wc;
 
@@ -71,7 +72,7 @@ public class GithubAccessTokenPropertyTest {
     private URI serverUri;
     private MockGithubServlet servlet;
 
-    public void setupMockGithubServer() throws Exception {
+    private void setupMockGithubServer() throws Exception {
         server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         servlet = new MockGithubServlet(j);
         server.createContext("/", servlet);
@@ -93,7 +94,7 @@ public class GithubAccessTokenPropertyTest {
         private List<String> organizations;
         private List<Map<String, String>> teams;
 
-        private JenkinsRule jenkinsRule;
+        private final JenkinsRule jenkinsRule;
         private URI serverUri;
 
         public MockGithubServlet(JenkinsRule jenkinsRule) {
@@ -104,7 +105,8 @@ public class GithubAccessTokenPropertyTest {
             this.serverUri = serverUri;
         }
 
-        @Override public void handle(HttpExchange he) throws IOException {
+        @Override
+        public void handle(HttpExchange he) throws IOException {
             switch (he.getRequestURI().getPath()) {
                 case "/user":
                     this.onUser(he);
@@ -170,7 +172,7 @@ public class GithubAccessTokenPropertyTest {
             List<Map<String, Object>> responseBody = new ArrayList<>();
             for (String orgName : organizations) {
                 final String orgName_ = orgName;
-                responseBody.add(new HashMap<String, Object>() {{
+                responseBody.add(new HashMap<>() {{
                     put("login", orgName_);
                 }});
             }
@@ -199,7 +201,7 @@ public class GithubAccessTokenPropertyTest {
             for (Map<String, String> team : teams) {
                 final String teamName_ = team.get("name");
                 final String slug = team.get("slug");
-                responseBody.add(new HashMap<String, Object>() {{
+                responseBody.add(new HashMap<>() {{
                     put("id", 7);
                     put("login", teamName_ + "_login");
                     put("name", teamName_);
@@ -217,7 +219,7 @@ public class GithubAccessTokenPropertyTest {
             for (Map<String, String> team : teams) {
                 final String teamName_ = team.get("name");
                 final String slug = team.get("slug");
-                responseBody.add(new HashMap<String, Object>() {{
+                responseBody.add(new HashMap<>() {{
                     put("login", teamName_ + "_login");
                     put("name", teamName_);
                     put("slug", slug);
@@ -252,15 +254,16 @@ public class GithubAccessTokenPropertyTest {
         }
     }
 
-    @Before
-    public void prepareRealmAndWebClient() throws Exception {
+    @BeforeEach
+    void prepareRealmAndWebClient(JenkinsRule j) throws Exception {
+        this.j = j;
         this.setupMockGithubServer();
         this.setupRealm();
         wc = j.createWebClient();
         GithubAuthenticationToken.clearCaches();
     }
 
-    private void setupRealm(){
+    private void setupRealm() {
         String githubWebUri = serverUri.toString();
         String githubApiUri = serverUri.toString();
         String clientID = "xxx";
@@ -278,14 +281,14 @@ public class GithubAccessTokenPropertyTest {
         j.jenkins.setSecurityRealm(githubSecurityRealm);
     }
 
-    @After
-    public void stopEmbeddedServer() {
+    @AfterEach
+    void stopEmbeddedJettyServer() {
         server.stop(1);
     }
 
     @Issue("JENKINS-47113")
     @Test
-    public void testUsingGithubToken() throws IOException {
+    void testUsingGithubToken() throws IOException {
         String aliceLogin = "alice";
         servlet.currentLogin = aliceLogin;
         servlet.organizations = Collections.singletonList("org-a");
@@ -316,7 +319,7 @@ public class GithubAccessTokenPropertyTest {
 
     @Issue("JENKINS-47113")
     @Test
-    public void testUsingGithubLogin() throws IOException {
+    void testUsingGithubLogin() throws IOException {
         String bobLogin = "bob";
         servlet.currentLogin = bobLogin;
         servlet.organizations = Collections.singletonList("org-c");
@@ -345,7 +348,7 @@ public class GithubAccessTokenPropertyTest {
 
     @Issue("JENKINS-60200")
     @Test
-    public void testInvalidateAuthorizationCacheOnFreshLogin() throws IOException {
+    void testInvalidateAuthorizationCacheOnFreshLogin() throws IOException {
         String bobLogin = "bob";
         servlet.currentLogin = bobLogin;
         servlet.organizations = Collections.singletonList("org-c");
@@ -374,7 +377,6 @@ public class GithubAccessTokenPropertyTest {
         makeRequestUsingOAuth("bob", Arrays.asList("authenticated", "org-c", "org-c*team-e"));
     }
 
-
     private void makeRequestWithAuthCodeAndVerify(String authCode, String expectedLogin, List<String> expectedAuthorities) throws IOException {
         WebRequest req = new WebRequest(new URL(j.getURL(), "whoAmI/api/json"));
         req.setEncodingType(null);
@@ -396,7 +398,7 @@ public class GithubAccessTokenPropertyTest {
         assertResponse(p, expectedLogin, expectedAuthorities);
     }
 
-    private void assertResponse(Page p, String expectedLogin, List<String> expectedAuthorities) {
+    private static void assertResponse(Page p, String expectedLogin, List<String> expectedAuthorities) {
         String response = p.getWebResponse().getContentAsString().trim();
         JSONObject respObject = JSONObject.fromObject(response);
         if (expectedLogin != null) {
@@ -414,11 +416,11 @@ public class GithubAccessTokenPropertyTest {
 
             Set<String> expectedAuthoritiesSet = new HashSet<>(expectedAuthorities);
 
-            assertEquals(String.format("They do not have the same content, expected=%s, actual=%s", expectedAuthorities, actualAuthorities), expectedAuthoritiesSet, actualAuthorities);
+            assertEquals(expectedAuthoritiesSet, actualAuthorities, String.format("They do not have the same content, expected=%s, actual=%s", expectedAuthorities, actualAuthorities));
         }
     }
 
-    private String encodeBasic(String login, String credentials) {
+    private static String encodeBasic(String login, String credentials) {
         return "Basic " + Scrambler.scramble(login + ":" + credentials);
     }
 }

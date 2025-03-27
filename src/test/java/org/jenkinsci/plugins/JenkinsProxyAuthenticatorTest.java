@@ -5,14 +5,15 @@ import okhttp3.Credentials;
 import okhttp3.Protocol;
 import okhttp3.Request;
 import okhttp3.Response;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class JenkinsProxyAuthenticatorTest {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
+class JenkinsProxyAuthenticatorTest {
 
     @Test
-    public void refusesChallengeIfAuthenticationAlreadyFailed() {
+    void refusesChallengeIfAuthenticationAlreadyFailed() {
         Request previousRequest =
                 new Request.Builder()
                         .url("https://example.com")
@@ -27,11 +28,11 @@ public class JenkinsProxyAuthenticatorTest {
                         .message("Unauthorized")
                         .build();
 
-        Assert.assertNull(new JenkinsProxyAuthenticator(null).authenticate(null, response));
+        assertNull(new JenkinsProxyAuthenticator(null).authenticate(null, response));
     }
 
     @Test
-    public void refusesPreemptiveOkHttpChallenge() {
+    void refusesPreemptiveOkHttpChallenge() {
         Request previousRequest = new Request.Builder().url("https://example.com").build();
 
         Response response =
@@ -43,11 +44,11 @@ public class JenkinsProxyAuthenticatorTest {
                         .message("Unauthorized")
                         .build();
 
-        Assert.assertNull(new JenkinsProxyAuthenticator(null).authenticate(null, response));
+        assertNull(new JenkinsProxyAuthenticator(null).authenticate(null, response));
     }
 
     @Test
-    public void acceptsBasicChallenge() {
+    void acceptsBasicChallenge() {
         Request previousRequest = new Request.Builder().url("https://example.com").build();
 
         Response response =
@@ -65,11 +66,11 @@ public class JenkinsProxyAuthenticatorTest {
         Request requestWithBasicAuth =
                 new JenkinsProxyAuthenticator(proxyConfiguration).authenticate(null, response);
 
-        Assert.assertEquals(requestWithBasicAuth.header("Proxy-Authorization"), credentials);
+        assertEquals(requestWithBasicAuth.header("Proxy-Authorization"), credentials);
     }
 
     @Test
-    public void refusesAnyChallengeWhichIsNotBasicAuthentication() {
+    void refusesAnyChallengeWhichIsNotBasicAuthentication() {
         Request previousRequest = new Request.Builder().url("https://example.com").build();
 
         Response response =
@@ -81,7 +82,6 @@ public class JenkinsProxyAuthenticatorTest {
                         .message("Unauthorized")
                         .build();
 
-        Assert.assertNull(new JenkinsProxyAuthenticator(null).authenticate(null, response));
+        assertNull(new JenkinsProxyAuthenticator(null).authenticate(null, response));
     }
-
 }

@@ -24,18 +24,18 @@ THE SOFTWARE.
 
 package org.jenkinsci.plugins;
 
-import static org.junit.Assert.assertEquals;
-
 import jenkins.model.Jenkins;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
-public class GithubLogoutActionTest {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+@ExtendWith(MockitoExtension.class)
+class GithubLogoutActionTest {
 
     @Mock
     private GithubSecurityRealm securityRealm;
@@ -56,7 +56,7 @@ public class GithubLogoutActionTest {
     }
 
     @Test
-    public void testGetGitHubText_gh() {
+    void testGetGitHubText_gh() {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class)) {
             mockJenkins(mockedJenkins);
             mockGithubSecurityRealmWebUriFor("https://github.com");
@@ -66,7 +66,7 @@ public class GithubLogoutActionTest {
     }
 
     @Test
-    public void testGetGitHubText_ghe() {
+    void testGetGitHubText_ghe() {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class)) {
             mockJenkins(mockedJenkins);
             mockGithubSecurityRealmWebUriFor("https://ghe.example.com");
