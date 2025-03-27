@@ -24,20 +24,22 @@ THE SOFTWARE.
 
 package org.jenkinsci.plugins;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-public class GithubAuthorizationStrategyTest {
+class GithubAuthorizationStrategyTest {
+
     @Test
-    public void testEquals_true() {
+    void testEquals_true() {
         GithubAuthorizationStrategy a = new GithubAuthorizationStrategy("", false, true, false, "", false, false, false, false);
         GithubAuthorizationStrategy b = new GithubAuthorizationStrategy("", false, true, false, "", false, false, false, false);
         assertEquals(a, b);
     }
+
     @Test
-    public void testEquals_false() {
+    void testEquals_false() {
         GithubAuthorizationStrategy a = new GithubAuthorizationStrategy("", false, true, false, "", false, false, false, false);
         GithubAuthorizationStrategy b = new GithubAuthorizationStrategy("", false, false, false, "", false, false, false, false);
         assertNotEquals(a, b);

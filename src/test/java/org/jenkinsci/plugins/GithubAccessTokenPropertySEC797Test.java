@@ -23,23 +23,12 @@
  */
 package org.jenkinsci.plugins;
 
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.model.UnprotectedRootAction;
 import hudson.util.HttpResponses;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
@@ -50,55 +39,66 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.htmlunit.Page;
 import org.htmlunit.WebRequest;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest2;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 //TODO merge with GithubAccessTokenPropertyTest after security release, just meant to ease the security merge
 // or with GithubSecurityRealmTest, but will require more refactor to move out the mock server
-public class GithubAccessTokenPropertySEC797Test {
-    
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
-    
+@WithJenkins
+class GithubAccessTokenPropertySEC797Test {
+
+    private JenkinsRule j;
     private JenkinsRule.WebClient wc;
-    
+
     private Server server;
     private URI serverUri;
     private MockGithubServlet servlet;
-    
-    public void setupMockGithubServer() throws Exception {
+
+    private void setupMockGithubServer() throws Exception {
         server = new Server();
         ServerConnector connector = new ServerConnector(server);
         // auto-bind to available port
         connector.setPort(0);
         server.addConnector(connector);
-        
+
         servlet = new MockGithubServlet(j);
-        
+
         ServletContextHandler context = new ServletContextHandler();
         ServletHolder servletHolder = new ServletHolder("default", servlet);
         context.addServlet(servletHolder, "/*");
         server.setHandler(context);
-        
+
         server.start();
-        
+
         String host = connector.getHost();
         if (host == null) {
             host = "localhost";
         }
-        
+
         int port = connector.getLocalPort();
         serverUri = new URI(String.format("http://%s:%d/", host, port));
         servlet.setServerUrl(serverUri);
     }
-    
+
     /**
      * Based on documentation found at
      * https://developer.github.com/v3/users/
@@ -109,19 +109,20 @@ public class GithubAccessTokenPropertySEC797Test {
         private String currentLogin;
         private List<String> organizations;
         private List<String> teams;
-        
-        private JenkinsRule jenkinsRule;
+
+        private final JenkinsRule jenkinsRule;
         private URI serverUri;
-        
+
         public MockGithubServlet(JenkinsRule jenkinsRule) {
             this.jenkinsRule = jenkinsRule;
         }
-        
+
         public void setServerUrl(URI serverUri) {
             this.serverUri = serverUri;
         }
-        
-        @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             switch (req.getRequestURI()) {
                 case "/user":
                     this.onUser(req, resp);
@@ -169,7 +170,7 @@ public class GithubAccessTokenPropertySEC797Test {
                     throw new RuntimeException("Url not mapped yet: " + req.getRequestURI());
             }
         }
-        
+
         private void onUser(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             resp.getWriter().write(JSONObject.fromObject(
                     new HashMap<String, Object>() {{
@@ -181,42 +182,42 @@ public class GithubAccessTokenPropertySEC797Test {
                     }}
             ).toString());
         }
-        
+
         private void onUserOrgs(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             List<Map<String, Object>> responseBody = new ArrayList<>();
             for (String orgName : organizations) {
                 final String orgName_ = orgName;
-                responseBody.add(new HashMap<String, Object>() {{
+                responseBody.add(new HashMap<>() {{
                     put("login", orgName_);
                 }});
             }
-            
+
             resp.getWriter().write(JSONArray.fromObject(responseBody).toString());
         }
-        
+
         private void onOrgs(HttpServletRequest req, HttpServletResponse resp, final String orgName) throws IOException {
-            Map<String, Object> responseBody = new HashMap<String, Object>() {{
+            Map<String, Object> responseBody = new HashMap<>() {{
                 put("login", orgName);
             }};
-            
+
             resp.getWriter().write(JSONObject.fromObject(responseBody).toString());
         }
-        
+
         private void onOrgsMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) {
             resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
             // 302 / 404 responses not implemented
         }
-        
+
         private void onTeamMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) {
             resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
             // 302 / 404 responses not implemented
         }
-        
+
         private void onOrgsTeam(HttpServletRequest req, HttpServletResponse resp, final String orgName) throws IOException {
             List<Map<String, Object>> responseBody = new ArrayList<>();
             for (String teamName : teams) {
                 final String teamName_ = teamName;
-                responseBody.add(new HashMap<String, Object>() {{
+                responseBody.add(new HashMap<>() {{
                     put("id", 7);
                     put("login", teamName_ + "_login");
                     put("name", teamName_);
@@ -225,15 +226,15 @@ public class GithubAccessTokenPropertySEC797Test {
                     }});
                 }});
             }
-            
+
             resp.getWriter().write(JSONArray.fromObject(responseBody).toString());
         }
-        
+
         private void onUserTeams(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             List<Map<String, Object>> responseBody = new ArrayList<>();
             for (String teamName : teams) {
                 final String teamName_ = teamName;
-                responseBody.add(new HashMap<String, Object>() {{
+                responseBody.add(new HashMap<>() {{
                     put("login", teamName_ + "_login");
                     put("name", teamName_);
                     put("organization", new HashMap<String, Object>() {{
@@ -241,35 +242,36 @@ public class GithubAccessTokenPropertySEC797Test {
                     }});
                 }});
             }
-            
+
             resp.getWriter().write(JSONArray.fromObject(responseBody).toString());
         }
-        
+
         private void onLoginOAuthAuthorize(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             String code = "test";
             String state = req.getParameter("state");
             resp.sendRedirect(jenkinsRule.getURL() + "securityRealm/finishLogin?code=" + code + "&state=" + state);
         }
-        
+
         private void onLoginOAuthAccessToken(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             resp.getWriter().write("access_token=RANDOM_ACCESS_TOKEN");
         }
     }
-    
-    @Before
-    public void prepareRealmAndWebClient() throws Exception {
+
+    @BeforeEach
+    void prepareRealmAndWebClient(JenkinsRule j) throws Exception {
+        this.j = j;
         this.setupMockGithubServer();
         this.setupRealm();
         wc = j.createWebClient();
     }
-    
+
     private void setupRealm() {
         String githubWebUri = serverUri.toString();
         String githubApiUri = serverUri.toString();
         String clientID = "xxx";
         String clientSecret = "yyy";
         String oauthScopes = "read:org";
-        
+
         GithubSecurityRealm githubSecurityRealm = new GithubSecurityRealm(
                 githubWebUri,
                 githubApiUri,
@@ -277,59 +279,54 @@ public class GithubAccessTokenPropertySEC797Test {
                 clientSecret,
                 oauthScopes
         );
-        
+
         j.jenkins.setSecurityRealm(githubSecurityRealm);
     }
-    
-    @After
-    public void stopEmbeddedJettyServer() {
-        try {
-            server.stop();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+
+    @AfterEach
+    void stopEmbeddedJettyServer() throws Exception {
+        server.stop();
     }
-    
+
     // all the code above is reused from GithubAccessTokenPropertyTest
-    
+
     @Issue("SECURITY-797")
     @Test
-    public void preventSessionFixation() throws Exception {
+    void preventSessionFixation() throws Exception {
         TestRootAction rootAction = j.jenkins.getExtensionList(UnprotectedRootAction.class).get(TestRootAction.class);
         assertNotNull(rootAction);
 
         wc = j.createWebClient();
 
-        String aliceLogin = "alice";
-        servlet.currentLogin = aliceLogin;
+        servlet.currentLogin = "alice";
         servlet.organizations = Collections.singletonList("org-a");
         servlet.teams = Collections.singletonList("team-b");
-        
+
         String sessionIdBefore = checkSessionFixationWithOAuth();
         String sessionIdAfter = rootAction.sessionId;
         assertNotNull(sessionIdAfter);
-        assertNotEquals("Session must be invalidated after login", sessionIdBefore, sessionIdAfter);
+        assertNotEquals(sessionIdBefore, sessionIdAfter, "Session must be invalidated after login");
     }
-    
+
     @TestExtension("preventSessionFixation")
     public static final class TestRootAction implements UnprotectedRootAction {
         public String sessionId;
-        
+
         @Override
         public @CheckForNull String getIconFileName() {
             return null;
         }
-        
+
         @Override
         public @CheckForNull String getDisplayName() {
             return null;
         }
-        
+
         @Override
         public String getUrlName() {
             return "test";
         }
-        
+
         public HttpResponse doIndex(StaplerRequest2 request) {
             HttpSession session = request.getSession(false);
             if (session == null) {
@@ -340,20 +337,20 @@ public class GithubAccessTokenPropertySEC797Test {
             return HttpResponses.text("ok");
         }
     }
-    
+
     private String checkSessionFixationWithOAuth() throws IOException {
         WebRequest req = new WebRequest(new URL(j.getURL(), "securityRealm/commenceLogin"));
         req.setEncodingType(null);
-        
+
         String referer = j.getURL() + "test";
         req.setAdditionalHeader("Referer", referer);
         wc.getOptions().setRedirectEnabled(false);
         wc.getOptions().setThrowExceptionOnFailingStatusCode(false);
         Page p = wc.getPage(req);
-        
+
         String cookie = p.getWebResponse().getResponseHeaderValue("Set-Cookie");
         String sessionId = StringUtils.substringBetween(cookie, "JSESSIONID=", ";");
-        
+
         wc.getOptions().setRedirectEnabled(true);
         // continue the process of authentication
         wc.getPage(new URL(p.getWebResponse().getResponseHeaderValue("Location")));
