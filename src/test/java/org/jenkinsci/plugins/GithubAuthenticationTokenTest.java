@@ -1,13 +1,10 @@
 package org.jenkinsci.plugins;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.IOException;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.SerializationUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
@@ -16,23 +13,21 @@ import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-public class GithubAuthenticationTokenTest {
+import java.io.IOException;
 
-    @Mock
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+@ExtendWith(MockitoExtension.class)
+class GithubAuthenticationTokenTest {
+
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private GithubSecurityRealm securityRealm;
 
-    private AutoCloseable closeable;
-
-    @Before
-    public void setUp() {
-        closeable = MockitoAnnotations.openMocks(this);
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        closeable.close();
+    @AfterEach
+    void tearDown() {
+        GithubAuthenticationToken.clearCaches();
     }
 
     private void mockJenkins(MockedStatic<Jenkins> mockedJenkins) {
@@ -43,7 +38,7 @@ public class GithubAuthenticationTokenTest {
     }
 
     @Test
-    public void testTokenSerialization() throws IOException {
+    void testTokenSerialization() throws IOException {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
             mockJenkins(mockedJenkins);
@@ -58,12 +53,7 @@ public class GithubAuthenticationTokenTest {
         }
     }
 
-    @After
-    public void after() {
-        GithubAuthenticationToken.clearCaches();
-    }
-
-    private GHMyself mockGHMyselfAs(MockedStatic<GitHubBuilder> mockedGitHubBuilder, String username) throws IOException {
+    private static GHMyself mockGHMyselfAs(MockedStatic<GitHubBuilder> mockedGitHubBuilder, String username) throws IOException {
         GitHub gh = Mockito.mock(GitHub.class);
         GitHubBuilder builder = Mockito.mock(GitHubBuilder.class);
         mockedGitHubBuilder.when(GitHubBuilder::fromEnvironment).thenReturn(builder);
@@ -77,5 +67,4 @@ public class GithubAuthenticationTokenTest {
         Mockito.when(me.getLogin()).thenReturn(username);
         return me;
     }
-
 }
