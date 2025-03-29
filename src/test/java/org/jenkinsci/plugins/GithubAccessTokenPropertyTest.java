@@ -25,13 +25,19 @@ package org.jenkinsci.plugins;
 
 import static org.junit.Assert.assertEquals;
 
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
 import hudson.model.User;
 import hudson.util.Scrambler;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,11 +49,8 @@ import java.util.Set;
 import jenkins.security.ApiTokenProperty;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-import org.eclipse.jetty.ee9.servlet.DefaultServlet;
-import org.eclipse.jetty.ee9.servlet.ServletContextHandler;
-import org.eclipse.jetty.ee9.servlet.ServletHolder;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.util.Fields;
+import org.eclipse.jetty.util.UrlEncoded;
 import org.htmlunit.Page;
 import org.htmlunit.WebRequest;
 import org.junit.After;
@@ -64,33 +67,18 @@ public class GithubAccessTokenPropertyTest {
 
     private JenkinsRule.WebClient wc;
 
-    private Server server;
+    private HttpServer server;
     private URI serverUri;
     private MockGithubServlet servlet;
 
     public void setupMockGithubServer() throws Exception {
-        server = new Server();
-        ServerConnector connector = new ServerConnector(server);
-        // auto-bind to available port
-        connector.setPort(0);
-        server.addConnector(connector);
-
+        server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         servlet = new MockGithubServlet(j);
-
-        ServletContextHandler context = new ServletContextHandler();
-        ServletHolder servletHolder = new ServletHolder("default", servlet);
-        context.addServlet(servletHolder, "/*");
-        server.setHandler(context);
-
+        server.createContext("/", servlet);
         server.start();
 
-        String host = connector.getHost();
-        if (host == null) {
-            host = "localhost";
-        }
-
-        int port = connector.getLocalPort();
-        serverUri = new URI(String.format("http://%s:%d/", host, port));
+        InetSocketAddress address = server.getAddress();
+        serverUri = new URI(String.format("http://%s:%d/", address.getHostString(), address.getPort()));
         servlet.setServerUrl(serverUri);
     }
 
@@ -100,7 +88,7 @@ public class GithubAccessTokenPropertyTest {
      * https://developer.github.com/v3/orgs/
      * https://developer.github.com/v3/orgs/teams/
      */
-    private static class MockGithubServlet extends DefaultServlet {
+    private static class MockGithubServlet implements HttpHandler {
         private String currentLogin;
         private List<String> organizations;
         private List<Map<String, String>> teams;
@@ -116,57 +104,58 @@ public class GithubAccessTokenPropertyTest {
             this.serverUri = serverUri;
         }
 
-        @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-            switch (req.getRequestURI()) {
+        @Override public void handle(HttpExchange he) throws IOException {
+            switch (he.getRequestURI().getPath()) {
                 case "/user":
-                    this.onUser(req, resp);
+                    this.onUser(he);
                     break;
                 case "/users/_specific_login_":
-                    this.onUser(req, resp);
+                    this.onUser(he);
                     break;
                 case "/user/orgs":
-                    this.onUserOrgs(req, resp);
+                    this.onUserOrgs(he);
                     break;
                 case "/user/teams":
-                    this.onUserTeams(req, resp);
+                    this.onUserTeams(he);
                     break;
                 case "/orgs/org-a":
-                    this.onOrgs(req, resp, "org-a");
+                    this.onOrgs(he, "org-a");
                     break;
                 case "/orgs/org-a/teams":
-                    this.onOrgsTeam(req, resp, "org-a");
+                    this.onOrgsTeam(he, "org-a");
                     break;
                 case "/orgs/org-a/members/alice":
-                    this.onOrgsMember(req, resp, "org-a", "alice");
+                    this.onOrgsMember(he, "org-a", "alice");
                     break;
                 case "/teams/7/members/alice":
-                    this.onTeamMember(req, resp, "team-b", "alice");
+                    this.onTeamMember(he, "team-b", "alice");
                     break;
                 case "/orgs/org-c":
-                    this.onOrgs(req, resp, "org-c");
+                    this.onOrgs(he, "org-c");
                     break;
                 case "/orgs/org-c/teams":
-                    this.onOrgsTeam(req, resp, "org-c");
+                    this.onOrgsTeam(he, "org-c");
                     break;
                 case "/orgs/org-c/members/bob":
-                    this.onOrgsMember(req, resp, "org-c", "bob");
+                    this.onOrgsMember(he, "org-c", "bob");
                     break;
                 case "/teams/7/members/bob":
-                    this.onTeamMember(req, resp, "team-d", "bob");
+                    this.onTeamMember(he, "team-d", "bob");
                     break;
                 case "/login/oauth/authorize":
-                    this.onLoginOAuthAuthorize(req, resp);
+                    this.onLoginOAuthAuthorize(he);
                     break;
                 case "/login/oauth/access_token":
-                    this.onLoginOAuthAccessToken(req, resp);
+                    this.onLoginOAuthAccessToken(he);
                     break;
                 default:
-                    throw new RuntimeException("Url not mapped yet: " + req.getRequestURI());
+                    throw new RuntimeException("Url not mapped yet: " + he.getRequestURI().getPath());
             }
+            he.close();
         }
 
-        private void onUser(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-            resp.getWriter().write(JSONObject.fromObject(
+        private void onUser(HttpExchange he) throws IOException {
+            sendResponse(he, JSONObject.fromObject(
                     new HashMap<String, Object>() {{
                         put("login", currentLogin);
                         put("name", currentLogin + "_name");
@@ -177,7 +166,7 @@ public class GithubAccessTokenPropertyTest {
             ).toString());
         }
 
-        private void onUserOrgs(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        private void onUserOrgs(HttpExchange he) throws IOException {
             List<Map<String, Object>> responseBody = new ArrayList<>();
             for (String orgName : organizations) {
                 final String orgName_ = orgName;
@@ -185,29 +174,27 @@ public class GithubAccessTokenPropertyTest {
                     put("login", orgName_);
                 }});
             }
-
-            resp.getWriter().write(JSONArray.fromObject(responseBody).toString());
+            sendResponse(he, JSONArray.fromObject(responseBody).toString());
         }
 
-        private void onOrgs(HttpServletRequest req, HttpServletResponse resp, final String orgName) throws IOException {
+        private void onOrgs(HttpExchange he, final String orgName) throws IOException {
             Map<String, Object> responseBody = new HashMap<String, Object>() {{
                 put("login", orgName);
             }};
-
-            resp.getWriter().write(JSONObject.fromObject(responseBody).toString());
+            sendResponse(he, JSONObject.fromObject(responseBody).toString());
         }
 
-        private void onOrgsMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) {
-            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+        private void onOrgsMember(HttpExchange he, String orgName, String userName) throws IOException {
+            he.sendResponseHeaders(HttpURLConnection.HTTP_NO_CONTENT, -1);
             // 302 / 404 responses not implemented
         }
 
-        private void onTeamMember(HttpServletRequest req, HttpServletResponse resp, String orgName, String userName) {
-            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+        private void onTeamMember(HttpExchange he, String orgName, String userName) throws IOException {
+            he.sendResponseHeaders(HttpURLConnection.HTTP_NO_CONTENT, -1);
             // 302 / 404 responses not implemented
         }
 
-        private void onOrgsTeam(HttpServletRequest req, HttpServletResponse resp, final String orgName) throws IOException {
+        private void onOrgsTeam(HttpExchange he, final String orgName) throws IOException {
             List<Map<String, Object>> responseBody = new ArrayList<>();
             for (Map<String, String> team : teams) {
                 final String teamName_ = team.get("name");
@@ -222,11 +209,10 @@ public class GithubAccessTokenPropertyTest {
                     }});
                 }});
             }
-
-            resp.getWriter().write(JSONArray.fromObject(responseBody).toString());
+            sendResponse(he, JSONArray.fromObject(responseBody).toString());
         }
 
-        private void onUserTeams(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        private void onUserTeams(HttpExchange he) throws IOException {
             List<Map<String, Object>> responseBody = new ArrayList<>();
             for (Map<String, String> team : teams) {
                 final String teamName_ = team.get("name");
@@ -241,17 +227,28 @@ public class GithubAccessTokenPropertyTest {
                 }});
             }
 
-            resp.getWriter().write(JSONArray.fromObject(responseBody).toString());
+            sendResponse(he, JSONArray.fromObject(responseBody).toString());
         }
 
-        private void onLoginOAuthAuthorize(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        private void onLoginOAuthAuthorize(HttpExchange he) throws IOException {
             String code = "test";
-            String state = req.getParameter("state");
-            resp.sendRedirect(jenkinsRule.getURL() + "securityRealm/finishLogin?code=" + code + "&state=" + state);
+            Fields fields = new Fields();
+            UrlEncoded.decodeUtf8To(he.getRequestURI().getQuery(), fields);
+            String state = fields.getValue("state");
+            he.getResponseHeaders().set("Location", jenkinsRule.getURL() + "securityRealm/finishLogin?code=" + code + "&state=" + state);
+            he.sendResponseHeaders(302, -1);
         }
 
-        private void onLoginOAuthAccessToken(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-            resp.getWriter().write("access_token=RANDOM_ACCESS_TOKEN");
+        private void onLoginOAuthAccessToken(HttpExchange he) throws IOException {
+            sendResponse(he, "access_token=RANDOM_ACCESS_TOKEN");
+        }
+
+        private void sendResponse(HttpExchange he, String response) throws IOException {
+            byte[] body = response.getBytes(StandardCharsets.UTF_8);
+            he.sendResponseHeaders(HttpURLConnection.HTTP_OK, body.length);
+            try (OutputStream os = he.getResponseBody()) {
+                os.write(body);
+            }
         }
     }
 
@@ -282,12 +279,8 @@ public class GithubAccessTokenPropertyTest {
     }
 
     @After
-    public void stopEmbeddedJettyServer() {
-        try {
-            server.stop();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public void stopEmbeddedServer() {
+        server.stop(1);
     }
 
     @Issue("JENKINS-47113")
