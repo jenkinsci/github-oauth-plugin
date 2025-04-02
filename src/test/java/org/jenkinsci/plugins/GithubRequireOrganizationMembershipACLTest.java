@@ -26,9 +26,6 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Item;
@@ -39,10 +36,6 @@ import hudson.plugins.git.UserRemoteConfig;
 import hudson.scm.NullSCM;
 import hudson.security.Permission;
 import hudson.security.PermissionScope;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import jenkins.branch.Branch;
 import jenkins.branch.MultiBranchProject;
 import jenkins.model.Jenkins;
@@ -51,9 +44,10 @@ import org.jenkinsci.plugins.github_branch_source.GitHubSCMSource;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHPerson;
 import org.kohsuke.github.GHRepository;
@@ -67,16 +61,27 @@ import org.kohsuke.stapler.StaplerRequest2;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 /**
- *
  * @author alex
  */
-public class GithubRequireOrganizationMembershipACLTest {
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class GithubRequireOrganizationMembershipACLTest {
 
     private GitHub gh;
 
@@ -91,10 +96,8 @@ public class GithubRequireOrganizationMembershipACLTest {
     private boolean allowAnonymousWebhookPermission;
     private boolean allowAnonymousCCTrayPermission;
 
-    private AutoCloseable closeable;
-
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         // default to: use repository permissions; don't allow anonymous read/view status; don't allow authenticated read/create
         allowAnonymousReadPermission = false;
         allowAnonymousJobStatusPermission = false;
@@ -103,8 +106,6 @@ public class GithubRequireOrganizationMembershipACLTest {
         authenticatedUserCreateJobPermission = false;
         allowAnonymousWebhookPermission = false;
         allowAnonymousCCTrayPermission = false;
-
-        closeable = MockitoAnnotations.openMocks(this);
 
         Mockito.when(securityRealm.getOauthScopes()).thenReturn("read:org,repo");
         Mockito.when(securityRealm.hasScope("read:org")).thenReturn(true);
@@ -123,7 +124,7 @@ public class GithubRequireOrganizationMembershipACLTest {
             Messages._Item_READ_description(),
             Permission.READ,
             PermissionScope.ITEM);
-    private final Authentication ANONYMOUS_USER = new AnonymousAuthenticationToken("anonymous",
+    private static final Authentication ANONYMOUS_USER = new AnonymousAuthenticationToken("anonymous",
             "anonymous",
             List.of(new SimpleGrantedAuthority("anonymous")));
 
@@ -172,7 +173,7 @@ public class GithubRequireOrganizationMembershipACLTest {
 
     // TODO: Add ability to set list of orgs user belongs to to check whitelisting!
 
-    private void mockReposFor(GHPerson person, List<GHRepository> repositories) {
+    private static void mockReposFor(GHPerson person, List<GHRepository> repositories) {
         PagedIterable<GHRepository> pagedRepositories = Mockito.mock(PagedIterable.class);
         Mockito.when(person.listRepositories(100)).thenReturn(pagedRepositories);
         Mockito.when(pagedRepositories.asList()).thenReturn(repositories);
@@ -193,7 +194,7 @@ public class GithubRequireOrganizationMembershipACLTest {
         return mockRepository(repositoryName, true, false, false, false);
     }
 
-    private Project mockProject(String url) {
+    private static Project mockProject(String url) {
         Project project = Mockito.mock(Project.class);
         GitSCM gitSCM = Mockito.mock(GitSCM.class);
         UserRemoteConfig userRemoteConfig = Mockito.mock(UserRemoteConfig.class);
@@ -204,7 +205,7 @@ public class GithubRequireOrganizationMembershipACLTest {
         return project;
     }
 
-    private WorkflowJob mockWorkflowJob(String url) {
+    private static WorkflowJob mockWorkflowJob(String url) {
         WorkflowJob project = Mockito.mock(WorkflowJob.class);
         GitSCM gitSCM = Mockito.mock(GitSCM.class);
         Branch branch = Mockito.mock(Branch.class);
@@ -219,7 +220,7 @@ public class GithubRequireOrganizationMembershipACLTest {
         return project;
     }
 
-    private MultiBranchProject mockMultiBranchProject(String url) {
+    private static MultiBranchProject mockMultiBranchProject(String url) {
         WorkflowMultiBranchProject multiBranchProject = Mockito.mock(WorkflowMultiBranchProject.class);
         GitHubSCMSource gitHubSCM = Mockito.mock(GitHubSCMSource.class);
         ArrayList<SCMSource> scmSources = new ArrayList<>();
@@ -229,15 +230,14 @@ public class GithubRequireOrganizationMembershipACLTest {
         return multiBranchProject;
     }
 
-    @After
-    public void tearDown() throws Exception {
-        closeable.close();
+    @AfterEach
+    void tearDown() {
         gh = null;
         GithubAuthenticationToken.clearCaches();
     }
 
     @Test
-    public void testCanReadAndBuildOneOfMyPrivateRepositories() throws IOException {
+    void testCanReadAndBuildOneOfMyPrivateRepositories() throws IOException {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
             mockJenkins(mockedJenkins);
@@ -266,7 +266,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testCanReadAndBuildAPublicRepository() throws IOException {
+    void testCanReadAndBuildAPublicRepository() throws IOException {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
             mockJenkins(mockedJenkins);
@@ -294,7 +294,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testCanReadAndBuildPrivateRepositoryIHavePullRightsOn() throws IOException {
+    void testCanReadAndBuildPrivateRepositoryIHavePullRightsOn() throws IOException {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
             mockJenkins(mockedJenkins);
@@ -325,7 +325,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testCanNotReadOrBuildRepositoryIDoNotCollaborateOn() throws IOException {
+    void testCanNotReadOrBuildRepositoryIDoNotCollaborateOn() throws IOException {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
             mockJenkins(mockedJenkins);
@@ -354,7 +354,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testNotGrantedBuildWhenNotUsingGitSCM() throws IOException {
+    void testNotGrantedBuildWhenNotUsingGitSCM() throws IOException {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
             mockJenkins(mockedJenkins);
@@ -372,7 +372,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testNotGrantedBuildWhenRepositoryIsEmpty() throws IOException {
+    void testNotGrantedBuildWhenRepositoryIsEmpty() throws IOException {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
             mockJenkins(mockedJenkins);
@@ -388,7 +388,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testNotGrantedReadWhenRepositoryUrlIsEmpty() throws IOException {
+    void testNotGrantedReadWhenRepositoryUrlIsEmpty() throws IOException {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
             mockJenkins(mockedJenkins);
@@ -410,7 +410,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testGlobalReadAvailableDueToAuthenticatedUserReadPermission() throws IOException {
+    void testGlobalReadAvailableDueToAuthenticatedUserReadPermission() throws IOException {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
             mockJenkins(mockedJenkins);
@@ -426,7 +426,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testWithoutUseRepositoryPermissionsSetCanReadDueToAuthenticatedUserReadPermission() throws IOException {
+    void testWithoutUseRepositoryPermissionsSetCanReadDueToAuthenticatedUserReadPermission() throws IOException {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
             mockJenkins(mockedJenkins);
@@ -442,7 +442,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testWithoutUseRepositoryPermissionsSetCannotReadWithoutAuthenticatedUserReadPermission() throws IOException {
+    void testWithoutUseRepositoryPermissionsSetCannotReadWithoutAuthenticatedUserReadPermission() throws IOException {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
             mockJenkins(mockedJenkins);
@@ -458,7 +458,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testUsersCannotCreateWithoutConfigurationEnabledPermission() throws IOException {
+    void testUsersCannotCreateWithoutConfigurationEnabledPermission() throws IOException {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
             mockJenkins(mockedJenkins);
@@ -473,7 +473,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testUsersCanCreateWithConfigurationEnabledPermission() throws IOException {
+    void testUsersCanCreateWithConfigurationEnabledPermission() throws IOException {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
             mockJenkins(mockedJenkins);
@@ -488,7 +488,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testCanReadAProjectWithAuthenticatedUserReadPermission() throws IOException {
+    void testCanReadAProjectWithAuthenticatedUserReadPermission() throws IOException {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
             mockJenkins(mockedJenkins);
@@ -513,7 +513,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testCannotReadAProjectWithoutAuthenticatedUserReadPermission() throws IOException {
+    void testCannotReadAProjectWithoutAuthenticatedUserReadPermission() throws IOException {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
             mockJenkins(mockedJenkins);
@@ -536,7 +536,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testCannotReadRepositoryWithInvalidRepoUrl() throws IOException {
+    void testCannotReadRepositoryWithInvalidRepoUrl() throws IOException {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
             mockJenkins(mockedJenkins);
@@ -555,7 +555,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testAgentUserCanCreateConnectAndConfigureAgents() {
+    void testAgentUserCanCreateConnectAndConfigureAgents() {
         GithubAuthenticationToken authenticationToken = Mockito.mock(GithubAuthenticationToken.class);
         Mockito.when(authenticationToken.isAuthenticated()).thenReturn(true);
         Mockito.when(authenticationToken.getName()).thenReturn("agent");
@@ -567,7 +567,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testAuthenticatedCanNotCreateConnectAndConfigureAgents() {
+    void testAuthenticatedCanNotCreateConnectAndConfigureAgents() {
         GithubAuthenticationToken authenticationToken = Mockito.mock(GithubAuthenticationToken.class);
         Mockito.when(authenticationToken.isAuthenticated()).thenReturn(true);
         Mockito.when(authenticationToken.getName()).thenReturn("authenticated");
@@ -579,7 +579,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testAnonymousCanViewJobStatusWhenGranted() {
+    void testAnonymousCanViewJobStatusWhenGranted() {
         this.allowAnonymousJobStatusPermission = true;
 
         Project mockProject = mockProject("https://github.com/some-org/a-public-repo.git");
@@ -589,7 +589,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testAnonymousCannotViewJobStatusWhenNotGranted() {
+    void testAnonymousCannotViewJobStatusWhenNotGranted() {
         this.allowAnonymousJobStatusPermission = false;
 
         Project mockProject = mockProject("https://github.com/some-org/a-public-repo.git");
@@ -599,7 +599,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testAnonymousCanReachWebhookWhenGranted() {
+    void testAnonymousCanReachWebhookWhenGranted() {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<Stapler> mockedStapler = Mockito.mockStatic(Stapler.class)) {
             mockJenkins(mockedJenkins);
@@ -616,7 +616,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testAnonymousCannotReachWebhookIfNotGranted() {
+    void testAnonymousCannotReachWebhookIfNotGranted() {
         try (MockedStatic<Stapler> mockedStapler = Mockito.mockStatic(Stapler.class)) {
             this.allowAnonymousWebhookPermission = false;
 
@@ -631,7 +631,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testAnonymousCanReadAndDiscoverWhenGranted() {
+    void testAnonymousCanReadAndDiscoverWhenGranted() {
         this.allowAnonymousReadPermission = true;
 
         Project mockProject = mockProject("https://github.com/some-org/a-public-repo.git");
@@ -642,7 +642,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testAnonymousCantReadAndDiscoverWhenNotGranted() {
+    void testAnonymousCantReadAndDiscoverWhenNotGranted() {
         this.allowAnonymousReadPermission = false;
 
         Project mockProject = mockProject("https://github.com/some-org/a-public-repo.git");
@@ -653,7 +653,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testAnonymousCanReachCCTrayWhenGranted() {
+    void testAnonymousCanReachCCTrayWhenGranted() {
         try (MockedStatic<Stapler> mockedStapler = Mockito.mockStatic(Stapler.class)) {
             this.allowAnonymousCCTrayPermission = true;
 
@@ -668,7 +668,7 @@ public class GithubRequireOrganizationMembershipACLTest {
     }
 
     @Test
-    public void testAnonymousCannotReachCCTrayIfNotGranted() {
+    void testAnonymousCannotReachCCTrayIfNotGranted() {
         try (MockedStatic<Stapler> mockedStapler = Mockito.mockStatic(Stapler.class)) {
             this.allowAnonymousCCTrayPermission = false;
 
@@ -681,5 +681,4 @@ public class GithubRequireOrganizationMembershipACLTest {
             assertFalse(acl.hasPermission2(ANONYMOUS_USER, Item.READ));
         }
     }
-
 }
