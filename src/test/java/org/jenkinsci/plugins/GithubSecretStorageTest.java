@@ -24,71 +24,70 @@
 package org.jenkinsci.plugins;
 
 import hudson.model.User;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsSessionRule;
+import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class GithubSecretStorageTest {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-    @Rule
-    public JenkinsSessionRule sessions = new JenkinsSessionRule();
+@WithJenkins
+class GithubSecretStorageTest {
 
     @Test
-    public void correctBehavior() throws Throwable {
-        sessions.then(j -> {
-                User.getById("alice", true);
-                User.getById("bob", true);
+    void correctBehavior(JenkinsRule j) {
+        User.getById("alice", true);
+        User.getById("bob", true);
 
-                String secret = "$3cR3t";
+        String secret = "$3cR3t";
 
-                Assert.assertFalse(GithubSecretStorage.contains(retrieveUser()));
-                Assert.assertNull(GithubSecretStorage.retrieve(retrieveUser()));
+        assertFalse(GithubSecretStorage.contains(retrieveUser()));
+        assertNull(GithubSecretStorage.retrieve(retrieveUser()));
 
-                Assert.assertFalse(GithubSecretStorage.contains(retrieveOtherUser()));
+        assertFalse(GithubSecretStorage.contains(retrieveOtherUser()));
 
-                GithubSecretStorage.put(retrieveUser(), secret);
+        GithubSecretStorage.put(retrieveUser(), secret);
 
-                Assert.assertTrue(GithubSecretStorage.contains(retrieveUser()));
-                Assert.assertFalse(GithubSecretStorage.contains(retrieveOtherUser()));
+        assertTrue(GithubSecretStorage.contains(retrieveUser()));
+        assertFalse(GithubSecretStorage.contains(retrieveOtherUser()));
 
-                Assert.assertEquals(secret, GithubSecretStorage.retrieve(retrieveUser()));
-        });
+        assertEquals(secret, GithubSecretStorage.retrieve(retrieveUser()));
     }
 
-    private User retrieveUser() {
+    private static User retrieveUser() {
         return User.getById("alice", false);
     }
 
-    private User retrieveOtherUser() {
+    private static User retrieveOtherUser() {
         return User.getById("bob", false);
     }
 
     @Test
-    public void correctBehaviorEvenAfterRestart() throws Throwable {
+    void correctBehaviorEvenAfterRestart(JenkinsRule j) throws Throwable {
         final String secret = "$3cR3t";
 
-        sessions.then(j -> {
-                User.getById("alice", true).save();
-                User.getById("bob", true).save();
+        User.getById("alice", true).save();
+        User.getById("bob", true).save();
 
-                Assert.assertFalse(GithubSecretStorage.contains(retrieveUser()));
-                Assert.assertNull(GithubSecretStorage.retrieve(retrieveUser()));
+        assertFalse(GithubSecretStorage.contains(retrieveUser()));
+        assertNull(GithubSecretStorage.retrieve(retrieveUser()));
 
-                Assert.assertFalse(GithubSecretStorage.contains(retrieveOtherUser()));
+        assertFalse(GithubSecretStorage.contains(retrieveOtherUser()));
 
-                GithubSecretStorage.put(retrieveUser(), secret);
+        GithubSecretStorage.put(retrieveUser(), secret);
 
-                Assert.assertTrue(GithubSecretStorage.contains(retrieveUser()));
-                Assert.assertFalse(GithubSecretStorage.contains(retrieveOtherUser()));
+        assertTrue(GithubSecretStorage.contains(retrieveUser()));
+        assertFalse(GithubSecretStorage.contains(retrieveOtherUser()));
 
-                Assert.assertEquals(secret, GithubSecretStorage.retrieve(retrieveUser()));
-        });
-        sessions.then(j -> {
-                Assert.assertTrue(GithubSecretStorage.contains(retrieveUser()));
-                Assert.assertFalse(GithubSecretStorage.contains(retrieveOtherUser()));
+        assertEquals(secret, GithubSecretStorage.retrieve(retrieveUser()));
 
-                Assert.assertEquals(secret, GithubSecretStorage.retrieve(retrieveUser()));
-        });
+        j.restart();
+
+        assertTrue(GithubSecretStorage.contains(retrieveUser()));
+        assertFalse(GithubSecretStorage.contains(retrieveOtherUser()));
+
+        assertEquals(secret, GithubSecretStorage.retrieve(retrieveUser()));
     }
 }

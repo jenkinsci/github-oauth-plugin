@@ -26,50 +26,41 @@ THE SOFTWARE.
  */
 package org.jenkinsci.plugins.api;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.Set;
-import junit.framework.TestCase;
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHTeam;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 
-//TODO could use JUnit Assume.* instead of @Ignore
+import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 /**
  * @author mocleiri
  *
  * we ignore this test when running the automated tests.
  */
-@Ignore
-public class GihubAPITest extends TestCase {
-
-    /**
-     *
-     */
-    public GihubAPITest() {
-        // TODO Auto-generated constructor stub
-    }
+@Disabled("we ignore this test when running the automated tests")
+class GithubAPITest {
 
     private static final String LOGIN = System.getProperty("github.login");
     private static final String API_TOKEN = System.getProperty("github.api");
 
-    // I would sugest with the repo level of permission.
+    // I would suggest with the repo level of permission.
     private static final String OAUTH_TOKEN = System.getProperty("github.oauth");
 
     // the name of the organization to which the login is a participant.
-    private static final String PARTICPATING_ORG = System.getProperty("github.org");
+    private static final String PARTICIPATING_ORG = System.getProperty("github.org");
 
-    public GihubAPITest(String name) {
-        super(name);
-        // TODO Auto-generated constructor stub
-    }
-
-    public void testWithUserAPIToken() throws IOException {
+    @Test
+    void testWithUserAPIToken() throws IOException {
         GitHub gh = GitHub.connect(LOGIN, API_TOKEN);
 
-        GHOrganization org = gh.getOrganization(PARTICPATING_ORG);
+        GHOrganization org = gh.getOrganization(PARTICIPATING_ORG);
 
         Map<String, GHTeam> teams = org.getTeams();
 
@@ -92,7 +83,8 @@ public class GihubAPITest extends TestCase {
         assertTrue(found);
     }
 
-    public void testOrganizationMembership () throws IOException {
+    @Test
+    void testOrganizationMembership() throws IOException {
         GitHub gh = GitHub.connectUsingOAuth(OAUTH_TOKEN);
 
         Map<String, GHOrganization> orgs = gh.getMyOrganizations();
@@ -120,7 +112,8 @@ public class GihubAPITest extends TestCase {
         assertTrue(true);
     }
 
-    public void testOrganizationMembershipAPI () throws IOException {
+    @Test
+    void testOrganizationMembershipAPI() throws IOException {
         GitHub gh = GitHub.connect(LOGIN, API_TOKEN);
 
         Map<String, GHOrganization> orgs = gh.getMyOrganizations();
@@ -135,12 +128,13 @@ public class GihubAPITest extends TestCase {
     }
 
     // /organizations
-    public void testWithOAuthToken() throws IOException {
+    @Test
+    void testWithOAuthToken() throws IOException {
         GitHub gh = GitHub.connectUsingOAuth(OAUTH_TOKEN);
 
         GHUser me = gh.getMyself();
 
-        GHOrganization org = gh.getOrganization(PARTICPATING_ORG);
+        GHOrganization org = gh.getOrganization(PARTICIPATING_ORG);
 
         Map<String, GHTeam> teams = org.getTeams();
 

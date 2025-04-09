@@ -24,29 +24,27 @@ THE SOFTWARE.
 
 package org.jenkinsci.plugins;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class GithubSecurityRealmTest {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-    @ClassRule
-    public final static JenkinsRule rule = new JenkinsRule();
+@WithJenkins
+class GithubSecurityRealmTest {
 
     @Test
-    public void testEquals_true() {
+    void testEquals_true(JenkinsRule rule) {
         GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
         GithubSecurityRealm b = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
         assertEquals(a, b);
     }
 
     @Test
-    public void testEquals_false() {
+    void testEquals_false(JenkinsRule rule) {
         GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org");
         GithubSecurityRealm b = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,repo");
         assertNotEquals(a, b);
@@ -54,7 +52,7 @@ public class GithubSecurityRealmTest {
     }
 
     @Test
-    public void testHasScope_true() {
+    void testHasScope_true(JenkinsRule rule) {
         GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,user,user:email");
         assertTrue(a.hasScope("user"));
         assertTrue(a.hasScope("read:org"));
@@ -62,25 +60,25 @@ public class GithubSecurityRealmTest {
     }
 
     @Test
-    public void testHasScope_false() {
+    void testHasScope_false(JenkinsRule rule) {
         GithubSecurityRealm a = new GithubSecurityRealm("http://jenkins.acme.com", "http://jenkins.acme.com/api/v3", "someid", "somesecret", "read:org,user,user:email");
         assertFalse(a.hasScope("somescope"));
     }
 
     @Test
-    public void testDescriptorImplGetDefaultGithubWebUri() {
+    void testDescriptorImplGetDefaultGithubWebUri(JenkinsRule rule) {
         GithubSecurityRealm.DescriptorImpl descriptor = new GithubSecurityRealm.DescriptorImpl();
         assertEquals("https://github.com", descriptor.getDefaultGithubWebUri());
     }
 
     @Test
-    public void testDescriptorImplGetDefaultGithubApiUri() {
+    void testDescriptorImplGetDefaultGithubApiUri(JenkinsRule rule) {
         GithubSecurityRealm.DescriptorImpl descriptor = new GithubSecurityRealm.DescriptorImpl();
         assertEquals("https://api.github.com", descriptor.getDefaultGithubApiUri());
     }
 
     @Test
-    public void testDescriptorImplGetDefaultOauthScopes() {
+    void testDescriptorImplGetDefaultOauthScopes(JenkinsRule rule) {
         GithubSecurityRealm.DescriptorImpl descriptor = new GithubSecurityRealm.DescriptorImpl();
         assertEquals("read:org,user:email,repo", descriptor.getDefaultOauthScopes());
     }
