@@ -49,7 +49,7 @@ class GithubAuthenticationTokenTest {
             assertEquals(deserializedToken.getAccessToken(), authenticationToken.getAccessToken());
             assertEquals(deserializedToken.getPrincipal(), authenticationToken.getPrincipal());
             assertEquals(deserializedToken.getGithubServer(), authenticationToken.getGithubServer());
-            assertEquals(deserializedToken.getMyself().getLogin(), deserializedToken.getMyself().getLogin());
+            assertEquals(deserializedToken.getMyself().getLogin(), authenticationToken.getMyself().getLogin());
         }
     }
 
