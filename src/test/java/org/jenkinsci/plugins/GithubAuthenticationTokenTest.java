@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ExtendWith(MockitoExtension.class)
 class GithubAuthenticationTokenTest {
 
-    @Mock(strictness = Mock.Strictness.LENIENT)
+    @Mock
     private GithubSecurityRealm securityRealm;
 
     @AfterEach
@@ -34,7 +34,7 @@ class GithubAuthenticationTokenTest {
         Jenkins jenkins = Mockito.mock(Jenkins.class);
         mockedJenkins.when(Jenkins::get).thenReturn(jenkins);
         Mockito.when(jenkins.getSecurityRealm()).thenReturn(securityRealm);
-        Mockito.when(securityRealm.getOauthScopes()).thenReturn("read:org");
+        Mockito.when(securityRealm.hasScope("read:org")).thenReturn(true);
     }
 
     @Test
