@@ -37,7 +37,7 @@ import hudson.security.AuthorizationStrategy;
 import java.util.Collection;
 import java.util.Collections;
 import jenkins.branch.MultiBranchProject;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.multibranch.BranchJobProperty;
 import org.kohsuke.stapler.DataBoundConstructor;

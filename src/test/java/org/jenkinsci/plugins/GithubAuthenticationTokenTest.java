@@ -1,7 +1,7 @@
 package org.jenkinsci.plugins;
 
 import jenkins.model.Jenkins;
-import org.apache.commons.lang.SerializationUtils;
+import org.apache.commons.lang3.SerializationUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
