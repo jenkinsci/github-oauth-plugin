@@ -695,19 +695,7 @@ public class GithubSecurityRealm extends AbstractPasswordBasedSecurityRealm {
          * Taken from hudson.security.HudsonPrivateSecurityRealm#loadUserByUsername(java.lang.String)
          */
         if (localUser != null) {
-            GHUser user;
-            try {
-                user = authToken.loadUser(username);
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-            Collection<GrantedAuthority> authorities;
-            if (user != null) {
-                authorities = authToken.getAuthorities();
-            } else {
-                authorities = List.of();
-            }
-            return new GithubOAuthUserDetails(username, authorities);
+            return new GithubOAuthUserDetails(username, authToken.getAuthorities());
         }
 
         try {
