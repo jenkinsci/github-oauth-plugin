@@ -469,7 +469,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         GithubUser user;
         try {
             user = usersByIdCache.getIfPresent(username);
-            if (gh != null && user == null && isAuthenticated()) {
+            if (user == null && isAuthenticated()) {
                 GHUser ghUser = getGitHub().getUser(username);
                 user = new GithubUser(ghUser);
                 usersByIdCache.put(username, user);
@@ -505,7 +505,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     @Nullable
     GHOrganization loadOrganization(@NonNull String organization) {
         try {
-            if (gh != null && isAuthenticated())
+            if (isAuthenticated())
                 return getGitHub().getOrganization(organization);
         } catch (IOException | RuntimeException e) {
             LOGGER.log(Level.FINEST, e.getMessage(), e);
@@ -516,7 +516,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
     @NonNull
     private RepoRights loadRepository(@NonNull final String repositoryName) {
       try {
-          if (gh != null && isAuthenticated() && (myRealm.hasScope("repo") || myRealm.hasScope("public_repo"))) {
+          if (isAuthenticated() && (myRealm.hasScope("repo") || myRealm.hasScope("public_repo"))) {
               Cache<String, RepoRights> repoNameToRightsCache = myRepositories();
               return repoNameToRightsCache.get(repositoryName, unused -> {
                         GHRepository repo;
