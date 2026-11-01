@@ -557,8 +557,7 @@ class GithubRequireOrganizationMembershipACLTest {
     @Test
     void testAgentUserCanCreateConnectAndConfigureAgents() {
         GithubAuthenticationToken authenticationToken = Mockito.mock(GithubAuthenticationToken.class);
-        Mockito.when(authenticationToken.isAuthenticated()).thenReturn(true);
-        Mockito.when(authenticationToken.getName()).thenReturn("agent");
+        setupAbstractAuthenticationTokenGetNameAndIsAuthenticatedStubs(authenticationToken, "agent");
         GithubRequireOrganizationMembershipACL acl = createACL();
 
         assertTrue(acl.hasPermission2(authenticationToken, Computer.CREATE));
@@ -569,8 +568,7 @@ class GithubRequireOrganizationMembershipACLTest {
     @Test
     void testAuthenticatedCanNotCreateConnectAndConfigureAgents() {
         GithubAuthenticationToken authenticationToken = Mockito.mock(GithubAuthenticationToken.class);
-        Mockito.when(authenticationToken.isAuthenticated()).thenReturn(true);
-        Mockito.when(authenticationToken.getName()).thenReturn("authenticated");
+        setupAbstractAuthenticationTokenGetNameAndIsAuthenticatedStubs(authenticationToken, "authenticated");
         GithubRequireOrganizationMembershipACL acl = createACL();
 
         assertFalse(acl.hasPermission2(authenticationToken, Computer.CREATE));
@@ -680,5 +678,10 @@ class GithubRequireOrganizationMembershipACLTest {
 
             assertFalse(acl.hasPermission2(ANONYMOUS_USER, Item.READ));
         }
+    }
+
+    private void setupAbstractAuthenticationTokenGetNameAndIsAuthenticatedStubs(GithubAuthenticationToken authenticationToken, String getNameReturnValue) {
+        Mockito.when(authenticationToken.isAuthenticated()).thenReturn(true);
+        Mockito.when(authenticationToken.getName()).thenReturn(getNameReturnValue);
     }
 }
