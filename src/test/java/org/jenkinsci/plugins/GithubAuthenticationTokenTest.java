@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 @ExtendWith(MockitoExtension.class)
@@ -65,13 +66,39 @@ class GithubAuthenticationTokenTest {
             GHUser bob = Mockito.mock(GHUser.class);
             Mockito.when(gh.getUser("bob")).thenReturn(bob);
 
-            // A sign-in caches its token's owner, then clears that user's other cached entries.
             new GithubAuthenticationToken("accessToken", "https://api.github.com", true);
-            // A token rebuilt from the same access token within the cache window, as user impersonation does, reads
-            // its owner from the cache and has not created its GitHub client.
             GithubAuthenticationToken token = new GithubAuthenticationToken("accessToken", "https://api.github.com");
 
             assertSame(bob, token.loadUser("bob"));
+        }
+    }
+
+    @Test
+    void testLoadUserReturnsCachedUser() throws IOException {
+        try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
+             MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
+            mockJenkins(mockedJenkins);
+            GitHub gh = mockGitHub(mockedGitHubBuilder);
+            GHMyself me = mockGHMyselfAs(gh, "bob");
+            GithubAuthenticationToken token = new GithubAuthenticationToken("accessToken", "https://api.github.com");
+
+            assertSame(me, token.loadUser("bob"));
+            Mockito.verify(gh, Mockito.never()).getUser(Mockito.anyString());
+        }
+    }
+
+    @Test
+    void testLoadUserWhenNotAuthenticated() throws IOException {
+        try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
+             MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
+            mockJenkins(mockedJenkins);
+            GitHub gh = mockGitHub(mockedGitHubBuilder);
+            mockGHMyselfAs(gh, "bob");
+            GithubAuthenticationToken token = new GithubAuthenticationToken("accessToken", "https://api.github.com");
+            token.setAuthenticated(false);
+
+            assertNull(token.loadUser("alice"));
+            Mockito.verify(gh, Mockito.never()).getUser(Mockito.anyString());
         }
     }
 
