@@ -469,7 +469,7 @@ public class GithubAuthenticationToken extends AbstractAuthenticationToken {
         GithubUser user;
         try {
             user = usersByIdCache.getIfPresent(username);
-            if (gh != null && user == null && isAuthenticated()) {
+            if (user == null && isAuthenticated()) {
                 GHUser ghUser = getGitHub().getUser(username);
                 user = new GithubUser(ghUser);
                 usersByIdCache.put(username, user);
