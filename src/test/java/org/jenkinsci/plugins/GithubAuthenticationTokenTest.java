@@ -6,6 +6,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kohsuke.github.GHMyself;
+import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
@@ -22,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ExtendWith(MockitoExtension.class)
 class GithubAuthenticationTokenTest {
 
-    @Mock(strictness = Mock.Strictness.LENIENT)
+    @Mock
     private GithubSecurityRealm securityRealm;
 
     @AfterEach
@@ -34,7 +35,7 @@ class GithubAuthenticationTokenTest {
         Jenkins jenkins = Mockito.mock(Jenkins.class);
         mockedJenkins.when(Jenkins::get).thenReturn(jenkins);
         Mockito.when(jenkins.getSecurityRealm()).thenReturn(securityRealm);
-        Mockito.when(securityRealm.getOauthScopes()).thenReturn("read:org");
+        Mockito.when(securityRealm.hasScope("read:org")).thenReturn(true);
     }
 
     @Test
@@ -42,18 +43,34 @@ class GithubAuthenticationTokenTest {
         try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
              MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
             mockJenkins(mockedJenkins);
-            mockGHMyselfAs(mockedGitHubBuilder, "bob");
+            GitHub gh = mockGH(mockedGitHubBuilder);
+            mockGHMyselfAs(gh, "bob");
             GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
             byte[] serializedToken = SerializationUtils.serialize(authenticationToken);
             GithubAuthenticationToken deserializedToken = (GithubAuthenticationToken) SerializationUtils.deserialize(serializedToken);
             assertEquals(deserializedToken.getAccessToken(), authenticationToken.getAccessToken());
             assertEquals(deserializedToken.getPrincipal(), authenticationToken.getPrincipal());
             assertEquals(deserializedToken.getGithubServer(), authenticationToken.getGithubServer());
-            assertEquals(deserializedToken.getMyself().getLogin(), deserializedToken.getMyself().getLogin());
+            assertEquals(deserializedToken.getMyself().getLogin(), authenticationToken.getMyself().getLogin());
         }
     }
 
-    private static GHMyself mockGHMyselfAs(MockedStatic<GitHubBuilder> mockedGitHubBuilder, String username) throws IOException {
+    @Test
+    void testLoadUser() throws IOException {
+        try (MockedStatic<Jenkins> mockedJenkins = Mockito.mockStatic(Jenkins.class);
+             MockedStatic<GitHubBuilder> mockedGitHubBuilder = Mockito.mockStatic(GitHubBuilder.class)) {
+            mockJenkins(mockedJenkins);
+            GitHub gh = mockGH(mockedGitHubBuilder);
+            mockGHMyselfAs(gh, "bob");
+            mockGHUser(gh, "charlie");
+            GithubAuthenticationToken authenticationToken = new GithubAuthenticationToken("accessToken", "https://api.github.com");
+            byte[] serializedToken = SerializationUtils.serialize(authenticationToken);
+            GithubAuthenticationToken deserializedToken = (GithubAuthenticationToken) SerializationUtils.deserialize(serializedToken);
+            assertEquals(deserializedToken.loadUser("charlie"), authenticationToken.loadUser("charlie"));
+        }
+    }
+
+    private static GitHub mockGH(MockedStatic<GitHubBuilder> mockedGitHubBuilder) throws IOException {
         GitHub gh = Mockito.mock(GitHub.class);
         GitHubBuilder builder = Mockito.mock(GitHubBuilder.class);
         mockedGitHubBuilder.when(GitHubBuilder::fromEnvironment).thenReturn(builder);
@@ -62,9 +79,19 @@ class GithubAuthenticationTokenTest {
         Mockito.when(builder.withRateLimitHandler(RateLimitHandler.FAIL)).thenReturn(builder);
         Mockito.when(builder.withConnector(Mockito.any(OkHttpGitHubConnector.class))).thenReturn(builder);
         Mockito.when(builder.build()).thenReturn(gh);
+        return gh;
+    }
+
+    private static GHMyself mockGHMyselfAs(GitHub gh, String username) throws IOException {
         GHMyself me = Mockito.mock(GHMyself.class);
         Mockito.when(gh.getMyself()).thenReturn(me);
         Mockito.when(me.getLogin()).thenReturn(username);
         return me;
+    }
+
+    private static GHUser mockGHUser(GitHub gh, String username) throws IOException {
+        GHUser user = Mockito.mock(GHUser.class);
+        Mockito.when(gh.getUser(username)).thenReturn(user);
+        return user;
     }
 }
